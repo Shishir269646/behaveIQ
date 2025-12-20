@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>My Store</title>
+</head>
+
+<body>
+    <!-- Personalized content -->
+    <div class="hero">
+        <h1 data-pf-headline>Default Headline</h1>
+        <p data-pf-subheadline>Default subheadline</p>
+        <button data-pf-cta onclick="PersonaFlow.trackConversion('signup')">
+            Default CTA
+        </button>
+    </div>
+
+    <!-- PersonaFlow SDK -->
+    <script>
+        (function () {
+            var script = document.createElement('script');
+            script.src = 'https://cdn.personaflow.ai/sdk.js';
+            script.onload = function () {
+                PersonaFlow.init({
+                    siteId: 'site_abc123',
+                    apiKey: 'pk_xyz789',
+                    apiUrl: 'https://api.personaflow.ai/api'
+                });
+            };
+            document.body.appendChild(script);
+        })();
+    </script>
+</body>
+
+</html>

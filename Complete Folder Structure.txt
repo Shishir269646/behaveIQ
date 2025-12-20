@@ -1,0 +1,153 @@
+
+
+behaveiq-platform/
+│
+├── backend/                          # Node.js Backend (JavaScript)
+│   ├── src/
+│   │   ├── config/
+│   │   │   ├── database.js          # MongoDB connection
+│   │   │   ├── redis.js             # Redis configuration
+│   │   │   └── env.js               # Environment variables
+│   │   │
+│   │   ├── models/                   # Data Models
+│   │   │   ├── User.js
+│   │   │   ├── Website.js
+│   │   │   ├── Session.js
+│   │   │   ├── Event.js
+│   │   │   ├── Persona.js
+│   │   │   ├── Experiment.js
+│   │   │   └── Insight.js
+│   │   │
+│   │   ├── controllers/              # Business Logic
+│   │   │   ├── authController.js
+│   │   │   ├── websiteController.js
+│   │   │   ├── eventController.js
+│   │   │   ├── personaController.js
+│   │   │   ├── dashboardController.js
+│   │   │   ├── experimentController.js
+│   │   │   └── sdkController.js
+│   │   │
+│   │   ├── routes/                   # API Routes
+│   │   │   ├── auth.js
+│   │   │   ├── websites.js
+│   │   │   ├── events.js
+│   │   │   ├── personas.js
+│   │   │   ├── dashboard.js
+│   │   │   ├── experiments.js
+│   │   │   └── sdk.js
+│   │   │
+│   │   ├── services/                 # Service Layer
+│   │   │   ├── intentService.js     # Intent scoring logic
+│   │   │   ├── personalizationService.js
+│   │   │   ├── mlServiceClient.js   # ML service communication
+│   │   │   ├── cacheService.js      # Redis operations
+│   │   │   └── analyticsService.js
+│   │   │
+│   │   ├── middleware/
+│   │   │   ├── auth.js              # JWT authentication
+│   │   │   ├── rateLimiter.js
+│   │   │   ├── validation.js
+│   │   │   └── errorHandler.js
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── logger.js
+│   │   │   ├── helpers.js
+│   │   │   └── constants.js
+│   │   │
+│   │   └── app.js                   # Express app setup
+│   │
+│   ├── package.json
+│   └── .env
+│
+├── frontend/                         # Next.js Frontend (TypeScript)
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── (auth)/
+│   │   │   │   ├── login/
+│   │   │   │   └── signup/
+│   │   │   ├── dashboard/
+│   │   │   │   ├── page.tsx
+│   │   │   │   ├── websites/
+│   │   │   │   ├── personas/
+│   │   │   │   ├── experiments/
+│   │   │   │   ├── insights/
+│   │   │   │   └── settings/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   │
+│   │   ├── components/
+│   │   │   ├── ui/                  # Reusable UI components
+│   │   │   ├── dashboard/
+│   │   │   │   ├── StatCard.tsx
+│   │   │   │   ├── PersonaCard.tsx
+│   │   │   │   ├── HeatmapViewer.tsx
+│   │   │   │   ├── IntentChart.tsx
+│   │   │   │   └── ExperimentPanel.tsx
+│   │   │   └── layout/
+│   │   │       ├── Navbar.tsx
+│   │   │       └── Sidebar.tsx
+│   │   │
+│   │   ├── lib/
+│   │   │   ├── api/                 # API client functions
+│   │   │   │   ├── auth.ts
+│   │   │   │   ├── websites.ts
+│   │   │   │   ├── personas.ts
+│   │   │   │   ├── events.ts
+│   │   │   │   ├── dashboard.ts
+│   │   │   │   └── experiments.ts
+│   │   │   ├── hooks/               # Custom React hooks
+│   │   │   ├── utils/
+│   │   │   └── types/               # TypeScript types
+│   │   │
+│   │   └── styles/
+│   │       └── globals.css
+│   │
+│   ├── package.json
+│   ├── tsconfig.json
+│   └── next.config.js
+│
+├── sdk/                             # JavaScript SDK
+│   ├── src/
+│   │   ├── core/
+│   │   │   ├── tracker.js          # Event tracking
+│   │   │   ├── collector.js        # Data collection
+│   │   │   └── injector.js         # Content injection
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── storage.js
+│   │   │   ├── network.js
+│   │   │   └── dom.js
+│   │   │
+│   │   ├── config.js
+│   │   └── index.js                # Main SDK entry
+│   │
+│   ├── dist/                       # Compiled/minified SDK
+│   ├── package.json
+│   └── webpack.config.js
+│
+├── ml-service/                      # Python ML Service
+│   ├── app/
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   └── routes.py           # FastAPI routes
+│   │   │
+│   │   ├── models/
+│   │   │   ├── clustering.py       # User clustering
+│   │   │   ├── intent_scoring.py   # Intent prediction
+│   │   │   └── recommendation.py   # Content recommendation
+│   │   │
+│   │   ├── services/
+│   │   │   ├── data_processor.py
+│   │   │   ├── feature_engineer.py
+│   │   │   └── llm_service.py      # OpenAI/Gemini integration
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── helpers.py
+│   │   │   └── config.py
+│   │   │
+│   │   └── main.py                 # FastAPI app
+│   │
+│   ├── requirements.txt
+│   └── Dockerfile
+│
+└── docker-compose.yml              # Full stack orchestration

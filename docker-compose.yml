@@ -1,0 +1,102 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: behaveiq-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: behaveiq
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - behaveiq-network
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: behaveiq-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - behaveiq-network
+    command: redis-server --appendonly yes
+
+  # Backend API
+  backend:
+    build: ./backend
+    container_name: behaveiq-backend
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://admin:password123@mongodb:27017/behaveiq?authSource=admin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=your-jwt-secret-change-me
+      - JWT_EXPIRE=30d
+      - FRONTEND_URL=http://localhost:3000
+      - ML_SERVICE_URL=http://ml-service:8000
+    depends_on:
+      - mongodb
+      - redis
+      - ml-service
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - behaveiq-network
+
+  # ML Service
+  ml-service:
+    build: ./ml-service
+    container_name: behaveiq-ml
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+      - HOST=0.0.0.0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./ml-service:/app
+    networks:
+      - behaveiq-network
+
+  # Frontend (Next.js)
+  frontend:
+    build: ./frontend
+    container_name: behaveiq-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1
+      - NEXT_PUBLIC_SDK_URL=http://localhost:5000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - behaveiq-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+
+networks:
+  behaveiq-network:
+    driver: bridge

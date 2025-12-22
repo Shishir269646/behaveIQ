@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "ES2017",
     "lib": [
       "dom",
       "dom.iterable",
@@ -15,7 +15,7 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "react-jsx",
+    "jsx": "preserve",
     "incremental": true,
     "plugins": [
       {
@@ -24,7 +24,7 @@
     ],
     "paths": {
       "@/*": [
-        "./src/*"
+        "./*"
       ]
     }
   },
@@ -33,9 +33,35 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
   ],
   "exclude": [
     "node_modules"
   ]
 }
+/* {
+npx shadcn init
+
+npx shadcn add button
+npx shadcn add card
+npx shadcn add input
+npx shadcn add label
+npx shadcn add select
+npx shadcn add dialog
+npx shadcn add dropdown-menu
+npx shadcn add table
+npx shadcn add tabs
+npx shadcn add badge
+npx shadcn add avatar
+npx shadcn add separator
+npx shadcn add alert
+npx shadcn add skeleton
+npx shadcn add switch
+npx shadcn add textarea
+npx shadcn add toast
+npx shadcn add tooltip
+npx shadcn add progress
+npx shadcn add scroll-area
+npx shadcn add chart
+} */

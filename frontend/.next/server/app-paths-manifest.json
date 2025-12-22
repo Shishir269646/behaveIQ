@@ -1,14 +1,9 @@
 {
+  "/page": "app/page.js",
   "/(auth)/login/page": "app/(auth)/login/page.js",
   "/(auth)/register/page": "app/(auth)/register/page.js",
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/sites/[siteId]/analytics/page": "app/(dashboard)/sites/[siteId]/analytics/page.js",
-  "/(dashboard)/sites/[siteId]/page": "app/(dashboard)/sites/[siteId]/page.js",
-  "/(dashboard)/sites/[siteId]/settings/page": "app/(dashboard)/sites/[siteId]/settings/page.js",
-  "/(dashboard)/sites/[siteId]/variants/page": "app/(dashboard)/sites/[siteId]/variants/page.js",
-  "/(dashboard)/sites/page": "app/(dashboard)/sites/page.js",
-  "/_global-error/page": "app/_global-error/page.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/test/route": "app/api/test/route.js",
-  "/page": "app/page.js"
+  "/(dashboard)/dashboard/websites/page": "app/(dashboard)/dashboard/websites/page.js",
+  "/(dashboard)/dashboard/personas/page": "app/(dashboard)/dashboard/personas/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js"
 }

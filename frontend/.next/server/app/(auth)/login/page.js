@@ -1,15 +1,6 @@
-var R=require("../../../chunks/ssr/[turbopack]_runtime.js")("server/app/(auth)/login/page.js")
-R.c("server/chunks/ssr/[root-of-the-server]__313c778a._.js")
-R.c("server/chunks/ssr/node_modules_next_dist_cc88faaa._.js")
-R.c("server/chunks/ssr/_74d128cb._.js")
-R.c("server/chunks/ssr/[root-of-the-server]__658c3d2b._.js")
-R.c("server/chunks/ssr/node_modules_next_dist_174ae28d._.js")
-R.c("server/chunks/ssr/node_modules_next_dist_a6fcb974._.js")
-R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_global-error_ece394eb.js")
-R.c("server/chunks/ssr/[root-of-the-server]__6515bb8b._.js")
-R.c("server/chunks/ssr/node_modules_next_dist_client_components_9774470f._.js")
-R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_forbidden_45780354.js")
-R.c("server/chunks/ssr/node_modules_next_dist_client_components_builtin_unauthorized_15817684.js")
-R.c("server/chunks/ssr/_next-internal_server_app_(auth)_login_page_actions_bf14911e.js")
-R.m(38413)
-module.exports=R.m(38413).exports
+const CHUNK_PUBLIC_PATH = "server/app/(auth)/login/page.js";
+const runtime = require("../../../chunks/[turbopack]_runtime.js");
+runtime.loadChunk("server/chunks/node_modules_265594._.js");
+runtime.loadChunk("server/chunks/_526cae._.js");
+runtime.getOrInstantiateRuntimeModule("[project]/.next-internal/server/app/(auth)/login/page/actions.js (ecmascript)", CHUNK_PUBLIC_PATH);
+module.exports = runtime.getOrInstantiateRuntimeModule("[project]/node_modules/next/dist/esm/build/templates/app-page.js/(COMPONENT_0)/[project]/app/(auth)/login/page.tsx [app-rsc] (ecmascript, Next.js server component)/(COMPONENT_1)/[project]/app/layout.tsx [app-rsc] (ecmascript, Next.js server component)/(COMPONENT_2)/[project]/node_modules/next/dist/client/components/not-found-error.js [app-rsc] (ecmascript, Next.js server component) (ecmascript) {facade}", CHUNK_PUBLIC_PATH).exports;

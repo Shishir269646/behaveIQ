@@ -18,6 +18,7 @@ const personaRoutes = require('./routes/personas');
 const dashboardRoutes = require('./routes/dashboard');
 const experimentRoutes = require('./routes/experiments');
 const sdkRoutes = require('./routes/sdk');
+const heatmapRoutes = require('./routes/heatmap');
 
 const app = express();
 
@@ -40,7 +41,7 @@ if (process.env.NODE_ENV === 'development') {
 // Rate Limiting
 const limiter = rateLimit({
     windowMs: (process.env.RATE_LIMIT_WINDOW || 15) * 60 * 1000,
-    max: process.env.RATE_LIMIT_MAX || 100,
+    max: process.env.RATE_LIMIT_MAX || 1000000000000000000000000000000000000000000000000000000000000000, // Increased for testing/development
     message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
@@ -60,6 +61,7 @@ app.use('/api/v1/personas', personaRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/experiments', experimentRoutes);
 app.use('/api/v1/sdk', sdkRoutes);
+app.use('/api/v1/heatmap', heatmapRoutes);
 
 // Health Check
 app.get('/health', (req, res) => {
@@ -81,16 +83,30 @@ app.use((req, res) => {
 // Error Handler
 app.use(errorHandler);
 
+const { analyzeActiveExperiments } = require('./services/jobService');
+
+// ... (rest of the file)
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`
-╔═══════════════════════════════════════════════════════════╗
-║           🚀 BEHAVEIQ Backend Server                     ║
-║           Running on PORT: ${PORT}                          ║
-║           Environment: ${process.env.NODE_ENV}                    ║
-╚═══════════════════════════════════════════════════════════╝
+╔════════════════════════════════════════════════════════════════╗
+║           🚀 BEHAVEIQ Backend Server                         ║
+║           Running on PORT: ${PORT}                              ║
+║           Environment: ${process.env.NODE_ENV}                        ║
+╚════════════════════════════════════════════════════════════════╝
   `);
+
+    // --- Auto-Pilot A/B Testing Job ---
+    // Run the job immediately on start, then at a regular interval.
+    console.log('🚀 Initializing Auto-Pilot A/B testing job...');
+    analyzeActiveExperiments();
+
+    const JOB_INTERVAL = process.env.JOB_INTERVAL_HOURS || 1; // Default to 1 hour
+    setInterval(analyzeActiveExperiments, JOB_INTERVAL * 60 * 60 * 1000);
+
+    console.log(`✅ Auto-Pilot job scheduled to run every ${JOB_INTERVAL} hour(s).`);
 });
 
-module.exports = app;
+module.exports = server;

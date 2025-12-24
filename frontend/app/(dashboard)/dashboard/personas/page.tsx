@@ -8,19 +8,31 @@ import { EmptyState } from '@/components/EmptyState';
 import { useWebsites } from '@/hooks/useWebsites';
 import { usePersonas } from '@/hooks/usePersonas';
 import { Users, Sparkles } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 export default function PersonasPage() {
     const { websites } = useWebsites();
     const [selectedWebsite, setSelectedWebsite] = useState<string | null>(
         websites[0]?._id || null
     );
-    const { personas, loading, fetchPersonas, discoverPersonas } = usePersonas();
+    const { personas, loading, error, success, fetchPersonas, discoverPersonas, clearSuccess } = usePersonas();
 
     useEffect(() => {
         if (selectedWebsite) {
             fetchPersonas(selectedWebsite);
         }
     }, [selectedWebsite, fetchPersonas]);
+
+    useEffect(() => {
+        if (success) {
+            toast.success(success);
+            clearSuccess();
+        }
+        if (error) {
+            toast.error(error);
+            clearSuccess();
+        }
+    }, [success, error, clearSuccess]);
 
     const handleDiscover = async () => {
         await discoverPersonas(selectedWebsite || '');

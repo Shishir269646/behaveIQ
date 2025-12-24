@@ -9,12 +9,13 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { formatNumber, formatPercentage } from '@/lib/utils';
 import { Users, MousePointer, TrendingUp, Target, Activity } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { toast } from 'react-hot-toast';
 
 export default function DashboardPage() {
     const { websites, loading: websitesLoading } = useWebsites();
     const [selectedWebsite, setSelectedWebsite] = useState<string | null>(null);
     const [timeRange, setTimeRange] = useState('7d');
-    const { overview, realtime, loading, fetchOverview, fetchRealtime } = useDashboard();
+    const { overview, realtime, loading, error, success, fetchOverview, fetchRealtime, clearSuccess } = useDashboard();
 
     useEffect(() => {
         if (selectedWebsite) {
@@ -28,6 +29,17 @@ export default function DashboardPage() {
             setSelectedWebsite(websites[0]._id);
         }
     }, [websites]);
+
+    useEffect(() => {
+        if (success) {
+            toast.success(success);
+            clearSuccess();
+        }
+        if (error) {
+            toast.error(error);
+            clearSuccess();
+        }
+    }, [success, error, clearSuccess]);
 
     if (websitesLoading) {
         return <div>Loading...</div>;

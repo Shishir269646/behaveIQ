@@ -1,11 +1,11 @@
+const logger = require('../utils/logger');
+
 const errorHandler = (err, req, res, next) => {
     let error = { ...err };
     error.message = err.message;
 
-    // Log to console for dev
-    if (process.env.NODE_ENV === 'development') {
-        console.error('Error:', err);
-    }
+    // Log the error
+    logger('error', err.message, err);
 
     // Mongoose bad ObjectId
     if (err.name === 'CastError') {
@@ -31,5 +31,7 @@ const errorHandler = (err, req, res, next) => {
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 };
+
+module.exports = errorHandler;
 
 module.exports = errorHandler;

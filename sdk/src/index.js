@@ -1,163 +1,136 @@
 import Tracker from './core/tracker';
 import Injector from './core/injector';
 import Storage from './utils/storage';
-import Network from './utils/network';
 import { generateFingerprint, generateSessionId } from './utils/helpers';
 
+/**
+ * @class BEHAVEIQ
+ * @description The main class for the BehaveIQ SDK.
+ * It handles both synchronous personalization and asynchronous event tracking.
+ */
 class BEHAVEIQ {
     constructor() {
-        this.apiKey = null;
-        this.config = {};
-        this.tracker = null;
-        this.injector = null;
-        this.sessionId = null;
-        this.fingerprint = null;
         this.isInitialized = false;
-        this.apiUrl = 'https://api.behaveiq.com/api/v1'; // Change to your API URL
+        this.apiUrl = 'https://api.behaveiq.com/api/v1'; // Default API URL
     }
 
     /**
-     * Initialize SDK
+     * Initializes the SDK.
+     * This is the main entry point. For zero-flicker personalization, this method
+     * must be called from a synchronous script in the <head> of the page.
+     * @param {string} apiKey - Your project's API key.
+     * @param {Object} [options={}] - Configuration options.
+     * @param {Array<Object>} [options.personalizationRules=[]] - Personalization rules to apply synchronously.
+     * @param {Object} [options.config={}] - Other configuration like tracking settings.
      */
-    init(apiKey, config = {}) {
+    init(apiKey, options = {}) {
         if (this.isInitialized) {
             console.warn('BEHAVEIQ: Already initialized');
             return;
         }
 
-        this.apiKey = apiKey;
-        this.config = {
-            trackMouse: config.trackMouse !== false,
-            trackScroll: config.trackScroll !== false,
-            trackClicks: config.trackClicks !== false,
-            autoPersonalize: config.autoPersonalize !== false,
-            debug: config.debug || false,
-            apiUrl: config.apiUrl || this.apiUrl
-        };
+        const { personalizationRules = [], config = {} } = options;
 
-        // Generate fingerprint and session ID
-        this.fingerprint = generateFingerprint();
-        this.sessionId = Storage.get('behaveiq_session') || generateSessionId();
-        Storage.set('behaveiq_session', this.sessionId, 30); // 30 minutes
-
-        // Initialize tracker
-        this.tracker = new Tracker({
-            apiKey: this.apiKey,
-            sessionId: this.sessionId,
-            fingerprint: this.fingerprint,
-            apiUrl: this.config.apiUrl,
-            config: this.config
-        });
-
-        // Initialize injector
-        this.injector = new Injector({
-            apiKey: this.apiKey,
-            sessionId: this.sessionId,
-            apiUrl: this.config.apiUrl
-        });
-
-        // Start tracking
-        if (this.config.trackMouse) {
-            this.tracker.trackMouse();
+        // --- 1. Synchronous Personalization (Zero-Flicker) ---
+        // This part runs immediately to prevent content flicker.
+        try {
+            const injector = new Injector();
+            injector.apply(personalizationRules); // This method also unhides the body.
+        } catch (e) {
+            console.error('BEHAVEIQ: Critical error during personalization. Unhiding page.', e);
+            // Ensure the page is always visible even if personalization fails.
+            new Injector().unhideBody();
         }
 
-        if (this.config.trackScroll) {
-            this.tracker.trackScroll();
-        }
+        // --- 2. Asynchronous Tracking Initialization ---
+        // This part can run without blocking the page render.
+        // We wrap it in a function to be called after the current script stack clears.
+        setTimeout(() => {
+            this.apiKey = apiKey;
+            this.config = {
+                trackMouse: config.trackMouse !== false,
+                trackScroll: config.trackScroll !== false,
+                trackClicks: config.trackClicks !== false,
+                debug: config.debug || false,
+                apiUrl: config.apiUrl || this.apiUrl
+            };
 
-        if (this.config.trackClicks) {
-            this.tracker.trackClicks();
-        }
+            // Generate fingerprint and session ID
+            this.fingerprint = generateFingerprint();
+            this.sessionId = Storage.get('behaveiq_session') || generateSessionId();
+            Storage.set('behaveiq_session', this.sessionId, 30); // 30 minutes
 
-        // Track page view
-        this.tracker.trackPageView();
-
-        // Auto personalize
-        if (this.config.autoPersonalize) {
-            this.personalize();
-        }
-
-        // Track page unload
-        this.tracker.trackExit();
-
-        this.isInitialized = true;
-
-        if (this.config.debug) {
-            console.log('BEHAVEIQ initialized:', {
+            // Initialize tracker
+            this.tracker = new Tracker({
                 apiKey: this.apiKey,
                 sessionId: this.sessionId,
-                fingerprint: this.fingerprint
+                fingerprint: this.fingerprint,
+                apiUrl: this.config.apiUrl,
+                config: this.config
             });
-        }
+            
+            // Start tracking basic events
+            this.tracker.trackPageView();
+            this.tracker.trackExit();
+
+            if (this.config.trackScroll) this.tracker.trackScroll();
+            if (this.config.trackClicks) this.tracker.trackClicks();
+            if (this.config.trackMouse) this.tracker.trackMouse();
+
+            this.isInitialized = true;
+
+            if (this.config.debug) {
+                console.log('BEHAVEIQ tracking initialized:', {
+                    apiKey: this.apiKey,
+                    sessionId: this.sessionId
+                });
+            }
+        }, 0);
     }
 
     /**
-     * Track custom event
+     * Tracks a custom event.
+     * @param {string} eventName - The name of the event.
+     * @param {Object} [metadata={}] - Custom data associated with the event.
      */
     track(eventName, metadata = {}) {
-        if (!this.isInitialized) {
-            console.error('BEHAVEIQ: Not initialized. Call init() first.');
+        // Queue the event if the SDK is not yet initialized.
+        if (!this.isInitialized || !this.tracker) {
+            (this._q = this._q || []).push(['track', eventName, metadata]);
             return;
         }
-
         this.tracker.trackCustomEvent(eventName, metadata);
     }
-
+    
     /**
-     * Get current persona
-     */
-    async getPersona() {
-        if (!this.isInitialized) {
-            console.error('BEHAVEIQ: Not initialized.');
-            return null;
-        }
-
-        try {
-            const response = await Network.get(
-                `${this.config.apiUrl}/sdk/personalize/${this.apiKey}/${this.sessionId}`
-            );
-            return response.personaType || null;
-        } catch (error) {
-            console.error('BEHAVEIQ: Error getting persona:', error);
-            return null;
-        }
-    }
-
-    /**
-     * Apply personalization
-     */
-    async personalize() {
-        if (!this.isInitialized) {
-            console.error('BEHAVEIQ: Not initialized.');
-            return;
-        }
-
-        try {
-            await this.injector.applyPersonalization();
-        } catch (error) {
-            console.error('BEHAVEIQ: Personalization error:', error);
-        }
-    }
-
-    /**
-     * Get current session ID
+     * Gets the current session ID.
      */
     getSessionId() {
         return this.sessionId;
     }
 }
 
-// Create global instance
-const behaveiq = new BEHAVEIQ();
-
-// Export for module systems
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = behaveiq;
-}
-
-// Make available globally
+// --- Global Setup ---
+// Create a global instance and a command queue.
+// This ensures that any `BEHAVEIQ.track()` calls made before `init()` is complete
+// are captured and executed later.
+const instance = new BEHAVEIQ();
 if (typeof window !== 'undefined') {
-    window.BEHAVEIQ = behaveiq;
+    const queue = window.BEHAVEIQ && window.BEHAVEIQ._q ? window.BEHAVEIQ._q : [];
+    window.BEHAVEIQ = instance;
+    window.BEHAVEIQ._q = queue; // Restore queue
+
+    // Process any queued commands
+    setTimeout(() => {
+        if (instance.isInitialized) {
+            while (window.BEHAVEIQ._q.length > 0) {
+                const [method, ...args] = window.BEHAVEIQ._q.shift();
+                if (typeof instance[method] === 'function') {
+                    instance[method](...args);
+                }
+            }
+        }
+    }, 100);
 }
 
-export default behaveiq;
+export default instance;

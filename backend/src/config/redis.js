@@ -29,6 +29,7 @@ exports.connectRedis = async () => {
 
     } catch (error) {
         console.error(`❌ Redis connection failed: ${error.message}`);
+        process.exit(1);
     }
 };
 

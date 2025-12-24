@@ -46,7 +46,7 @@ exports.discoverPersonas = asyncHandler(async (req, res) => {
     });
 
     if (!website) {
-        return res.status(404).json({
+        return res.status(405).json({
             success: false,
             message: 'Website not found'
         });

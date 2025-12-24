@@ -9,7 +9,7 @@ const {
     getSDKScript
 } = require('../controllers/websiteController');
 const { protect } = require('../middleware/auth');
-const { websiteValidation, validate } = require('../middleware/validation');
+const { websiteValidation, updateWebsiteValidation, validate } = require('../middleware/validation');
 
 router.use(protect); // All routes require authentication
 
@@ -19,7 +19,7 @@ router.route('/')
 
 router.route('/:id')
     .get(getWebsite)
-    .patch(updateWebsite)
+    .patch(updateWebsiteValidation, validate, updateWebsite)
     .delete(deleteWebsite);
 
 router.get('/:id/sdk-script', getSDKScript);

@@ -26,3 +26,8 @@ exports.websiteValidation = [
     body('name').notEmpty().trim().withMessage('Website name is required'),
     body('domain').isURL().withMessage('Valid domain URL is required'),
 ];
+
+exports.updateWebsiteValidation = [
+    body('name').optional().notEmpty().trim().withMessage('Website name is required'),
+    body('domain').optional().isURL().withMessage('Valid domain URL is required'),
+];

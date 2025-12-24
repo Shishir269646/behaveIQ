@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,7 @@ import { Globe, Plus, Copy, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 export default function WebsitesPage() {
-    const { websites, loading, createWebsite, deleteWebsite } = useWebsites();
+    const { websites, loading, createWebsite, deleteWebsite, success, clearSuccess, fetchWebsites } = useWebsites();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [selectedWebsite, setSelectedWebsite] = useState<string | null>(null);
@@ -22,19 +22,27 @@ export default function WebsitesPage() {
         name: '',
         domain: '',
         industry: '',
+        defaultMessage: '',
     });
 
-    const handleCreate = async () => {
-        try {
-            const result = await createWebsite(formData);
-            setIsCreateOpen(false);
-            setFormData({ name: '', domain: '', industry: '' });
+    useEffect(() => {
 
-            // Show SDK script in dialog
-            toast.success('Website created! Copy the SDK script to your website.');
-        } catch (error) {
-            // Error handled in hook
+        if (!websites || websites.length === 0) {
+            fetchWebsites();
         }
+    }, [fetchWebsites, websites]);
+
+    useEffect(() => {
+        if (success) {
+            toast.success(success);
+            clearSuccess();
+        }
+    }, [success, clearSuccess]);
+
+    const handleCreate = async () => {
+        await createWebsite(formData, formData.defaultMessage);
+        setIsCreateOpen(false);
+        setFormData({ name: '', domain: '', industry: '', defaultMessage: '' });
     };
 
     const handleDelete = async () => {
@@ -190,6 +198,16 @@ export default function WebsitesPage() {
                                 placeholder="E-commerce"
                                 value={formData.industry}
                                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                            />
+                        </div>
+
+                        <div>
+                            <Label htmlFor="defaultMessage">Default Message (Optional)</Label>
+                            <Input
+                                id="defaultMessage"
+                                placeholder="Welcome to our site!"
+                                value={formData.defaultMessage}
+                                onChange={(e) => setFormData({ ...formData, defaultMessage: e.target.value })}
                             />
                         </div>
                     </div>

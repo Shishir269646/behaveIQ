@@ -19,7 +19,8 @@ import {
     Users,
     FlaskConical,
     Settings,
-    LogOut
+    LogOut,
+    AreaChart
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -50,6 +51,7 @@ export default function DashboardLayout({
         { href: '/dashboard/websites', label: 'Websites', icon: Globe },
         { href: '/dashboard/personas', label: 'Personas', icon: Users },
         { href: '/dashboard/experiments', label: 'Experiments', icon: FlaskConical },
+        { href: '/dashboard/heatmaps', label: 'Heatmaps', icon: AreaChart },
     ];
 
     return (

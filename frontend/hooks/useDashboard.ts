@@ -9,11 +9,13 @@ export const useDashboard = () => {
   const funnel = useStore((state) => state.funnel);
   const loading = useStore((state) => state.loading);
   const error = useStore((state) => state.error);
+  const success = useStore((state) => state.success);
   const fetchOverview = useStore((state) => state.fetchOverview);
   const fetchRealtime = useStore((state) => state.fetchRealtime);
   const fetchHeatmap = useStore((state) => state.fetchHeatmap);
   const fetchInsights = useStore((state) => state.fetchInsights);
   const fetchConversionFunnel = useStore((state) => state.fetchConversionFunnel);
+  const clearSuccess = useStore((state) => state.clearSuccess);
 
   return {
     overview,
@@ -23,10 +25,12 @@ export const useDashboard = () => {
     funnel,
     loading,
     error,
+    success,
     fetchOverview,
     fetchRealtime,
     fetchHeatmap,
     fetchInsights,
     fetchConversionFunnel,
+    clearSuccess,
   };
 };

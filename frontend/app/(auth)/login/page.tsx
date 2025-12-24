@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,12 +12,23 @@ import { toast } from 'react-hot-toast';
 
 export default function LoginPage() {
     const router = useRouter();
-    const { login } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const { login, loading, error, success, clearSuccess } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
     });
+
+    useEffect(() => {
+        if (error) {
+            toast.error(error);
+            clearSuccess();
+        }
+        if (success) {
+            toast.success(success);
+            clearSuccess();
+            router.push('/dashboard');
+        }
+    }, [error, success, clearSuccess, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -27,16 +38,7 @@ export default function LoginPage() {
             return;
         }
 
-        try {
-            setLoading(true);
-            await login({ email: formData.email, password: formData.password });
-            toast.success('Login successful!');
-            router.push('/dashboard');
-        } catch (error: any) {
-            toast.error(error.message || 'Login failed');
-        } finally {
-            setLoading(false);
-        }
+        await login({ email: formData.email, password: formData.password });
     };
 
     return (

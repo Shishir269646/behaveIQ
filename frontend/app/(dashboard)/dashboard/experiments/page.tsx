@@ -10,19 +10,31 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { FlaskConical, Play, Pause, CheckCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 export default function ExperimentsPage() {
     const { websites } = useWebsites();
     const [selectedWebsite, setSelectedWebsite] = useState<string | null>(
         websites[0]?._id || null
     );
-    const { experiments, loading, fetchExperiments, updateExperimentStatus } = useExperiments();
+    const { experiments, loading, error, success, fetchExperiments, updateExperimentStatus, clearSuccess } = useExperiments();
 
     useEffect(() => {
         if (selectedWebsite) {
             fetchExperiments(selectedWebsite);
         }
     }, [selectedWebsite, fetchExperiments]);
+
+    useEffect(() => {
+        if (success) {
+            toast.success(success);
+            clearSuccess();
+        }
+        if (error) {
+            toast.error(error);
+            clearSuccess();
+        }
+    }, [success, error, clearSuccess]);
 
     if (loading) return <div>Loading...</div>;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -12,14 +12,25 @@ import { toast } from 'react-hot-toast';
 
 export default function RegisterPage() {
     const router = useRouter();
-    const { register } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const { register, loading, error, success, clearSuccess } = useAuth();
     const [formData, setFormData] = useState({
         email: '',
         password: '',
         fullName: '',
         companyName: '',
     });
+
+    useEffect(() => {
+        if (error) {
+            toast.error(error);
+            clearSuccess();
+        }
+        if (success) {
+            toast.success(success);
+            clearSuccess();
+            router.push('/dashboard');
+        }
+    }, [error, success, clearSuccess, router]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -34,16 +45,7 @@ export default function RegisterPage() {
             return;
         }
 
-        try {
-            setLoading(true);
-            await register(formData);
-            toast.success('Account created successfully!');
-            router.push('/dashboard');
-        } catch (error: any) {
-            toast.error(error.message || 'Registration failed');
-        } finally {
-            setLoading(false);
-        }
+        await register(formData);
     };
 
     return (

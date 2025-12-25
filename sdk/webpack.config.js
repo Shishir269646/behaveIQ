@@ -6,7 +6,7 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'behaveiq.min.js',
-        library: 'BEHAVEIQ',
+        library: 'BqSdk',
         libraryTarget: 'umd',
         globalObject: 'this'
     },

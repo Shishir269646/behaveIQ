@@ -1,57 +1,87 @@
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
 
+# Import schemas
+from app.schemas import (
+    EmotionRequest, EmotionResponse,
+    AbandonmentRequest, AbandonmentResponse,
+    PersonaRequest, PersonaResponse,
+    FraudRequest, FraudResponse,
+    ClusteringRequest, IntentPredictRequest, ContentRecommendationRequest,
+    LLMGenerateRequest, ConfusionDetectionRequest
+)
+
+# Import models and services
 from app.models.clustering import UserClustering
 from app.models.intent_scoring import IntentScorer
 from app.models.recommendation import ContentRecommender
+from app.models.emotion_model import EmotionPredictor
+from app.models.abandonment_model import AbandonmentPredictor
+from app.models.persona_clustering import PersonaClustering as PersonaClusterer
+from app.models.fraud_model import FraudDetector
+
 from app.services.llm_service import LLMService
 from app.services.data_processor import DataProcessor
 
 router = APIRouter()
 
-# ═══════════════════════════════════════════════════════════════════════════
-# Request/Response Models
-# ═══════════════════════════════════════════════════════════════════════════
-
-class SessionData(BaseModel):
-    intentScore: float
-    avgScrollDepth: float
-    totalClicks: int
-    pageViews: int
-    totalTimeSpent: int
-    pagesVisited: List[str]
-    device: Dict[str, Any]
-
-class ClusteringRequest(BaseModel):
-    websiteId: str
-    sessionData: List[SessionData]
-    minClusters: Optional[int] = 3
-    maxClusters: Optional[int] = 6
-
-class IntentPredictRequest(BaseModel):
-    timeSpent: float
-    scrollDepth: float
-    clickRate: float
-    sessionHistory: Optional[List[Dict]] = []
-
-class ContentRecommendationRequest(BaseModel):
-    personaType: str
-    currentPage: str
-    userHistory: Optional[List[str]] = []
-
-class LLMGenerateRequest(BaseModel):
-    prompt: str
-    personaContext: Dict[str, Any]
-    tone: Optional[str] = "professional"
-
-class ConfusionDetectionRequest(BaseModel):
-    mousePath: List[Dict[str, float]]
-    timeOnElements: Dict[str, float]
-
+# Initialize models
+emotion_predictor = EmotionPredictor()
+abandonment_predictor = AbandonmentPredictor()
+persona_clusterer = PersonaClusterer()
+fraud_detector = FraudDetector()
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Routes
+# New Endpoints
+# ═══════════════════════════════════════════════════════════════════════════
+
+@router.post("/predict/emotion", response_model=EmotionResponse)
+async def predict_emotion(request: EmotionRequest):
+    """
+    Predict user emotion from behavioral features
+    """
+    try:
+        result = emotion_predictor.predict(request.features)
+        return EmotionResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/predict/abandonment", response_model=AbandonmentResponse)
+async def predict_abandonment(request: AbandonmentRequest):
+    """
+    Predict cart abandonment probability
+    """
+    try:
+        result = abandonment_predictor.predict(request.features)
+        return AbandonmentResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/cluster", response_model=PersonaResponse)
+async def cluster_persona(request: PersonaRequest):
+    """
+    Perform dynamic persona clustering
+    """
+    try:
+        result = persona_clusterer.cluster(request.features, request.method)
+        return PersonaResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/predict/fraud", response_model=FraudResponse)
+async def predict_fraud(request: FraudRequest):
+    """
+    Predict fraud probability
+    """
+    try:
+        result = fraud_detector.predict(request.features)
+        return FraudResponse(**result)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Existing Routes (from original routes.py)
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.post("/clustering/discover-personas")
@@ -208,23 +238,16 @@ async def get_models_status():
     """
     Get ML models status
     """
+    # This can be enhanced to dynamically check model health
     return {
         "success": True,
         "models": {
-            "clustering": {
-                "status": "ready",
-                "algorithm": "KMeans",
-                "accuracy": 0.89
-            },
-            "intent_prediction": {
-                "status": "ready",
-                "algorithm": "GradientBoosting",
-                "accuracy": 0.92
-            },
-            "llm": {
-                "status": "ready",
-                "provider": "OpenAI",
-                "model": "gpt-4"
-            }
+            "clustering": {"status": "ready"},
+            "intent_prediction": {"status": "ready"},
+            "llm": {"status": "ready"},
+            "emotion_prediction": {"status": "ready"},
+            "abandonment_prediction": {"status": "ready"},
+            "persona_clustering": {"status": "ready"},
+            "fraud_detection": {"status": "ready"}
         }
     }

@@ -1,186 +1,185 @@
-import Network from '../utils/network';
-import { throttle, debounce } from '../utils/helpers';
-
-class Tracker {
-    constructor(options) {
-        this.apiKey = options.apiKey;
-        this.sessionId = options.sessionId;
-        this.fingerprint = options.fingerprint;
-        this.apiUrl = options.apiUrl;
-        this.config = options.config;
-
-        this.eventQueue = [];
-        this.flushInterval = 5000; // 5 seconds
-        this.startTime = Date.now();
-        this.pageStartTime = Date.now();
-
-        // Start flush interval
-        setInterval(() => this.flush(), this.flushInterval);
+// sdk/tracker.js - Behavior Tracker
+class BehaviorTracker {
+    constructor(sdk) {
+      this.sdk = sdk;
+      this.mouseData = [];
+      this.scrollData = [];
+      this.clickData = [];
+      this.cartActions = [];
+      this.sessionStartTime = Date.now(); // Assuming session starts when SDK initializes
     }
 
-    /**
-     * Track page view
-     */
+    start() {
+      this.trackPageView();
+      this.trackMouse();
+      this.trackScroll();
+      this.trackClicks();
+      this.trackCart();
+    }
+
     trackPageView() {
-        this.sendEvent('pageview', {
-            pageUrl: window.location.href,
-            pageTitle: document.title,
-            referrer: document.referrer
-        });
+      const pageData = {
+        url: window.location.href,
+        timestamp: Date.now(),
+        referrer: document.referrer
+      };
+
+      this.sdk.request('/behavior/track', {
+        method: 'POST',
+        body: {
+          userId: this.sdk.userId,
+          sessionId: this.sdk.sessionId,
+          eventType: 'pageview',
+          eventData: pageData
+        }
+      });
     }
 
-    /**
-     * Track mouse movement (throttled)
-     */
     trackMouse() {
-        const handleMouseMove = throttle((e) => {
-            this.queueEvent('mousemove', {
-                x: e.clientX,
-                y: e.clientY,
-                pageUrl: window.location.href
-            });
-        }, 2000); // Send every 2 seconds max
-
-        document.addEventListener('mousemove', handleMouseMove);
-    }
-
-    /**
-     * Track scroll depth
-     */
-    trackScroll() {
-        let maxScrollDepth = 0;
-
-        const handleScroll = throttle(() => {
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-            const scrollDepth = docHeight > 0 ? scrollTop / docHeight : 0;
-
-            if (scrollDepth > maxScrollDepth) {
-                maxScrollDepth = scrollDepth;
-
-                this.queueEvent('scroll', {
-                    scrollDepth: parseFloat(scrollDepth.toFixed(2)),
-                    scrollDirection: 'down',
-                    pageUrl: window.location.href
-                });
-            }
-        }, 1000);
-
-        window.addEventListener('scroll', handleScroll);
-    }
-
-    /**
-     * Track clicks
-     */
-    trackClicks() {
-        document.addEventListener('click', (e) => {
-            const element = e.target;
-
-            this.sendEvent('click', {
-                element: element.tagName.toLowerCase(),
-                elementText: element.textContent?.substring(0, 100) || '',
-                elementId: element.id || '',
-                elementClass: element.className || '',
-                x: e.clientX,
-                y: e.clientY,
-                pageUrl: window.location.href
-            });
+      let lastTime = Date.now();
+      
+      document.addEventListener('mousemove', (e) => {
+        const now = Date.now();
+        
+        this.mouseData.push({
+          x: e.clientX,
+          y: e.clientY,
+          timestamp: now
         });
+
+        // Keep only last 50 movements
+        if (this.mouseData.length > 50) {
+          this.mouseData.shift();
+        }
+
+        // Send every 5 seconds
+        if (now - lastTime > 5000) {
+          this.sendBehaviorData('mouse_move', {
+            movements: this.mouseData.slice()
+          });
+          lastTime = now;
+        }
+      });
     }
 
-    /**
-     * Track page exit
-     */
-    trackExit() {
-        const sendExitEvent = () => {
-            const timeSpent = Math.floor((Date.now() - this.pageStartTime) / 1000);
+    trackScroll() {
+      let lastScrollTime = Date.now();
+      
+      window.addEventListener('scroll', () => {
+        const now = Date.now();
+        const scrollDepth = (window.scrollY + window.innerHeight) / document.body.scrollHeight * 100;
+        
+        this.scrollData.push({
+          depth: Math.round(scrollDepth),
+          timestamp: now
+        });
 
-            // Use sendBeacon for reliable sending on page unload
-            const data = JSON.stringify({
-                apiKey: this.apiKey,
-                sessionId: this.sessionId,
-                eventType: 'exit',
-                eventData: {
-                    pageUrl: window.location.href,
-                    timeSpent
-                },
-                userAgent: navigator.userAgent,
-                fingerprint: this.fingerprint
-            });
+        // Send every 3 seconds
+        if (now - lastScrollTime > 3000) {
+          this.sendBehaviorData('scroll', {
+            scrollData: this.scrollData.slice()
+          });
+          lastScrollTime = now;
+        }
+      });
+    }
 
-            navigator.sendBeacon(
-                `${this.apiUrl}/sdk/track`,
-                new Blob([data], { type: 'application/json' })
-            );
+    trackClicks() {
+      document.addEventListener('click', (e) => {
+        const clickData = {
+          element: e.target.tagName,
+          id: e.target.id,
+          class: e.target.className,
+          x: e.clientX,
+          y: e.clientY,
+          timestamp: Date.now()
         };
 
-        window.addEventListener('beforeunload', sendExitEvent);
-        window.addEventListener('pagehide', sendExitEvent);
+        this.clickData.push(clickData);
+
+        this.sendBehaviorData('click', clickData);
+      });
     }
 
-    /**
-     * Track custom event
-     */
-    trackCustomEvent(eventName, metadata) {
-        this.sendEvent('custom', {
-            eventName,
-            customData: metadata,
-            pageUrl: window.location.href
-        });
-    }
-
-    /**
-     * Queue event for batch sending
-     */
-    queueEvent(eventType, eventData) {
-        this.eventQueue.push({
-            eventType,
-            eventData,
+    trackCart() {
+      // Assuming you have cart buttons with specific attributes
+      document.addEventListener('click', (e) => {
+        const target = e.target;
+        
+        if (target.hasAttribute('data-cart-action')) {
+          const action = target.getAttribute('data-cart-action');
+          const productId = target.getAttribute('data-product-id');
+          
+          const cartAction = {
+            action, // add, remove, view
+            productId,
             timestamp: Date.now()
-        });
+          };
 
-        // Flush if queue is large
-        if (this.eventQueue.length >= 10) {
-            this.flush();
+          this.cartActions.push(cartAction);
+          this.sendBehaviorData('cart_action', cartAction);
+
+          // Check for abandonment risk
+          if (action === 'view' && this.cartActions.length > 0) {
+            this.checkAbandonmentRisk();
+          }
         }
+      });
     }
 
-    /**
-     * Send event immediately
-     */
-    async sendEvent(eventType, eventData) {
-        try {
-            await Network.post(`${this.apiUrl}/sdk/track`, {
-                apiKey: this.apiKey,
-                sessionId: this.sessionId,
-                eventType,
-                eventData,
-                userAgent: navigator.userAgent,
-                fingerprint: this.fingerprint
-            });
-
-            if (this.config.debug) {
-                console.log('BEHAVEIQ: Event sent:', eventType, eventData);
-            }
-        } catch (error) {
-            console.error('BEHAVEIQ: Error sending event:', error);
+    async checkAbandonmentRisk() {
+      const cartDuration = Date.now() - this.cartActions[0].timestamp;
+      
+      const response = await this.sdk.request('/abandonment/predict', {
+        method: 'POST',
+        body: {
+          userId: this.sdk.userId,
+          sessionData: {
+            sessionId: this.sdk.sessionId,
+            cartDuration: cartDuration / 1000,
+            scrollDepth: this.getMaxScrollDepth(),
+            priceViewCount: this.countPriceViews(),
+            productComparisons: this.cartActions.filter(a => a.action === 'view').length,
+            device: this.sdk.getDeviceInfo().type,
+            cartValue: this.getCartValue()
+          }
         }
+      });
+
+      if (response.success && response.data.shouldIntervene) {
+        console.log('🚨 High abandonment risk detected!');
+      }
     }
 
-    /**
-     * Flush event queue
-     */
-    async flush() {
-        if (this.eventQueue.length === 0) return;
-
-        const events = [...this.eventQueue];
-        this.eventQueue = [];
-
-        // Send all queued events
-        for (const event of events) {
-            await this.sendEvent(event.eventType, event.eventData);
-        }
+    getMaxScrollDepth() {
+      return this.scrollData.length > 0 
+        ? Math.max(...this.scrollData.map(s => s.depth))
+        : 0;
     }
-}
 
-export default Tracker;
+    countPriceViews() {
+      // Count clicks on price elements
+      return this.clickData.filter(c => 
+        c.class && c.class.includes('price')
+      ).length;
+    }
+
+    getCartValue() {
+      // Get from your cart system
+      return 0; // Placeholder
+    }
+
+    sendBehaviorData(eventType, eventData) {
+      this.sdk.request('/behavior/track', {
+        method: 'POST',
+        body: {
+          userId: this.sdk.userId,
+          sessionId: this.sdk.sessionId,
+          eventType,
+          eventData
+        }
+      }).catch(err => console.error('Tracking error:', err));
+    }
+  }
+
+export default BehaviorTracker;

@@ -1,136 +1,144 @@
-import Tracker from './core/tracker';
-import Injector from './core/injector';
-import Storage from './utils/storage';
-import { generateFingerprint, generateSessionId } from './utils/helpers';
+import FingerprintGenerator from './core/fingerprint';
+import BehaviorTracker from './core/tracker';
+import EmotionTracker from './core/emotion';
+import VoiceSearch from './core/voice';
 
-/**
- * @class BEHAVEIQ
- * @description The main class for the BehaveIQ SDK.
- * It handles both synchronous personalization and asynchronous event tracking.
- */
-class BEHAVEIQ {
-    constructor() {
-        this.isInitialized = false;
-        this.apiUrl = 'https://api.behaveiq.com/api/v1'; // Default API URL
+class BqSdk {
+    constructor(config) {
+      if (!config || !config.apiKey) {
+        console.error('BqSdk: API Key is required for initialization.');
+        return;
+      }
+      this.apiUrl = config.apiUrl || 'http://localhost:5000/api';
+      this.apiKey = config.apiKey;
+      this.userId = null;
+      this.sessionId = null;
+      this.fingerprint = null;
+      this.sessionStartTime = Date.now(); // Required for EmotionTracker
+      
+      // Initialize components
+      this.fingerprintGenerator = new FingerprintGenerator();
+      this.tracker = new BehaviorTracker(this);
+      this.emotionTracker = new EmotionTracker(this);
+      this.voiceSearch = new VoiceSearch(this);
+      
+      // Auto-initialize
+      this.init();
     }
 
-    /**
-     * Initializes the SDK.
-     * This is the main entry point. For zero-flicker personalization, this method
-     * must be called from a synchronous script in the <head> of the page.
-     * @param {string} apiKey - Your project's API key.
-     * @param {Object} [options={}] - Configuration options.
-     * @param {Array<Object>} [options.personalizationRules=[]] - Personalization rules to apply synchronously.
-     * @param {Object} [options.config={}] - Other configuration like tracking settings.
-     */
-    init(apiKey, options = {}) {
-        if (this.isInitialized) {
-            console.warn('BEHAVEIQ: Already initialized');
-            return;
-        }
-
-        const { personalizationRules = [], config = {} } = options;
-
-        // --- 1. Synchronous Personalization (Zero-Flicker) ---
-        // This part runs immediately to prevent content flicker.
-        try {
-            const injector = new Injector();
-            injector.apply(personalizationRules); // This method also unhides the body.
-        } catch (e) {
-            console.error('BEHAVEIQ: Critical error during personalization. Unhiding page.', e);
-            // Ensure the page is always visible even if personalization fails.
-            new Injector().unhideBody();
-        }
-
-        // --- 2. Asynchronous Tracking Initialization ---
-        // This part can run without blocking the page render.
-        // We wrap it in a function to be called after the current script stack clears.
-        setTimeout(() => {
-            this.apiKey = apiKey;
-            this.config = {
-                trackMouse: config.trackMouse !== false,
-                trackScroll: config.trackScroll !== false,
-                trackClicks: config.trackClicks !== false,
-                debug: config.debug || false,
-                apiUrl: config.apiUrl || this.apiUrl
-            };
-
-            // Generate fingerprint and session ID
-            this.fingerprint = generateFingerprint();
-            this.sessionId = Storage.get('behaveiq_session') || generateSessionId();
-            Storage.set('behaveiq_session', this.sessionId, 30); // 30 minutes
-
-            // Initialize tracker
-            this.tracker = new Tracker({
-                apiKey: this.apiKey,
-                sessionId: this.sessionId,
-                fingerprint: this.fingerprint,
-                apiUrl: this.config.apiUrl,
-                config: this.config
-            });
-            
-            // Start tracking basic events
-            this.tracker.trackPageView();
-            this.tracker.trackExit();
-
-            if (this.config.trackScroll) this.tracker.trackScroll();
-            if (this.config.trackClicks) this.tracker.trackClicks();
-            if (this.config.trackMouse) this.tracker.trackMouse();
-
-            this.isInitialized = true;
-
-            if (this.config.debug) {
-                console.log('BEHAVEIQ tracking initialized:', {
-                    apiKey: this.apiKey,
-                    sessionId: this.sessionId
-                });
-            }
-        }, 0);
+    async init() {
+      try {
+        // Generate fingerprint
+        this.fingerprint = await this.fingerprintGenerator.generate();
+        
+        // Identify user
+        await this.identifyUser();
+        
+        // Start tracking
+        this.tracker.start();
+        this.emotionTracker.start();
+        
+        console.log('✅ BqSdk initialized');
+      } catch (error) {
+        console.error('❌ BqSdk initialization failed:', error);
+      }
     }
 
-    /**
-     * Tracks a custom event.
-     * @param {string} eventName - The name of the event.
-     * @param {Object} [metadata={}] - Custom data associated with the event.
-     */
-    track(eventName, metadata = {}) {
-        // Queue the event if the SDK is not yet initialized.
-        if (!this.isInitialized || !this.tracker) {
-            (this._q = this._q || []).push(['track', eventName, metadata]);
-            return;
+    async identifyUser() {
+      const deviceInfo = this.getDeviceInfo();
+      const location = await this.getLocation();
+      
+      const response = await this.request('/identity/identify', {
+        method: 'POST',
+        body: {
+          fingerprint: this.fingerprint.hash,
+          deviceInfo,
+          fpComponents: this.fingerprint.components,
+          location
         }
-        this.tracker.trackCustomEvent(eventName, metadata);
-    }
-    
-    /**
-     * Gets the current session ID.
-     */
-    getSessionId() {
-        return this.sessionId;
-    }
-}
+      });
 
-// --- Global Setup ---
-// Create a global instance and a command queue.
-// This ensures that any `BEHAVEIQ.track()` calls made before `init()` is complete
-// are captured and executed later.
-const instance = new BEHAVEIQ();
-if (typeof window !== 'undefined') {
-    const queue = window.BEHAVEIQ && window.BEHAVEIQ._q ? window.BEHAVEIQ._q : [];
-    window.BEHAVEIQ = instance;
-    window.BEHAVEIQ._q = queue; // Restore queue
+      if (response.success) {
+        this.userId = response.data.userId;
+        this.sessionId = response.data.sessionId;
+        this.persona = response.data.persona;
+      }
+    }
 
-    // Process any queued commands
-    setTimeout(() => {
-        if (instance.isInitialized) {
-            while (window.BEHAVEIQ._q.length > 0) {
-                const [method, ...args] = window.BEHAVEIQ._q.shift();
-                if (typeof instance[method] === 'function') {
-                    instance[method](...args);
-                }
-            }
+    getDeviceInfo() {
+      const ua = navigator.userAgent;
+      return {
+        type: this.getDeviceType(),
+        os: this.getOS(),
+        browser: this.getBrowser(),
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        userAgent: ua,
+        language: navigator.language,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      };
+    }
+
+    getDeviceType() {
+      const ua = navigator.userAgent;
+      if (/mobile/i.test(ua)) return 'mobile';
+      if (/tablet|ipad/i.test(ua)) return 'tablet';
+      return 'desktop';
+    }
+
+    getOS() {
+      const ua = navigator.userAgent;
+      if (/windows/i.test(ua)) return 'Windows';
+      if (/mac/i.test(ua)) return 'MacOS';
+      if (/linux/i.test(ua)) return 'Linux';
+      if (/android/i.test(ua)) return 'Android';
+      if (/ios|iphone|ipad/i.test(ua)) return 'iOS';
+      return 'Unknown';
+    }
+
+    getBrowser() {
+      const ua = navigator.userAgent;
+      if (/chrome/i.test(ua) && !/edge/i.test(ua)) return 'Chrome';
+      if (/safari/i.test(ua) && !/chrome/i.test(ua)) return 'Safari';
+      if (/firefox/i.test(ua)) return 'Firefox';
+      if (/edge/i.test(ua)) return 'Edge';
+      return 'Unknown';
+    }
+
+    async getLocation() {
+      try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        return {
+          ip: data.ip,
+          country: data.country_name,
+          city: data.city,
+          coordinates: {
+            lat: data.latitude,
+            lng: data.longitude
+          }
+        };
+      } catch (error) {
+        return null;
+      }
+    }
+
+    async request(endpoint, options = {}) {
+      const url = `${this.apiUrl}${endpoint}`;
+      const config = {
+        method: options.method || 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': this.apiKey
         }
-    }, 100);
-}
+      };
 
-export default instance;
+      if (options.body) {
+        config.body = JSON.stringify(options.body);
+      }
+
+      const response = await fetch(url, config);
+      return response.json();
+    }
+  }
+
+export default BqSdk;

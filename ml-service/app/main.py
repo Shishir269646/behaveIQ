@@ -42,7 +42,11 @@ async def health():
         "models": {
             "clustering": "ready",
             "intent_scoring": "ready",
-            "llm": "ready"
+            "llm": "ready",
+            "emotion_prediction": "ready",
+            "abandonment_prediction": "ready",
+            "persona_clustering": "ready",
+            "fraud_detection": "ready"
         }
     }
 

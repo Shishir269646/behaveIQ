@@ -1,191 +1,230 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { StatCard } from '@/components/StatCard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useWebsites } from '@/hooks/useWebsites';
-import { useDashboard } from '@/hooks/useDashboard';
-import { formatNumber, formatPercentage } from '@/lib/utils';
-import { Users, MousePointer, TrendingUp, Target, Activity } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { toast } from 'react-hot-toast';
+import * as React from 'react';
+import {
+    Activity,
+    ArrowUpRight,
+    CircleUser,
+    CreditCard,
+    Users,
+} from 'lucide-react';
+
+import {
+    Avatar,
+    AvatarFallback,
+    AvatarImage,
+} from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Link from 'next/link';
+import { useDashboard, Session } from '@/hooks/useDashboard';
+import RevenueTrendChart from '@/components/RevenueTrendChart';
+import PersonaDistributionChart from '@/components/PersonaDistributionChart';
+import ConversionFunnelChart from '@/components/ConversionFunnelChart';
+import RealtimeVisitors from '@/components/RealtimeVisitors';
+import EmotionTrendChart from '@/components/EmotionTrendChart';
+import ErrorBoundary from '@/components/ErrorBoundary';
+import EmptyState from '@/components/EmptyState';
 
 export default function DashboardPage() {
-    const { websites, loading: websitesLoading } = useWebsites();
-    const [selectedWebsite, setSelectedWebsite] = useState<string | null>(null);
-    const [timeRange, setTimeRange] = useState('7d');
-    const { overview, realtime, loading, error, success, fetchOverview, fetchRealtime, clearSuccess } = useDashboard();
+    const [timeRange, setTimeRange] = React.useState('7d');
+    const { data, isLoading, error, refetch: refetchDashboard } = useDashboard(timeRange);
+    const { refetch: refetchConversionFunnel } = useConversionFunnel(timeRange);
+    const { refetch: refetchEmotionTrends } = useEmotionTrends(timeRange);
+    const { refetch: refetchTopPages } = useTopPages(timeRange);
+    const [selectedSession, setSelectedSession] = React.useState<Session | null>(null);
+    
+    const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
+    const formatChange = (value: number) => `${value >= 0 ? '+' : ''}${value}%`;
 
-    useEffect(() => {
-        if (selectedWebsite) {
-            fetchOverview(selectedWebsite, timeRange);
-            fetchRealtime(selectedWebsite);
-        }
-    }, [selectedWebsite, timeRange, fetchOverview, fetchRealtime]);
+    const handleRefresh = () => {
+        refetchDashboard();
+        refetchConversionFunnel();
+        refetchEmotionTrends();
+        refetchTopPages();
+    };
 
-    useEffect(() => {
-        if (websites.length > 0 && !selectedWebsite) {
-            setSelectedWebsite(websites[0]._id);
-        }
-    }, [websites]);
-
-    useEffect(() => {
-        if (success) {
-            toast.success(success);
-            clearSuccess();
-        }
-        if (error) {
-            toast.error(error);
-            clearSuccess();
-        }
-    }, [success, error, clearSuccess]);
-
-    if (websitesLoading) {
-        return <div>Loading...</div>;
-    }
-
-    if (websites.length === 0) {
+    if (error) {
         return (
-            <div className="text-center py-12">
-                <p className="text-gray-500 mb-4">No websites yet. Create one to get started!</p>
-            </div>
+            <Alert variant="destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
         );
     }
 
     return (
-        <div className="space-y-6">
-            {/* Header Controls */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-                    <p className="text-gray-500">Monitor your website performance</p>
-                </div>
-
-                <div className="flex gap-4">
-                    <Select value={selectedWebsite || ''} onValueChange={setSelectedWebsite}>
-                        <SelectTrigger className="w-64">
-                            <SelectValue placeholder="Select website" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {websites.map((site) => (
-                                <SelectItem key={site._id} value={site._id}>
-                                    {site.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
+        <ErrorBoundary>
+            <>
+                <div className="flex justify-end mb-4 space-x-2">
                     <Select value={timeRange} onValueChange={setTimeRange}>
-                        <SelectTrigger className="w-32">
-                            <SelectValue />
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select a time range" />
                         </SelectTrigger>
                         <SelectContent>
-                            <SelectItem value="7d">Last 7 days</SelectItem>
-                            <SelectItem value="30d">Last 30 days</SelectItem>
-                            <SelectItem value="90d">Last 90 days</SelectItem>
+                            <SelectItem value="1d">24 hours</SelectItem>
+                            <SelectItem value="7d">7 days</SelectItem>
+                            <SelectItem value="30d">30 days</SelectItem>
+                            <SelectItem value="90d">90 days</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Button onClick={handleRefresh} size="icon" variant="outline">
+                        <RefreshCw className="h-4 w-4" />
+                    </Button>
                 </div>
-            </div>
-
-            {/* Real-time Stats */}
-            {realtime && (
-                <Card>
-                    <CardContent className="p-6">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Activity className="w-5 h-5 text-green-600 animate-pulse" />
-                            <span className="font-semibold">Real-time</span>
-                        </div>
-                        <p className="text-3xl font-bold">{realtime.activeVisitors}</p>
-                        <p className="text-sm text-gray-500">Active visitors now</p>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Stats Grid */}
-            {overview && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <StatCard
-                        title="Total Visitors"
-                        value={formatNumber(overview.overview.totalVisitors)}
-                        icon={Users}
-                        iconColor="text-blue-600"
-                    />
-
-                    <StatCard
-                        title="Total Sessions"
-                        value={formatNumber(overview.overview.totalSessions)}
-                        icon={MousePointer}
-                        iconColor="text-green-600"
-                    />
-
-                    <StatCard
-                        title="Conversion Rate"
-                        value={formatPercentage(overview.overview.conversionRate)}
-                        icon={TrendingUp}
-                        iconColor="text-purple-600"
-                    />
-
-                    <StatCard
-                        title="Avg Intent Score"
-                        value={overview.overview.avgIntentScore.toFixed(2)}
-                        icon={Target}
-                        iconColor="text-orange-600"
-                    />
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
+                    <RealtimeVisitors />
                 </div>
-            )}
-
-            {/* Trend Chart */}
-            {overview && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Sessions Trend</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <LineChart data={overview.trendData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="_id" />
-                                <YAxis />
-                                <Tooltip />
-                                <Line
-                                    type="monotone"
-                                    dataKey="sessions"
-                                    stroke="#3b82f6"
-                                    strokeWidth={2}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Top Personas */}
-            {overview && overview.topPersonas.length > 0 && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Top Personas</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {overview.topPersonas.map((persona) => (
-                                <div key={persona._id} className="flex items-center justify-between">
-                                    <div>
-                                        <p className="font-medium">{persona.name}</p>
-                                        <p className="text-sm text-gray-500">
-                                            {formatNumber(persona.stats.sessionCount)} sessions
-                                        </p>
-                                    </div>
-                                    <span className="text-sm font-medium text-green-600">
-                                        {formatPercentage(persona.stats.conversionRate)}
-                                    </span>
+                <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+                    {isLoading ? (
+                        <>
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                        </>
+                    ) : data && (
+                        <>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Visitors</CardTitle>
+                                    <Users className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatNumber(data.stats.totalVisitors.value)}</div>
+                                    <p className="text-xs text-muted-foreground">{formatChange(data.stats.totalVisitors.change)} from last month</p>
+                                </CardContent>
+                            </Card>
+                             <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
+                                    <Activity className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatNumber(data.stats.totalSessions.value)}</div>
+                                    <p className="text-xs text-muted-foreground">{formatChange(data.stats.totalSessions.change)} from last month</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Conversions</CardTitle>
+                                    <CreditCard className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatNumber(data.stats.totalConversions.value)}</div>
+                                    <p className="text-xs text-muted-foreground">{formatChange(data.stats.totalConversions.change)} from last month</p>
+                                </CardContent>
+                            </Card>
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Avg Intent Score</CardTitle>
+                                    <Activity className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{data.stats.avgIntentScore.value.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground">{formatChange(data.stats.avgIntentScore.change)} since last hour</p>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
+                </div>
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+                    {isLoading || !data ? (
+                        <Skeleton className="h-96" />
+                    ) : (
+                        <RevenueTrendChart data={data.trendData} />
+                    )}
+                    {isLoading || !data ? (
+                        <Skeleton className="h-96" />
+                    ) : (
+                        <PersonaDistributionChart data={data.topPersonas} />
+                    )}
+                </div>
+                 <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
+                    <Card className="xl:col-span-2">
+                        <CardHeader className="flex flex-row items-center">
+                            <div className="grid gap-2">
+                                <CardTitle>Recent Sessions</CardTitle>
+                                <CardDescription>Click a session to view details.</CardDescription>
+                            </div>
+                            <Button asChild size="sm" className="ml-auto gap-1">
+                                <Link href="/events">
+                                    View All
+                                    <ArrowUpRight className="h-4 w-4" />
+                                </Link>
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            {isLoading ? (
+                                <div className="space-y-4">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
                                 </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-        </div>
+                            ) : data && data.recentSessions.length > 0 ? (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>User</TableHead>
+                                            <TableHead>Persona</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Intent Score</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {data.recentSessions.map(session => (
+                                            <TableRow key={session.id} onClick={() => setSelectedSession(session)} className="cursor-pointer">
+                                                <TableCell>
+                                                    <div className="font-medium">{session.user.name}</div>
+                                                    <div className="hidden text-sm text-muted-foreground md:inline">{session.user.email}</div>
+                                                </TableCell>
+                                                <TableCell><Badge variant="outline">{session.persona}</Badge></TableCell>
+                                                <TableCell><Badge variant={session.status === 'Abandoned' ? 'destructive' : session.status === 'Converted' ? 'secondary' : 'outline'}>{session.status}</Badge></TableCell>
+                                                <TableCell className="text-right">{session.intentScore}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            ) : (
+                                <EmptyState
+                                    title="No recent sessions"
+                                    description="There have been no user sessions in the selected time range."
+                                />
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
+                    <ConversionFunnelChart timeRange={timeRange} />
+                </div>
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
+                    <EmotionTrendChart timeRange={timeRange} />
+                </div>
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
+                    <TopPagesList timeRange={timeRange} />
+                </div>
+                {selectedSession && (
+                    <SessionDetailSheet session={selectedSession} isOpen={!!selectedSession} onOpenChange={(isOpen) => !isOpen && setSelectedSession(null)} />
+                )}
+            </>
+        </ErrorBoundary>
     );
 }

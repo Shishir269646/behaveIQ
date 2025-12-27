@@ -1,30 +1,42 @@
+// @/hooks/usePersonas.ts
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
-import { useStore } from '../store';
+export interface Persona {
+    name: string;
+    description: string;
+    confidence: number;
+    userCount: number;
+}
+
+export interface PersonaData {
+    budget: Persona[];
+    feature: Persona[];
+    researcher: Persona[];
+    impulse: Persona[];
+}
 
 export const usePersonas = () => {
-  const personas = useStore((state) => state.personas);
-  const persona = useStore((state) => state.persona);
-  const loading = useStore((state) => state.loading);
-  const error = useStore((state) => state.error);
-  const success = useStore((state) => state.success);
-  const fetchPersonas = useStore((state) => state.fetchPersonas);
-  const discoverPersonas = useStore((state) => state.discoverPersonas);
-  const fetchPersonaById = useStore((state) => state.fetchPersonaById);
-  const updatePersona = useStore((state) => state.updatePersona);
-  const createPersonalizationRule = useStore((state) => state.createPersonalizationRule);
-  const clearSuccess = useStore((state) => state.clearSuccess);
+    const [data, setData] = useState<PersonaData | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  return {
-    personas,
-    persona,
-    loading,
-    error,
-    success,
-    fetchPersonas,
-    discoverPersonas,
-    fetchPersonaById,
-    updatePersona,
-    createPersonalizationRule,
-    clearSuccess,
-  };
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const response = await api.get<PersonaData>('/personas');
+                setData(response.data);
+            } catch (err: any) {
+                setError(err.response?.data?.message || err.message || "Failed to fetch persona data.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    return { data, isLoading, error };
 };

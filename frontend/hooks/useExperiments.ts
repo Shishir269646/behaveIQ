@@ -1,30 +1,37 @@
+// @/hooks/useExperiments.ts
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
-import { useStore } from '../store';
+export interface Experiment {
+    id: string;
+    name: string;
+    status: "Running" | "Completed" | "Draft";
+    conversionLift: string; // e.g., "+5.2%"
+    progress: number; // 0-100
+    winner: string; // e.g., "Variant B", "Control", "N/A"
+}
 
 export const useExperiments = () => {
-  const experiments = useStore((state) => state.experiments);
-  const experiment = useStore((state) => state.experiment);
-  const loading = useStore((state) => state.loading);
-  const error = useStore((state) => state.error);
-  const success = useStore((state) => state.success);
-  const fetchExperiments = useStore((state) => state.fetchExperiments);
-  const createExperiment = useStore((state) => state.createExperiment);
-  const fetchExperimentById = useStore((state) => state.fetchExperimentById);
-  const updateExperimentStatus = useStore((state) => state.updateExperimentStatus);
-  const declareWinner = useStore((state) => state.declareWinner);
-  const clearSuccess = useStore((state) => state.clearSuccess);
+    const [experiments, setExperiments] = useState<Experiment[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  return {
-    experiments,
-    experiment,
-    loading,
-    error,
-    success,
-    fetchExperiments,
-    createExperiment,
-    fetchExperimentById,
-    updateExperimentStatus,
-    declareWinner,
-    clearSuccess,
-  };
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            setError(null);
+            try {
+                const response = await api.get<Experiment[]>('/experiments');
+                setExperiments(response.data);
+            } catch (err: any) {
+                setError(err.response?.data?.message || err.message || "Failed to fetch experiments.");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
+    return { experiments, isLoading, error };
 };

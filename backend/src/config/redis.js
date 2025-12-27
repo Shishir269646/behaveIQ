@@ -1,41 +1,30 @@
-const redis = require('redis');
+const Redis = require('ioredis');
 
-let redisClient;
+let redisErrorLogged = false; // Add this flag
 
-exports.connectRedis = async () => {
-    try {
-        redisClient = redis.createClient({
-            host: process.env.REDIS_HOST || 'localhost',
-            port: process.env.REDIS_PORT || 6379,
-            socket: {
-                reconnectStrategy: (retries) => {
-                    if (retries > 10) {
-                        return new Error('Redis reconnection failed');
-                    }
-                    return retries * 1000;
-                }
-            }
-        });
+const redis = new Redis({
+  host: process.env.REDIS_HOST || 'localhost',
+  port: process.env.REDIS_PORT || 6379,
+  password: process.env.REDIS_PASSWORD || undefined,
+  retryStrategy: (times) => {
+    const delay = Math.min(times * 50, 2000);
+    return delay;
+  }
+});
 
-        redisClient.on('error', (err) => {
-            console.error('❌ Redis Client Error:', err);
-        });
+redis.on('connect', () => {
+  console.log('✅ Redis Connected');
+  redisErrorLogged = false; // Reset flag on successful connection
+});
 
-        redisClient.on('connect', () => {
-            console.log('✅ Redis Connected');
-        });
+redis.on('error', (err) => {
+  if (err.code === 'ECONNREFUSED' && !redisErrorLogged) {
+    console.error('❌ Redis Connection Error: Could not connect to Redis server. Please ensure Redis is running.');
+    redisErrorLogged = true; // Set flag after logging the specific error once
+  } else if (err.code !== 'ECONNREFUSED') {
+    // Log other types of Redis errors normally
+    console.error('❌ Redis Error:', err);
+  }
+});
 
-        await redisClient.connect();
-
-    } catch (error) {
-        console.error(`❌ Redis connection failed: ${error.message}`);
-        process.exit(1);
-    }
-};
-
-exports.getRedisClient = () => {
-    if (!redisClient) {
-        throw new Error('Redis client not initialized');
-    }
-    return redisClient;
-};
+module.exports = redis;

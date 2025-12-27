@@ -5,7 +5,8 @@ const {
     getRealtimeVisitors,
     getHeatmap,
     getInsights,
-    getConversionFunnel
+    getConversionFunnel,
+    getTopPages
 } = require('../controllers/dashboardController');
 const { protect } = require('../middleware/auth');
 
@@ -16,5 +17,6 @@ router.get('/realtime', getRealtimeVisitors);
 router.get('/heatmap', getHeatmap);
 router.get('/insights', getInsights);
 router.get('/conversion-funnel', getConversionFunnel);
+router.get('/top-pages', getTopPages);
 
 module.exports = router;

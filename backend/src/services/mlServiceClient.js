@@ -33,3 +33,19 @@ exports.callMLService = async (endpoint, data, method = 'POST') => {
         }
     }
 };
+    
+    /**
+     * Generate content from ML Service
+     */
+    exports.generateContent = async (persona, contentType) => {
+        try {
+            const response = await exports.callMLService('/llm/content-generation', {
+                persona: persona,
+                content_type: contentType
+            });
+            return response;
+        } catch (error) {
+            console.error('Error in generateContent:', error.message);
+            throw error;
+        }
+    };

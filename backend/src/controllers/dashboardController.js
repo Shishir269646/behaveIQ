@@ -95,6 +95,20 @@ exports.getOverview = asyncHandler(async (req, res) => {
         },
         { $sort: { _id: 1 } }
     ]);
+    
+    const recentSessions = await Session.find({ websiteId, createdAt: { $gte: startDate } })
+        .sort('-createdAt')
+        .limit(10)
+        .populate('userId', 'name email')
+        .populate('personaId', 'name');
+
+    const sessions = recentSessions.map(s => ({
+        id: s._id,
+        user: s.userId ? { name: s.userId.name, email: s.userId.email } : { name: 'Anonymous', email: ''},
+        persona: s.personaId ? s.personaId.name : 'Unknown',
+        status: s.converted ? 'Converted' : (s.endTime ? 'Abandoned' : 'Active'),
+        intentScore: s.intentScore,
+    }));
 
     res.json({
         success: true,
@@ -108,6 +122,7 @@ exports.getOverview = asyncHandler(async (req, res) => {
             },
             topPersonas,
             trendData,
+            recentSessions: sessions,
             timeRange: `${days}d`
         }
     });
@@ -434,5 +449,56 @@ exports.getConversionFunnel = asyncHandler(async (req, res) => {
     res.json({
         success: true,
         data: { funnel: funnelData }
+    });
+});
+
+// @desc    Get top pages
+// @route   GET /api/v1/dashboard/top-pages?websiteId=xxx&timeRange=7d
+exports.getTopPages = asyncHandler(async (req, res) => {
+    const { websiteId, timeRange = '7d' } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    const days = parseInt(timeRange) || 7;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const topPages = await Event.aggregate([
+        {
+            $match: {
+                websiteId: website._id,
+                eventType: 'pageview',
+                timestamp: { $gte: startDate }
+            }
+        },
+        {
+            $group: {
+                _id: '$eventData.pageUrl',
+                views: { $sum: 1 }
+            }
+        },
+        {
+            $sort: {
+                views: -1
+            }
+        },
+        {
+            $limit: 10
+        }
+    ]);
+
+    const formattedPages = topPages.map(page => ({
+        page: page._id,
+        views: page.views
+    }));
+
+    res.json({
+        success: true,
+        data: {
+            pages: formattedPages
+        }
     });
 });

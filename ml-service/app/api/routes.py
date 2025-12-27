@@ -8,7 +8,8 @@ from app.schemas import (
     PersonaRequest, PersonaResponse,
     FraudRequest, FraudResponse,
     ClusteringRequest, IntentPredictRequest, ContentRecommendationRequest,
-    LLMGenerateRequest, ConfusionDetectionRequest
+    ContentGenerationRequest, ContentGenerationResponse,
+    ConfusionDetectionRequest
 )
 
 # Import models and services
@@ -20,7 +21,7 @@ from app.models.abandonment_model import AbandonmentPredictor
 from app.models.persona_clustering import PersonaClustering as PersonaClusterer
 from app.models.fraud_model import FraudDetector
 
-from app.services.llm_service import LLMService
+from app.services.content_service import ContentService
 from app.services.data_processor import DataProcessor
 
 router = APIRouter()
@@ -187,25 +188,22 @@ async def recommend_content(request: ContentRecommendationRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/llm/generate-content")
-async def generate_content(request: LLMGenerateRequest):
+@router.post("/llm/content-generation", response_model=ContentGenerationResponse)
+async def generate_llm_content(request: ContentGenerationRequest):
     """
     Generate content using LLM (OpenAI/Gemini)
     """
     try:
-        llm_service = LLMService()
+        llm_service = ContentService()
         
-        result = llm_service.generate_content(
-            prompt=request.prompt,
-            persona_context=request.personaContext,
-            tone=request.tone
+        generated_text = llm_service.generate_persona_content(
+            persona=request.persona,
+            content_type=request.content_type
         )
+        if not generated_text:
+            raise HTTPException(status_code=500, detail="Failed to generate content.")
 
-        return {
-            "success": True,
-            "generatedContent": result["content"],
-            "alternatives": result["alternatives"]
-        }
+        return ContentGenerationResponse(generated_content=generated_text)
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,23 +1,19 @@
-import create from 'zustand';
+// @/store/index.ts
+import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { AuthSlice, createAuthSlice } from './slices/auth.slice';
+import { UserSlice, createUserSlice } from './slices/user.slice';
 import { WebsiteSlice, createWebsiteSlice } from './slices/website.slice';
-import { PersonaSlice, createPersonaSlice } from './slices/persona.slice';
-import { ExperimentSlice, createExperimentSlice } from './slices/experiment.slice';
-import { DashboardSlice, createDashboardSlice } from './slices/dashboard.slice';
-import { EventSlice, createEventSlice } from './slices/event.slice';
 
-type StoreState = AuthSlice & WebsiteSlice & PersonaSlice & ExperimentSlice & DashboardSlice & EventSlice;
+// Combine all slices into one store
+type StoreState = UserSlice & WebsiteSlice; // Add other slices here with an &
 
-export const useStore = create<StoreState>()(
+export const useAppStore = create<StoreState>()(
   devtools(
     (...a) => ({
-      ...createAuthSlice(...a),
+      ...createUserSlice(...a),
       ...createWebsiteSlice(...a),
-      ...createPersonaSlice(...a),
-      ...createExperimentSlice(...a),
-      ...createDashboardSlice(...a),
-      ...createEventSlice(...a),
+      // ...add other slice creators here
     }),
+    { name: 'BehaveIQ-Store' }
   ),
 );

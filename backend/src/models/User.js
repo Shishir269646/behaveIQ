@@ -1,64 +1,76 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 
 const userSchema = new mongoose.Schema({
-    email: {
-        type: String,
-        required: [true, 'Email is required'],
-        unique: true,
-        lowercase: true,
-        trim: true,
-        match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
+  fingerprint: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true
+  },
+  devices: [{
+    fingerprint: String,
+    type: String, // mobile, desktop, tablet
+    firstSeen: Date,
+    lastSeen: Date
+  }],
+  persona: {
+    primary: {
+      type: String,
+      enum: ['budget_buyer', 'feature_explorer', 'careful_researcher', 'impulse_buyer', 'casual_visitor'],
+      default: 'casual_visitor'
     },
-    password: {
-        type: String,
-        required: [true, 'Password is required'],
-        minlength: 6,
-        select: false
+    secondary: [String],
+    confidence: { type: Number, default: 0 },
+    lastUpdated: Date
+  },
+  emotionalProfile: {
+    dominantEmotion: {
+      type: String,
+      enum: ['frustrated', 'confused', 'excited', 'neutral', 'considering']
     },
-    fullName: {
-        type: String,
-        required: [true, 'Full name is required'],
-        trim: true
-    },
-    companyName: {
-        type: String,
-        trim: true
-    },
-    plan: {
-        type: String,
-        enum: ['free', 'starter', 'growth', 'enterprise'],
-        default: 'free'
-    },
-    isActive: {
-        type: Boolean,
-        default: true
-    },
-    lastLogin: Date
+    history: [{
+      emotion: String,
+      timestamp: Date,
+      page: String
+    }]
+  },
+  intentScore: {
+    current: { type: Number, default: 0, min: 0, max: 100 },
+    history: [{
+      score: Number,
+      timestamp: Date,
+      factors: mongoose.Schema.Types.Mixed
+    }]
+  },
+  fraudScore: {
+    current: { type: Number, default: 0, min: 0, max: 100 },
+    flags: [String],
+    lastChecked: Date
+  },
+  discounts: [{
+    amount: Number,
+    reason: String,
+    code: String,
+    expires: Date,
+    used: { type: Boolean, default: false }
+  }],
+  behavior: {
+    totalSessions: { type: Number, default: 0 },
+    totalPageViews: { type: Number, default: 0 },
+    totalTimeSpent: { type: Number, default: 0 },
+    cartAbandons: { type: Number, default: 0 },
+    purchases: { type: Number, default: 0 },
+    avgSessionDuration: { type: Number, default: 0 }
+  },
+  createdAt: { type: Date, default: Date.now },
+  lastActive: { type: Date, default: Date.now }
 }, {
-    timestamps: true
+  timestamps: true
 });
 
-// Hash password before saving
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
-        next();
-    }
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-});
-
-// Compare password method
-userSchema.methods.comparePassword = async function (enteredPassword) {
-    return await bcrypt.compare(enteredPassword, this.password);
-};
-
-// Generate JWT token
-userSchema.methods.getSignedJwtToken = function () {
-    return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE
-    });
-};
+// Indexes for performance
+userSchema.index({ 'persona.primary': 1 });
+userSchema.index({ 'intentScore.current': -1 });
+userSchema.index({ lastActive: -1 });
 
 module.exports = mongoose.model('User', userSchema);

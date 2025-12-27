@@ -61,11 +61,13 @@ class ContentRecommendationRequest(BaseModel):
     currentPage: str
     userHistory: Optional[List[str]] = []
 
-class LLMGenerateRequest(BaseModel):
-    prompt: str
-    personaContext: Dict[str, Any]
-    tone: Optional[str] = "professional"
-
 class ConfusionDetectionRequest(BaseModel):
     mousePath: List[Dict[str, float]]
     timeOnElements: Dict[str, float]
+
+class ContentGenerationRequest(BaseModel):
+    persona: str
+    content_type: str
+
+class ContentGenerationResponse(BaseModel):
+    generated_content: str

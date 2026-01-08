@@ -13,7 +13,7 @@ export interface EventSlice {
   clearSuccess: () => void;
 }
 
-const API_URL = 'http://localhost:5000/api/v1/events';
+const API_URL = 'http://localhost:5000/api/events';
 
 const handleRequest = async (set: any, request: () => Promise<any>) => {
   set({ loading: true, error: null });

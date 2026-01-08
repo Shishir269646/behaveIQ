@@ -1,8 +1,23 @@
 [
     {
-        "email": "john.doe@example.com",
-        "password": "password123",
-        "fullName": "John Doe",
-        "companyName": "Doe Inc."
+        "email": "admin@example.com",
+        "password": "adminpassword",
+        "fullName": "Admin User",
+        "companyName": "BehaveIQ Admin",
+        "role": "admin"
+    },
+    {
+        "email": "user@example.com",
+        "password": "userpassword",
+        "fullName": "Regular User",
+        "companyName": "User Corp",
+        "role": "user"
+    },
+    {
+        "email": "guest@behaveiq.com",
+        "password": "DefaultGuestPassword_A9B8C7D6E5F4G3H2I1J0",
+        "fullName": "Guest User",
+        "companyName": "Anonymous",
+        "role": "user"
     }
 ]

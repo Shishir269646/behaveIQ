@@ -7,9 +7,9 @@ const {
     updateExperimentStatus,
     declareWinner
 } = require('../controllers/experimentController');
-const { protect } = require('../middleware/auth');
+// const { protect } = require('../middleware/auth'); // Removed from here
 
-router.use(protect);
+// router.use(protect); // Moved to app.js mounting
 
 router.route('/')
     .get(getExperiments)

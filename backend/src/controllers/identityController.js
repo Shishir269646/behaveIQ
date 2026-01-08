@@ -3,7 +3,7 @@ const fingerprintService = require('../services/fingerprintService');
 const Session = require('../models/Session');
 const { v4: uuidv4 } = require('uuid');
 
-exports.identify = async (req, res) => {
+const identify = async (req, res) => {
   try {
     const { fingerprint, deviceInfo, fpComponents, location } = req.body;
 
@@ -37,6 +37,11 @@ exports.identify = async (req, res) => {
       startTime: new Date()
     });
 
+    res.cookie('biq_fp', fingerprint, {
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      httpOnly: true
+    });
+
     res.json({
       success: true,
       data: {
@@ -53,4 +58,8 @@ exports.identify = async (req, res) => {
       error: error.message
     });
   }
+};
+
+module.exports = {
+  identify
 };

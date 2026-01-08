@@ -18,6 +18,10 @@ class BehaviorTracker {
     }
 
     trackPageView() {
+      if (!this.sdk.userId || !this.sdk.sessionId) {
+        console.warn('BqSdk BehaviorTracker: userId or sessionId not available, skipping pageview tracking.');
+        return;
+      }
       const pageData = {
         url: window.location.href,
         timestamp: Date.now(),
@@ -128,6 +132,10 @@ class BehaviorTracker {
     }
 
     async checkAbandonmentRisk() {
+      if (!this.sdk.userId || !this.sdk.sessionId) {
+        console.warn('BqSdk BehaviorTracker: userId or sessionId not available, skipping abandonment risk check.');
+        return;
+      }
       const cartDuration = Date.now() - this.cartActions[0].timestamp;
       
       const response = await this.sdk.request('/abandonment/predict', {
@@ -170,6 +178,10 @@ class BehaviorTracker {
     }
 
     sendBehaviorData(eventType, eventData) {
+      if (!this.sdk.userId || !this.sdk.sessionId) {
+        console.warn(`BqSdk BehaviorTracker: userId or sessionId not available, skipping ${eventType} tracking.`);
+        return;
+      }
       this.sdk.request('/behavior/track', {
         method: 'POST',
         body: {
@@ -180,6 +192,4 @@ class BehaviorTracker {
         }
       }).catch(err => console.error('Tracking error:', err));
     }
-  }
-
-export default BehaviorTracker;
+}

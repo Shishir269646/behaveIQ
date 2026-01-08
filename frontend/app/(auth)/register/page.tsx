@@ -33,7 +33,7 @@ type RegisterFormInputs = z.infer<typeof formSchema>
 
 export default function RegisterPage() {
   const router = useRouter()
-  const setUser = useAppStore((state) => state.setUser)
+  const register = useAppStore((state) => state.register)
   const { toast } = useToast()
   const [loading, setLoading] = useState(false);
 
@@ -50,17 +50,12 @@ export default function RegisterPage() {
   async function onSubmit(values: RegisterFormInputs) {
     setLoading(true);
     try {
-      const response = await api.post('/auth/register', {
+      await register({
         name: `${values.firstName} ${values.lastName}`,
         email: values.email,
         password: values.password
-      });
-      // Expected response structure: { user: { id, name, email, avatar? }, token: string }
-      const { user, token } = response.data;
+      }); // Call the register action from the store
       
-      localStorage.setItem('behaveiq_token', token);
-      setUser(user);
-
       toast({
         title: "Registration Successful",
         description: "Your account has been created. Welcome!",

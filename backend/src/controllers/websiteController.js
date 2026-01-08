@@ -3,7 +3,7 @@ const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get all websites for user
 // @route   GET /api/v1/websites
-exports.getWebsites = asyncHandler(async (req, res) => {
+const getWebsites = asyncHandler(async (req, res) => {
     const websites = await Website.find({ userId: req.user._id })
         .sort('-createdAt')
         .select('-__v');
@@ -17,7 +17,7 @@ exports.getWebsites = asyncHandler(async (req, res) => {
 
 // @desc    Create new website
 // @route   POST /api/v1/websites
-exports.createWebsite = asyncHandler(async (req, res) => {
+const createWebsite = asyncHandler(async (req, res) => {
     const { name, domain, industry } = req.body;
 
     const website = await Website.create({
@@ -43,7 +43,7 @@ exports.createWebsite = asyncHandler(async (req, res) => {
 
 // @desc    Get single website
 // @route   GET /api/v1/websites/:id
-exports.getWebsite = asyncHandler(async (req, res) => {
+const getWebsite = asyncHandler(async (req, res) => {
     const website = await Website.findOne({
         _id: req.params.id,
         userId: req.user._id
@@ -64,12 +64,23 @@ exports.getWebsite = asyncHandler(async (req, res) => {
 
 // @desc    Update website
 // @route   PATCH /api/v1/websites/:id
-exports.updateWebsite = asyncHandler(async (req, res) => {
+const updateWebsite = asyncHandler(async (req, res) => {
     const { name, settings, status } = req.body;
+
+    // Build update object dynamically
+    const updateFields = {};
+    if (name !== undefined) updateFields.name = name;
+    if (status !== undefined) updateFields.status = status;
+    if (settings !== undefined) {
+        // Merge or replace settings properties
+        for (const key in settings) {
+            updateFields[`settings.${key}`] = settings[key];
+        }
+    }
 
     const website = await Website.findOneAndUpdate(
         { _id: req.params.id, userId: req.user._id },
-        { name, settings, status },
+        { $set: updateFields }, // Use $set to update specific fields within settings
         { new: true, runValidators: true }
     );
 
@@ -83,7 +94,7 @@ exports.updateWebsite = asyncHandler(async (req, res) => {
     // If activating for first time
     if (status === 'active' && !website.activatedAt) {
         website.activatedAt = new Date();
-        await website.save();
+        await website.save(); // Save again to update activatedAt
     }
 
     res.json({
@@ -94,7 +105,7 @@ exports.updateWebsite = asyncHandler(async (req, res) => {
 
 // @desc    Delete website
 // @route   DELETE /api/v1/websites/:id
-exports.deleteWebsite = asyncHandler(async (req, res) => {
+const deleteWebsite = asyncHandler(async (req, res) => {
     const website = await Website.findOneAndDelete({
         _id: req.params.id,
         userId: req.user._id
@@ -115,7 +126,7 @@ exports.deleteWebsite = asyncHandler(async (req, res) => {
 
 // @desc    Get SDK script
 // @route   GET /api/v1/websites/:id/sdk-script
-exports.getSDKScript = asyncHandler(async (req, res) => {
+const getSDKScript = asyncHandler(async (req, res) => {
     const website = await Website.findOne({
         _id: req.params.id,
         userId: req.user._id
@@ -149,3 +160,14 @@ function generateSDKScript(apiKey) {
   });
 </script>`;
 }
+
+
+
+module.exports = {
+    getWebsites,
+    createWebsite,
+    getWebsite,
+    updateWebsite,
+    deleteWebsite,
+    getSDKScript
+};

@@ -1,0 +1,5 @@
+process.env.JWT_SECRET = 'your_jwt_secret';
+process.env.JWT_EXPIRE = '30d';
+process.env.API_KEY = 'vXxi8fhuTtHhaGyT3SvqAFN7PR98UuCmuSpdrxF7HyC3cmMgXIZvIuQQYiPYkI1fHugVT3BlbkFJatCrhdnkBFNzJm7AIo6ulwq';
+process.env.SDK_BASE_URL = '../../../sdk/dist/behaveiq.min.js'; // Default for local development
+

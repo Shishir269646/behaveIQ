@@ -12,7 +12,8 @@ import {
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { PersonaStat } from '@/hooks/useDashboard';
-import EmptyState from './EmptyState';
+import { EmptyState } from './EmptyState';
+import { Users } from 'lucide-react';
 
 interface PersonaDistributionChartProps {
     data: PersonaStat[];
@@ -51,6 +52,7 @@ export default function PersonaDistributionChart({ data }: PersonaDistributionCh
                     </ResponsiveContainer>
                 ) : (
                     <EmptyState
+                        icon={Users}
                         title="No persona data"
                         description="There is no persona data to display for the selected time range."
                     />

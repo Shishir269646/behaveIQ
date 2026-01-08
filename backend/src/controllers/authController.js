@@ -3,7 +3,7 @@ const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Register user
 // @route   POST /api/v1/auth/register
-exports.register = asyncHandler(async (req, res) => {
+const register = asyncHandler(async (req, res) => {
     const { email, password, fullName, companyName } = req.body;
 
     // Check if user exists
@@ -34,7 +34,8 @@ exports.register = asyncHandler(async (req, res) => {
                 email: user.email,
                 fullName: user.fullName,
                 companyName: user.companyName,
-                plan: user.plan
+                plan: user.plan,
+                role: user.role
             },
             token
         }
@@ -43,7 +44,7 @@ exports.register = asyncHandler(async (req, res) => {
 
 // @desc    Login user
 // @route   POST /api/v1/auth/login
-exports.login = asyncHandler(async (req, res) => {
+const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
     // Find user with password field
@@ -81,7 +82,8 @@ exports.login = asyncHandler(async (req, res) => {
                 email: user.email,
                 fullName: user.fullName,
                 companyName: user.companyName,
-                plan: user.plan
+                plan: user.plan,
+                role: user.role
             },
             token
         }
@@ -90,7 +92,7 @@ exports.login = asyncHandler(async (req, res) => {
 
 // @desc    Get current user
 // @route   GET /api/v1/auth/me
-exports.getMe = asyncHandler(async (req, res) => {
+const getMe = asyncHandler(async (req, res) => {
     res.json({
         success: true,
         data: {
@@ -101,9 +103,19 @@ exports.getMe = asyncHandler(async (req, res) => {
 
 // @desc    Logout
 // @route   POST /api/v1/auth/logout
-exports.logout = asyncHandler(async (req, res) => {
+const logout = asyncHandler(async (req, res) => {
     res.json({
         success: true,
         message: 'Logged out successfully'
     });
 });
+
+
+
+
+module.exports = {
+    register,
+    login,
+    getMe,
+    logout
+};

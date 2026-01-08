@@ -8,10 +8,10 @@ const {
     deleteWebsite,
     getSDKScript
 } = require('../controllers/websiteController');
-const { protect } = require('../middleware/auth');
+// const { protect } = require('../middleware/auth'); // Removed from here
 const { websiteValidation, updateWebsiteValidation, validate } = require('../middleware/validation');
 
-router.use(protect); // All routes require authentication
+// router.use(protect); // Moved to app.js mounting
 
 router.route('/')
     .get(getWebsites)

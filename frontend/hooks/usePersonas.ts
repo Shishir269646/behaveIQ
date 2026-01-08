@@ -1,42 +1,60 @@
 // @/hooks/usePersonas.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-
-export interface Persona {
-    name: string;
-    description: string;
-    confidence: number;
-    userCount: number;
-}
-
-export interface PersonaData {
-    budget: Persona[];
-    feature: Persona[];
-    researcher: Persona[];
-    impulse: Persona[];
-}
+import { Persona } from '@/types'; // Import Persona from types
+import { useAppStore } from '@/store'; // Import useAppStore
 
 export const usePersonas = () => {
-    const [data, setData] = useState<PersonaData | null>(null);
+    const [personas, setPersonas] = useState<Persona[]>([]); // Changed to Persona[]
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const response = await api.get<PersonaData>('/personas');
-                setData(response.data);
-            } catch (err: any) {
-                setError(err.response?.data?.message || err.message || "Failed to fetch persona data.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const selectedWebsite = useAppStore((state) => state.website); // Get selectedWebsite
 
-        fetchData();
+    const fetchData = useCallback(async (websiteId: string) => {
+        setIsLoading(true);
+        setError(null);
+        setSuccess(null);
+        try {
+            const response = await api.get<{ data: Persona[] }>('/personas', {
+                params: { websiteId }
+            });
+            setPersonas(response.data.data); // Backend response is data: { personas: [] }
+            setSuccess('Personas fetched successfully!');
+        } catch (err: any) {
+            setError(err.response?.data?.message || err.message || "Failed to fetch persona data.");
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
-    return { data, isLoading, error };
+    const discoverPersonas = useCallback(async (websiteId: string) => {
+        setIsLoading(true);
+        setError(null);
+        setSuccess(null);
+        try {
+            await api.post('/personas/discover', { websiteId });
+            setSuccess('Persona discovery initiated!');
+            // Re-fetch personas after discovery
+            fetchData(websiteId);
+        } catch (err: any) {
+            setError(err.response?.data?.message || err.message || "Failed to initiate persona discovery.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [fetchData]);
+
+    useEffect(() => {
+        if (selectedWebsite?._id) {
+            fetchData(selectedWebsite._id);
+        } else {
+            setPersonas([]);
+            setIsLoading(false);
+        }
+    }, [selectedWebsite?._id, fetchData]);
+
+    const clearSuccess = useCallback(() => setSuccess(null), []);
+
+    return { personas, isLoading, error, success, fetchData, discoverPersonas, clearSuccess };
 };

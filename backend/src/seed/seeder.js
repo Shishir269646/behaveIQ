@@ -13,7 +13,6 @@ const Persona = require('../models/Persona');
 const Session = require('../models/Session');
 const Event = require('../models/Event');
 const ClickEvent = require('../models/ClickEvent');
-const Insight = require('../models/Insight');
 
 // Read JSON files
 const users = JSON.parse(
@@ -25,27 +24,42 @@ const websites = JSON.parse(
 
 // Import into DB
 const importData = async () => {
-    // Check if users already exist, if not, create them
-    let createdUsers = await User.find();
-    if (createdUsers.length === 0) {
-        createdUsers = await User.create(users);
+    try {
+        console.log('Seeding users...');
+        for (const user of users) {
+            await User.findOneAndUpdate(
+                { email: user.email },
+                user,
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+        }
+        console.log('Users seeded successfully.');
+
+        // Seed websites for the admin user if they don't have any
+        const adminUser = await User.findOne({ email: 'admin@example.com' });
+        if (adminUser) {
+            const websiteCount = await Website.countDocuments({ userId: adminUser._id });
+            if (websiteCount === 0) {
+                const sampleWebsites = websites.map(website => ({ ...website, userId: adminUser._id }));
+                await Website.create(sampleWebsites);
+                console.log('Sample websites seeded for admin user.');
+            }
+        }
+        
+        console.log('Data Imported...');
+    } catch (err) {
+        console.error('Error during data import:', err);
     }
-    const adminUser = createdUsers[0]._id; // Assuming at least one user is created
-    
-    // Check if websites already exist for this user, if not, create them
-    let existingWebsite = await Website.findOne({ userId: adminUser });
-    if (!existingWebsite) {
-        const sampleWebsites = websites.map(website => {
-            return { ...website, userId: adminUser };
-        });
-        await Website.create(sampleWebsites);
-    }
-    
-    console.log('Data Imported...');
 };
 
 // Delete data
 const deleteData = async () => {
+    try {
+        await mongoose.connection.collection('users').dropIndexes();
+        console.log('User indexes dropped...');
+    } catch (error) {
+        console.warn('Could not drop user indexes (likely none existed or collection empty):', error.message);
+    }
     await User.deleteMany();
     await Website.deleteMany();
     await Experiment.deleteMany();
@@ -53,7 +67,6 @@ const deleteData = async () => {
     await Session.deleteMany();
     await Event.deleteMany();
     await ClickEvent.deleteMany();
-    await Insight.deleteMany();
     console.log('Data Destroyed...');
 };
 

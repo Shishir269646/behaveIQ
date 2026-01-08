@@ -19,7 +19,10 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useAppStore } from "@/store"
+import { useWebsites } from "@/hooks/useWebsites"
+import { useEffect } from "react"
+import { Website } from "@/types";
+
 
 type PopoverTriggerProps = React.ComponentPropsWithoutRef<typeof PopoverTrigger>
 
@@ -27,9 +30,13 @@ interface WebsiteSwitcherProps extends PopoverTriggerProps {}
 
 export default function WebsiteSwitcher({ className }: WebsiteSwitcherProps) {
   const [open, setOpen] = React.useState(false)
-  const websites = useAppStore((state) => state.websites)
-  const selectedWebsite = useAppStore((state) => state.selectedWebsite)
-  const selectWebsite = useAppStore((state) => state.selectWebsite)
+  const { websites, selectedWebsite, selectWebsite, fetchWebsites } = useWebsites();
+
+  useEffect(() => {
+    if (websites.length === 0) {
+        fetchWebsites();
+    }
+  }, [websites.length, fetchWebsites]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,11 +58,11 @@ export default function WebsiteSwitcher({ className }: WebsiteSwitcherProps) {
             <CommandInput placeholder="Search website..." />
             <CommandEmpty>No website found.</CommandEmpty>
             <CommandGroup heading="Websites">
-              {websites.map((website) => (
+              {websites.map((website: Website) => (
                 <CommandItem
-                  key={website.id}
+                  key={website._id} // Use _id
                   onSelect={() => {
-                    selectWebsite(website.id)
+                    selectWebsite(website._id); // Use _id
                     setOpen(false)
                   }}
                   className="text-sm"
@@ -64,7 +71,7 @@ export default function WebsiteSwitcher({ className }: WebsiteSwitcherProps) {
                   <Check
                     className={cn(
                       "ml-auto h-4 w-4",
-                      selectedWebsite?.id === website.id
+                      selectedWebsite?._id === website._id // Use _id
                         ? "opacity-100"
                         : "opacity-0"
                     )}

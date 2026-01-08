@@ -41,22 +41,41 @@ class FingerprintService {
         
         return user;
       } else {
-        // New user - create
-        const newUser = await User.create({
-          fingerprint,
-          devices: [{
-            fingerprint,
-            type: deviceInfo.type,
-            firstSeen: new Date(),
-            lastSeen: new Date()
-          }],
-          lastActive: new Date()
-        });
+        // New fingerprint - associate with the generic guest user
+        const guestUser = await User.findOne({ email: 'guest@behaveiq.com' });
+        if (!guestUser) {
+            // This is a fallback for when the guest user doesn't exist.
+            // In a real scenario, the user should be seeded.
+            throw new Error('Critical: The default guest user (guest@behaveiq.com) was not found. Please seed the database.');
+        }
 
-        // Create device record
+        // Update the guest user's device list
+        const deviceExists = guestUser.devices.some(d => d.fingerprint === fingerprint);
+        if (deviceExists) {
+            await User.updateOne(
+                { _id: guestUser._id, 'devices.fingerprint': fingerprint },
+                { $set: { 'devices.$.lastSeen': new Date() } }
+            );
+        } else {
+            await User.updateOne(
+                { _id: guestUser._id },
+                {
+                    $push: {
+                        devices: {
+                            fingerprint,
+                            type: deviceInfo.type,
+                            firstSeen: new Date(),
+                            lastSeen: new Date()
+                        }
+                    }
+                }
+            );
+        }
+
+        // Create the separate Device record
         await Device.create({
           fingerprint,
-          userId: newUser._id,
+          userId: guestUser._id,
           deviceInfo,
           fpComponents: sessionData.fpComponents,
           sessions: [{
@@ -68,10 +87,10 @@ class FingerprintService {
           lastSeen: new Date()
         });
 
-        // Cache
-        await redis.setex(`fp:${fingerprint}`, 86400, newUser._id.toString());
+        // Cache the fingerprint to point to the GUEST user ID
+        await redis.setex(`fp:${fingerprint}`, 86400, guestUser._id.toString());
 
-        return newUser;
+        return guestUser;
       }
     } catch (error) {
       throw new Error(`Fingerprint identification failed: ${error.message}`);
@@ -80,7 +99,7 @@ class FingerprintService {
 
   // Check fingerprint quality
   validateFingerprint(components) {
-    const required = ['canvas', 'webgl', 'audio', 'fonts'];
+    const required = ['canvas', 'webgl', 'fonts'];
     const missing = required.filter(key => !components[key]);
     
     if (missing.length > 0) {

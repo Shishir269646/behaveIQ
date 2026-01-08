@@ -28,7 +28,7 @@ export interface DashboardSlice {
   clearSuccess: () => void;
 }
 
-const API_URL = 'http://localhost:5000/api/v1/dashboard';
+const API_URL = 'http://localhost:5000/api/dashboard';
 
 const handleRequest = async (set: any, request: () => Promise<any>) => {
   set({ loading: true, error: null });

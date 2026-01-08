@@ -21,14 +21,14 @@ export default function Home() {
           </p>
 
           <div className="flex gap-4 justify-center">
-            <Link href="/register">
+            <Link href="/register" legacyBehavior>
               <Button size="lg" className="gap-2">
                 Get Started Free
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
 
-            <Link href="/login">
+            <Link href="/login" legacyBehavior>
               <Button size="lg" variant="outline">
                 Sign In
               </Button>

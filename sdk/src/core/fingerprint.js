@@ -4,7 +4,6 @@ class FingerprintGenerator {
       const components = {
         canvas: await this.getCanvasFingerprint(),
         webgl: await this.getWebGLFingerprint(),
-        audio: await this.getAudioFingerprint(),
         fonts: await this.getFontFingerprint()
       };
 
@@ -50,41 +49,6 @@ class FingerprintGenerator {
       return `${vendor}~${renderer}`;
     }
 
-    async getAudioFingerprint() {
-      return new Promise((resolve) => {
-        try {
-          const AudioContext = window.AudioContext || window.webkitAudioContext;
-          if (!AudioContext) return resolve('not_supported');
-          
-          const context = new AudioContext();
-          const oscillator = context.createOscillator();
-          const analyser = context.createAnalyser();
-          const gainNode = context.createGain();
-          const scriptProcessor = context.createScriptProcessor(4096, 1, 1);
-
-          gainNode.gain.value = 0;
-          oscillator.type = 'triangle';
-          oscillator.connect(analyser);
-          analyser.connect(scriptProcessor);
-          scriptProcessor.connect(gainNode);
-          gainNode.connect(context.destination);
-
-          scriptProcessor.onaudioprocess = function(event) {
-            const output = event.outputBuffer.getChannelData(0);
-            const hash = Array.from(output).slice(0, 30).reduce((a, b) => a + b, 0);
-            oscillator.disconnect();
-            scriptProcessor.disconnect();
-            context.close();
-            resolve(hash.toString());
-          };
-
-          oscillator.start(0);
-        } catch (error) {
-          resolve('error');
-        }
-      });
-    }
-
     async getFontFingerprint() {
       const baseFonts = ['monospace', 'sans-serif', 'serif'];
       const testFonts = [
@@ -113,7 +77,7 @@ class FingerprintGenerator {
           if (width !== baseMeasurements[baseFont]) {
             detected = true;
           }
-        });
+          });
         if (detected) detectedFonts.push(font);
       });
 

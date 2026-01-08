@@ -2,7 +2,7 @@
 const deviceStitchingService = require('../services/deviceStitchingService');
 const Device = require('../models/Device');
 
-exports.stitchDevices = async (req, res) => {
+const stitchDevices = async (req, res) => {
   try {
     const { fingerprint1, fingerprint2 } = req.body;
 
@@ -24,7 +24,7 @@ exports.stitchDevices = async (req, res) => {
   }
 };
 
-exports.getUserDevices = async (req, res) => {
+const getUserDevices = async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -40,4 +40,11 @@ exports.getUserDevices = async (req, res) => {
       error: error.message
     });
   }
+};
+
+
+
+module.exports = {
+  stitchDevices,
+  getUserDevices
 };

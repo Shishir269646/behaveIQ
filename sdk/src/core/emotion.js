@@ -10,6 +10,10 @@ class EmotionTracker {
     }
 
     async analyzeEmotion() {
+      if (!this.sdk.userId || !this.sdk.sessionId) {
+        console.warn('BqSdk EmotionTracker: userId or sessionId not available, skipping emotion analysis.');
+        return;
+      }
       const behaviorData = {
         mouseMovements: this.sdk.tracker.mouseData,
         scrollData: this.sdk.tracker.scrollData,
@@ -18,7 +22,7 @@ class EmotionTracker {
         currentPage: window.location.href
       };
 
-      const response = await this.sdk.request('/emotion/detect', {
+      const response = await this.sdk.request('/emotions/detect', {
         method: 'POST',
         body: {
           userId: this.sdk.userId,

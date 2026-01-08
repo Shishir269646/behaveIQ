@@ -6,8 +6,10 @@ const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get all personas
 // @route   GET /api/v1/personas?websiteId=xxx
-exports.getPersonas = asyncHandler(async (req, res) => {
+const getPersonas = asyncHandler(async (req, res) => {
+    console.log('--- getPersonas called ---'); // ADDED for debugging
     const { websiteId } = req.query;
+    console.log(`websiteId: ${websiteId}, userId: ${req.user._id}`); // ADDED for debugging
 
     // Verify website ownership
     const website = await Website.findOne({
@@ -36,7 +38,7 @@ exports.getPersonas = asyncHandler(async (req, res) => {
 
 // @desc    Discover new personas using ML
 // @route   POST /api/v1/personas/discover
-exports.discoverPersonas = asyncHandler(async (req, res) => {
+const discoverPersonas = asyncHandler(async (req, res) => {
     const { websiteId, minSessions = 100 } = req.body;
 
     // Verify website ownership
@@ -116,7 +118,7 @@ exports.discoverPersonas = asyncHandler(async (req, res) => {
 
 // @desc    Get single persona
 // @route   GET /api/v1/personas/:id
-exports.getPersona = asyncHandler(async (req, res) => {
+const getPersona = asyncHandler(async (req, res) => {
     const persona = await Persona.findById(req.params.id)
         .populate('websiteId', 'name domain');
 
@@ -148,7 +150,7 @@ exports.getPersona = asyncHandler(async (req, res) => {
 
 // @desc    Update persona
 // @route   PATCH /api/v1/personas/:id
-exports.updatePersona = asyncHandler(async (req, res) => {
+const updatePersona = asyncHandler(async (req, res) => {
     const { name, description, isActive } = req.body;
 
     const persona = await Persona.findByIdAndUpdate(
@@ -172,7 +174,7 @@ exports.updatePersona = asyncHandler(async (req, res) => {
 
 // @desc    Create personalization rule
 // @route   POST /api/v1/personas/:id/personalization-rules
-exports.createPersonalizationRule = asyncHandler(async (req, res) => {
+const createPersonalizationRule = asyncHandler(async (req, res) => {
     const { selector, content, contentType, variation, priority } = req.body;
 
     const persona = await Persona.findById(req.params.id);
@@ -203,3 +205,12 @@ exports.createPersonalizationRule = asyncHandler(async (req, res) => {
         }
     });
 });
+
+
+module.exports = {
+    getPersonas,
+    discoverPersonas,
+    getPersona,
+    updatePersona,
+    createPersonalizationRule
+};

@@ -1,5 +1,5 @@
 // src/controllers/voiceController.js
-exports.searchByVoice = async (req, res) => {
+const searchByVoice = async (req, res) => {
   try {
     const { query, userId } = req.body;
 
@@ -30,3 +30,8 @@ async function searchProducts(query) {
     { id: 2, name: 'Product 2', price: 200 }
   ];
 }
+
+
+module.exports = {
+  searchByVoice
+};

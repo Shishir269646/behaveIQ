@@ -30,7 +30,7 @@ type LoginFormInputs = z.infer<typeof formSchema>
 
 export default function LoginPage() {
   const router = useRouter()
-  const setUser = useAppStore((state) => state.setUser)
+  const login = useAppStore((state) => state.login)
   const { toast } = useToast()
   const [loading, setLoading] = useState(false);
 
@@ -45,12 +45,7 @@ export default function LoginPage() {
   async function onSubmit(values: LoginFormInputs) {
     setLoading(true);
     try {
-      const response = await api.post('/auth/login', values);
-      // Expected response structure: { user: { id, name, email, avatar? }, token: string }
-      const { user, token } = response.data;
-      
-      localStorage.setItem('behaveiq_token', token);
-      setUser(user);
+      await login(values); // Call the login action from the store
       
       toast({
         title: "Login Successful",

@@ -3,6 +3,7 @@ export interface User {
   _id: string;
   email: string;
   fullName: string;
+  avatar?: string;
   companyName?: string;
   plan: 'free' | 'starter' | 'growth' | 'enterprise';
   isActive: boolean;
@@ -15,17 +16,33 @@ export interface Website {
   _id: string;
   userId: string;
   name: string;
-  domain: string;
+  domain: string; // Renamed from url
   apiKey: string;
   industry: string;
   status: 'learning' | 'active' | 'paused';
-  settings: {
-    learningPeriodHours: number;
-    autoPersonalization: boolean;
-    experimentMode: boolean;
-    notificationEmail?: string;
-  };
-  learningStartedAt: Date;
+      settings: {
+          learningPeriodHours: number;
+          autoPersonalization: boolean;
+          experimentMode: boolean;
+          notificationEmail?: string;
+          emotionInterventions?: { // New property
+              emotion: 'frustrated' | 'confused' | 'excited' | 'neutral' | 'considering';
+              action: 'show_help_chat' | 'show_guide' | 'show_social_proof' | 'show_comparison' | 'none';
+              message?: string;
+              data?: any; // e.g., for discount offers
+          }[];
+          fraudDetectionSettings?: { // New property
+              sensitivity: 'low' | 'medium' | 'high';
+              riskBasedActions: {
+                  requirePhoneVerification: boolean;
+                  requireEmailVerification: boolean;
+                  disableCOD: boolean;
+                  showCaptcha: boolean;
+                  manualReview: boolean;
+                  limitOrderValue?: number;
+              };
+          };
+      };  learningStartedAt: Date;
   activatedAt?: Date;
   stats: {
     totalSessions: number;
@@ -118,6 +135,28 @@ export interface Experiment {
   endDate?: Date;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface Discount {
+  _id: string;
+  userId: string;
+  code: string;
+  type: 'percentage' | 'fixed_amount';
+  value: number;
+  reasons: {
+    factor: string;
+    value: number;
+  }[];
+  applicableTo: {
+    products?: string[];
+    categories?: string[];
+    minAmount?: number;
+  };
+  status: 'active' | 'used' | 'expired';
+  usedAt?: Date;
+  orderId?: string;
+  createdAt: Date;
+  expiresAt: string;
 }
 
 export interface Event {

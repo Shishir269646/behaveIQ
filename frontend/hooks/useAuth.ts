@@ -1,18 +1,18 @@
 
-import { useStore } from '../store';
+import { useAppStore } from '../store';
 
 export const useAuth = () => {
-  const user = useStore((state) => state.user);
-  const token = useStore((state) => state.token);
-  const isAuthenticated = useStore((state) => state.isAuthenticated);
-  const loading = useStore((state) => state.loading);
-  const error = useStore((state) => state.error);
-  const success = useStore((state) => state.success);
-  const register = useStore((state) => state.register);
-  const login = useStore((state) => state.login);
-  const logout = useStore((state) => state.logout);
-  const getMe = useStore((state) => state.getMe);
-  const clearSuccess = useStore((state) => state.clearSuccess);
+  const user = useAppStore((state) => state.user);
+  const token = useAppStore((state) => state.token);
+  const isAuthenticated = useAppStore((state) => state.isAuthenticated);
+  const loading = useAppStore((state) => state.loading);
+  const error = useAppStore((state) => state.error);
+  const success = useAppStore((state) => state.success);
+  const register = useAppStore((state) => state.register);
+  const login = useAppStore((state) => state.login);
+  const logout = useAppStore((state) => state.logout);
+  const initializeAuth = useAppStore((state) => state.initializeAuth); // Add initializeAuth
+  const clearSuccess = useAppStore((state) => state.clearSuccess);
 
   return {
     user,
@@ -24,7 +24,7 @@ export const useAuth = () => {
     register,
     login,
     logout,
-    getMe,
+    initializeAuth, // Expose initializeAuth
     clearSuccess,
   };
 };

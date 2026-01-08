@@ -3,7 +3,7 @@ const Behavior = require('../models/Behavior');
 const Session = require('../models/Session');
 const emotionService = require('../services/emotionService');
 
-exports.trackEvent = async (req, res) => {
+const trackEvent = async (req, res) => {
   try {
     const { userId, sessionId, eventType, eventData } = req.body;
 
@@ -42,7 +42,7 @@ exports.trackEvent = async (req, res) => {
 
         // Get appropriate response
         const response = emotionService.getEmotionResponse(
-          emotionResult.emotion, 
+          emotionResult.emotion,
           eventData.url
         );
 
@@ -64,7 +64,7 @@ exports.trackEvent = async (req, res) => {
   }
 };
 
-exports.getBehaviorSummary = async (req, res) => {
+const getBehaviorSummary = async (req, res) => {
   try {
     const { sessionId } = req.params;
 
@@ -94,4 +94,10 @@ exports.getBehaviorSummary = async (req, res) => {
       error: error.message
     });
   }
+};
+
+
+module.exports = {
+  trackEvent,
+  getBehaviorSummary
 };

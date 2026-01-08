@@ -1,37 +1,104 @@
 // @/hooks/useExperiments.ts
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-
-export interface Experiment {
-    id: string;
-    name: string;
-    status: "Running" | "Completed" | "Draft";
-    conversionLift: string; // e.g., "+5.2%"
-    progress: number; // 0-100
-    winner: string; // e.g., "Variant B", "Control", "N/A"
-}
+import { Experiment } from '@/types'; // Import the comprehensive Experiment interface
+import { useAppStore } from '@/store'; // Import useAppStore
 
 export const useExperiments = () => {
     const [experiments, setExperiments] = useState<Experiment[]>([]);
+    const [experiment, setExperiment] = useState<Experiment | null>(null); // For single experiment view
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const response = await api.get<Experiment[]>('/experiments');
-                setExperiments(response.data);
-            } catch (err: any) {
-                setError(err.response?.data?.message || err.message || "Failed to fetch experiments.");
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const selectedWebsite = useAppStore((state) => state.website); // Get selectedWebsite
 
-        fetchData();
+    const handleRequest = useCallback(async (request: () => Promise<any>) => {
+        setIsLoading(true);
+        setError(null);
+        setSuccess(null);
+        try {
+            const response = await request();
+            setIsLoading(false);
+            return response;
+        } catch (err: any) {
+            const message = err.response?.data?.message || err.message || 'An unknown error occurred.';
+            setError(message);
+            setIsLoading(false);
+            throw err; // Re-throw to allow component to handle specific errors
+        }
     }, []);
 
-    return { experiments, isLoading, error };
+    const fetchExperiments = useCallback(async () => {
+        if (!selectedWebsite?._id) {
+            setExperiments([]);
+            setIsLoading(false);
+            return;
+        }
+        await handleRequest(async () => {
+            const response = await api.get('/experiments', {
+                params: { websiteId: selectedWebsite._id }
+            });
+            setExperiments(response.data.data.experiments);
+            setSuccess('Experiments fetched successfully!');
+        });
+    }, [selectedWebsite?._id, handleRequest]);
+
+    const createExperiment = useCallback(async (experimentData: Omit<Experiment, '_id' | 'createdAt' | 'updatedAt' | 'variations' | 'results'> & { variations: any[] }) => {
+        if (!selectedWebsite?._id) {
+            setError("No website selected.");
+            return;
+        }
+        await handleRequest(async () => {
+            const response = await api.post('/experiments', { ...experimentData, websiteId: selectedWebsite._id });
+            setExperiments((prev) => [...prev, response.data.data.experiment]);
+            setSuccess('Experiment created successfully!');
+        });
+    }, [selectedWebsite?._id, handleRequest]);
+
+    const fetchExperimentById = useCallback(async (id: string) => {
+        await handleRequest(async () => {
+            const response = await api.get(`/experiments/${id}`);
+            setExperiment(response.data.data.experiment);
+            setSuccess('Experiment fetched successfully!');
+        });
+    }, [handleRequest]);
+
+    const updateExperimentStatus = useCallback(async (id: string, status: Experiment['status']) => {
+        await handleRequest(async () => {
+            const response = await api.patch(`/experiments/${id}/status`, { status });
+            setExperiments((prev) => prev.map((exp) => (exp._id === id ? response.data.data.experiment : exp)));
+            setExperiment(response.data.data.experiment); // Update if this is the currently viewed experiment
+            setSuccess('Experiment status updated successfully!');
+        });
+    }, [handleRequest]);
+
+    const declareWinner = useCallback(async (id: string, winningVariation: string) => {
+        await handleRequest(async () => {
+            const response = await api.post(`/experiments/${id}/declare-winner`, { winningVariation });
+            setExperiments((prev) => prev.map((exp) => (exp._id === id ? response.data.data.experiment : exp)));
+            setExperiment(response.data.data.experiment); // Update if this is the currently viewed experiment
+            setSuccess('Winner declared successfully!');
+        });
+    }, [handleRequest]);
+
+    useEffect(() => {
+        fetchExperiments();
+    }, [fetchExperiments]);
+
+    const clearSuccess = useCallback(() => setSuccess(null), []);
+
+    return {
+        experiments,
+        experiment,
+        isLoading,
+        error,
+        success,
+        fetchExperiments,
+        createExperiment,
+        fetchExperimentById,
+        updateExperimentStatus,
+        declareWinner,
+        clearSuccess,
+    };
 };

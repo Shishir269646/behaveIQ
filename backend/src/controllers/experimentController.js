@@ -5,7 +5,7 @@ const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get all experiments
 // @route   GET /api/v1/experiments?websiteId=xxx&status=active
-exports.getExperiments = asyncHandler(async (req, res) => {
+const getExperiments = asyncHandler(async (req, res) => {
     const { websiteId, status } = req.query;
 
     // Verify ownership
@@ -37,7 +37,7 @@ exports.getExperiments = asyncHandler(async (req, res) => {
 
 // @desc    Create new experiment
 // @route   POST /api/v1/experiments
-exports.createExperiment = asyncHandler(async (req, res) => {
+const createExperiment = asyncHandler(async (req, res) => {
     const {
         websiteId,
         name,
@@ -90,7 +90,7 @@ exports.createExperiment = asyncHandler(async (req, res) => {
 
 // @desc    Get single experiment with results
 // @route   GET /api/v1/experiments/:id
-exports.getExperiment = asyncHandler(async (req, res) => {
+const getExperiment = asyncHandler(async (req, res) => {
     const experiment = await Experiment.findById(req.params.id);
 
     if (!experiment) {
@@ -149,7 +149,7 @@ exports.getExperiment = asyncHandler(async (req, res) => {
 
 // @desc    Update experiment status
 // @route   PATCH /api/v1/experiments/:id/status
-exports.updateExperimentStatus = asyncHandler(async (req, res) => {
+const updateExperimentStatus = asyncHandler(async (req, res) => {
     const { status } = req.body;
 
     const experiment = await Experiment.findById(req.params.id);
@@ -182,7 +182,7 @@ exports.updateExperimentStatus = asyncHandler(async (req, res) => {
 
 // @desc    Declare winner manually
 // @route   POST /api/v1/experiments/:id/declare-winner
-exports.declareWinner = asyncHandler(async (req, res) => {
+const declareWinner = asyncHandler(async (req, res) => {
     const { winningVariation } = req.body;
 
     const experiment = await Experiment.findById(req.params.id);
@@ -226,3 +226,12 @@ exports.declareWinner = asyncHandler(async (req, res) => {
         data: { experiment }
     });
 });
+
+
+module.exports = {
+    getExperiments,
+    createExperiment,
+    getExperiment,
+    updateExperimentStatus,
+    declareWinner
+};

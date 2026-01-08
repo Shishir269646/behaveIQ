@@ -1,15 +1,33 @@
 import { useState, useCallback } from 'react';
-import axios from 'axios';
-import { useAuth } from './useAuth';
+import { api } from '@/lib/api'; // Use api instance
+import { useAppStore } from '@/store';
 
-interface HeatmapPoint {
+export interface HeatmapPoint {
     x: number;
     y: number;
     value: number;
 }
 
+export interface ScrollDepthData {
+    avgScrollDepth: number;
+    maxScrollDepth: number;
+}
+
+export interface ConfusionZoneData {
+    element: string;
+    avgHoverTime: string;
+    confusionScore: string;
+}
+
+export interface HeatmapResponseData {
+    pageUrl: string;
+    clicks: HeatmapPoint[];
+    scrollDepth: ScrollDepthData;
+    confusionZones: ConfusionZoneData[];
+}
+
 interface UseHeatmapReturn {
-    data: HeatmapPoint[];
+    data: HeatmapResponseData | null; // Changed to full response data
     loading: boolean;
     error: string | null;
     success: string | null;
@@ -18,11 +36,11 @@ interface UseHeatmapReturn {
 }
 
 export const useHeatmap = (): UseHeatmapReturn => {
-    const [data, setData] = useState<HeatmapPoint[]>([]);
+    const [data, setData] = useState<HeatmapResponseData | null>(null); // Changed to full response data
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const { token } = useAuth();
+    const selectedWebsite = useAppStore((state) => state.website); // Get selectedWebsite
 
     const handleRequest = useCallback(async (request: () => Promise<any>) => {
         setLoading(true);
@@ -47,31 +65,27 @@ export const useHeatmap = (): UseHeatmapReturn => {
         }
 
         await handleRequest(async () => {
-            const response = await axios.get(
-                `${process.env.NEXT_PUBLIC_API_URL}/api/v1/heatmap`,
+            const response = await api.get( // Use api instance
+                `/dashboard/heatmap`,
                 {
                     params: {
                         websiteId,
                         pageUrl: encodeURIComponent(pageUrl),
                     },
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
                 }
             );
 
             if (response.data.success) {
-                setData(response.data.data);
+                setData(response.data.data); // Set the full data object
                 setSuccess('Heatmap data fetched successfully!');
             } else {
                 setError(response.data.message || 'Failed to fetch heatmap data.');
             }
             return response;
         });
-    }, [token, handleRequest]);
+    }, [handleRequest]);
 
     const clearSuccess = useCallback(() => setSuccess(null), []);
 
     return { data, loading, error, success, fetchHeatmapData, clearSuccess };
 };
-

@@ -1,4 +1,5 @@
-// @/app/(dashboard)/settings/page.tsx
+"use client"
+
 import {
   Card,
   CardContent,
@@ -11,126 +12,484 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox"
-import { useAppStore } from "@/store";
+import { useWebsites } from "@/hooks/useWebsites"; // Import useWebsites
+import { useEffect, useState } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus, Trash2 } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+
+const EMOTIONS = ['frustrated', 'confused', 'excited', 'neutral', 'considering'];
+const INTERVENTION_ACTIONS = ['show_help_chat', 'show_guide', 'show_social_proof', 'show_comparison', 'none'];
 
 export default function SettingsPage() {
-    const selectedWebsite = useAppStore((state) => state.selectedWebsite);
+    const { selectedWebsite, updateWebsite, loading, success, error, clearSuccess } = useWebsites();
 
-  return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">Settings</h1>
-      
-      <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="website">Website</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="notifications">Notifications</TabsTrigger>
-        </TabsList>
 
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile</CardTitle>
-              <CardDescription>
-                Make changes to your personal information here. Click save when you're done.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" defaultValue="John Doe" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" defaultValue="john.doe@example.com" />
-              </div>
-              <Button>Save changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+    const [formState, setFormState] = useState({
+        name: selectedWebsite?.name || '',
+        domain: selectedWebsite?.domain || '',
+        settings: selectedWebsite?.settings || {
+            learningPeriodHours: 48,
+            autoPersonalization: false,
+            experimentMode: false,
+            emotionInterventions: [],
+        },
+    });
 
-        <TabsContent value="website">
-          <Card>
-            <CardHeader>
-              <CardTitle>Website Settings</CardTitle>
-              <CardDescription>
-                Manage settings for your currently selected website.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="website-name">Website Name</Label>
-                <Input id="website-name" defaultValue={selectedWebsite?.name || ""} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="website-url">Website URL</Label>
-                <Input id="website-url" defaultValue={selectedWebsite?.url || ""} />
-              </div>
-               <Button>Save changes</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
+    useEffect(() => {
+        if (selectedWebsite) {
+            setFormState({
+                name: selectedWebsite.name,
+                domain: selectedWebsite.domain,
+                settings: selectedWebsite.settings,
+            });
+        }
+    }, [selectedWebsite]);
 
-        <TabsContent value="security">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Security</CardTitle>
-                    <CardDescription>Manage your account's security settings.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                    <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="2fa" className="text-base">Two-Factor Authentication</Label>
-                            <p className="text-sm text-muted-foreground">
-                                Add an extra layer of security to your account.
-                            </p>
-                        </div>
-                        <Checkbox id="2fa" />
-                    </div>
-                     <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label htmlFor="fraud-sensitivity" className="text-base">Fraud Detection Sensitivity</Label>
-                             <p className="text-sm text-muted-foreground">
-                                Adjust the sensitivity of the automated fraud detection engine.
-                            </p>
-                        </div>
-                        <Button variant="outline">Set Sensitivity</Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
+    useEffect(() => {
+        if (success) {
+            toast({
+                title: "Success",
+                description: success,
+            });
+            clearSuccess();
+        }
+        if (error) {
+            toast({
+                title: "Error",
+                description: error,
+                variant: "destructive",
+            });
+            clearSuccess();
+        }
+    }, [success, error, clearSuccess, toast]);
 
-         <TabsContent value="notifications">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Notifications</CardTitle>
-                    <CardDescription>Manage how you receive notifications.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                     <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label className="text-base">Email Notifications</Label>
-                             <p className="text-sm text-muted-foreground">
-                                Receive email notifications for important events.
-                            </p>
-                        </div>
-                        <Checkbox defaultChecked />
-                    </div>
-                    <div className="flex flex-row items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-0.5">
-                            <Label className="text-base">Push Notifications</Label>
-                             <p className="text-sm text-muted-foreground">
-                                Receive push notifications on your devices.
-                            </p>
-                        </div>
-                        <Checkbox />
-                    </div>
-                </CardContent>
-            </Card>
-        </TabsContent>
+    const handleFormChange = (field: string, value: any) => {
+        setFormState((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
 
-      </Tabs>
-    </div>
-  );
+    const handleSettingsChange = (field: string, value: any) => {
+        setFormState((prev: any) => ({
+            ...prev,
+            settings: {
+                ...prev.settings,
+                [field]: value,
+            },
+        }));
+    };
+
+    const handleEmotionInterventionChange = (index: number, field: string, value: any) => {
+        const updatedInterventions = [...(formState.settings.emotionInterventions || [])];
+        updatedInterventions[index] = { ...updatedInterventions[index], [field]: value };
+        setFormState((prev: any) => ({
+            ...prev,
+            settings: {
+                ...prev.settings,
+                emotionInterventions: updatedInterventions,
+            }
+        }));
+    };
+
+    const handleAddEmotionIntervention = () => {
+        setFormState((prev: any) => ({
+            ...prev,
+            settings: {
+                ...prev.settings,
+                emotionInterventions: [
+                    ...(prev.settings.emotionInterventions || []),
+                    { emotion: 'neutral', action: 'none', message: '' },
+                ],
+            }
+        }));
+    };
+
+    const handleRemoveEmotionIntervention = (index: number) => {
+        setFormState((prev: any) => ({
+            ...prev,
+            settings: {
+                ...prev.settings,
+                emotionInterventions: prev.settings.emotionInterventions.filter((_: any, i: number) => i !== index),
+            }
+        }));
+    };
+
+    const handleSaveWebsiteSettings = async () => {
+        if (!selectedWebsite?._id) {
+            toast({
+                title: "Error",
+                description: "No website selected to save settings.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        // Basic frontend validation
+        if (!formState.name.trim()) {
+            toast({
+                title: "Validation Error",
+                description: "Website Name cannot be empty.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        if (!formState.domain.trim()) {
+            toast({
+                title: "Validation Error",
+                description: "Website Domain cannot be empty.",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        await updateWebsite(selectedWebsite._id, {
+            name: formState.name,
+            domain: formState.domain,
+            settings: formState.settings,
+        });
+    };
+
+    return (
+        <div className="flex flex-col gap-4">
+            <h1 className="text-2xl font-bold">Settings</h1>
+            
+            <Tabs defaultValue="profile" className="w-full">
+                <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="profile">Profile</TabsTrigger>
+                    <TabsTrigger value="website">Website</TabsTrigger>
+                    <TabsTrigger value="security">Security</TabsTrigger>
+                    <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="profile">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Profile</CardTitle>
+                            <CardDescription>
+                                Make changes to your personal information here. Click save when you're done.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Name</Label>
+                                <Input id="name" defaultValue="John Doe" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="email">Email</Label>
+                                <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                            </div>
+                            <Button>Save changes</Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="website">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Website Settings</CardTitle>
+                            <CardDescription>
+                                Manage settings for your currently selected website.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="website-name">Website Name</Label>
+                                <Input
+                                    id="website-name"
+                                    value={formState.name}
+                                    onChange={(e) => handleFormChange('name', e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="website-domain">Website Domain</Label>
+                                <Input
+                                    id="website-domain"
+                                    type="url"
+                                    value={formState.domain}
+                                    onChange={(e) => handleFormChange('domain', e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="auto-personalization"
+                                    checked={formState.settings.autoPersonalization}
+                                    onCheckedChange={(checked: boolean) => handleSettingsChange('autoPersonalization', checked)}
+                                />
+                                <Label htmlFor="auto-personalization">Enable Auto-Personalization</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                                <Checkbox
+                                    id="experiment-mode"
+                                    checked={formState.settings.experimentMode}
+                                    onCheckedChange={(checked: boolean) => handleSettingsChange('experimentMode', checked)}
+                                />
+                                <Label htmlFor="experiment-mode">Enable Experiment Mode</Label>
+                            </div>
+                            <Button onClick={handleSaveWebsiteSettings} disabled={loading}>Save changes</Button>
+                        </CardContent>
+                    </Card>
+
+                    {/* Emotion-Based Personalization Settings */}
+                    <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Emotion-Based Interventions</CardTitle>
+                            <CardDescription>
+                                Define automatic actions based on detected user emotions.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            {formState.settings.emotionInterventions && formState.settings.emotionInterventions.map((intervention: any, index: number) => (
+                                <div key={index} className="border p-4 rounded-md space-y-3 relative">
+                                    <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        className="absolute top-2 right-2"
+                                        onClick={() => handleRemoveEmotionIntervention(index)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                    <div className="space-y-2">
+                                        <Label>Emotion Trigger</Label>
+                                        <Select
+                                            value={intervention.emotion}
+                                            onValueChange={(value: any) => handleEmotionInterventionChange(index, 'emotion', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select emotion" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {EMOTIONS.map(emotion => (
+                                                    <SelectItem key={emotion} value={emotion}>{emotion.charAt(0).toUpperCase() + emotion.slice(1)}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>Intervention Action</Label>
+                                        <Select
+                                            value={intervention.action}
+                                            onValueChange={(value: any) => handleEmotionInterventionChange(index, 'action', value)}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select action" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {INTERVENTION_ACTIONS.map(action => (
+                                                    <SelectItem key={action} value={action}>{action.replace(/_/g, ' ')}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    {intervention.action !== 'none' && (
+                                        <div className="space-y-2">
+                                            <Label>Message (Optional)</Label>
+                                            <Textarea
+                                                value={intervention.message}
+                                                onChange={(e) => handleEmotionInterventionChange(index, 'message', e.target.value)}
+                                                placeholder="e.g., Need help? Our team is here!"
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                            <Button variant="outline" className="w-full" onClick={handleAddEmotionIntervention}>
+                                <Plus className="h-4 w-4 mr-2" /> Add Intervention Rule
+                            </Button>
+                            <Button onClick={handleSaveWebsiteSettings} disabled={loading}>Save Emotion Settings</Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="security">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Security</CardTitle>
+                            <CardDescription>Manage your account's security settings.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="2fa" className="text-base">Two-Factor Authentication</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Add an extra layer of security to your account.
+                                    </p>
+                                </div>
+                                <Checkbox id="2fa" />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Fraud Detection Settings */}
+                    <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Fraud Detection Settings</CardTitle>
+                            <CardDescription>
+                                Configure the sensitivity and automated actions for fraud detection.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="fraud-sensitivity">Sensitivity Level</Label>
+                                <Select
+                                    value={formState.settings.fraudDetectionSettings?.sensitivity || 'medium'}
+                                    onValueChange={(value: 'low' | 'medium' | 'high') =>
+                                        handleSettingsChange('fraudDetectionSettings', {
+                                            ...formState.settings.fraudDetectionSettings,
+                                            sensitivity: value,
+                                        })
+                                    }
+                                >
+                                    <SelectTrigger id="fraud-sensitivity">
+                                        <SelectValue placeholder="Select sensitivity" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="low">Low</SelectItem>
+                                        <SelectItem value="medium">Medium</SelectItem>
+                                        <SelectItem value="high">High</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <h3 className="font-semibold mt-4">Risk-Based Actions</h3>
+                            <p className="text-sm text-muted-foreground mb-2">Automated actions taken when high fraud risk is detected.</p>
+                            <div className="space-y-2">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="requirePhoneVerification"
+                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.requirePhoneVerification || false}
+                                        onCheckedChange={(checked: boolean) =>
+                                            handleSettingsChange('fraudDetectionSettings', {
+                                                ...formState.settings.fraudDetectionSettings,
+                                                riskBasedActions: {
+                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    requirePhoneVerification: checked,
+                                                },
+                                            })
+                                        }
+                                    />
+                                    <Label htmlFor="requirePhoneVerification">Require Phone Verification</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="requireEmailVerification"
+                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.requireEmailVerification || false}
+                                        onCheckedChange={(checked: boolean) =>
+                                            handleSettingsChange('fraudDetectionSettings', {
+                                                ...formState.settings.fraudDetectionSettings,
+                                                riskBasedActions: {
+                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    requireEmailVerification: checked,
+                                                },
+                                            })
+                                        }
+                                    />
+                                    <Label htmlFor="requireEmailVerification">Require Email Verification</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="disableCOD"
+                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.disableCOD || false}
+                                        onCheckedChange={(checked: boolean) =>
+                                            handleSettingsChange('fraudDetectionSettings', {
+                                                ...formState.settings.fraudDetectionSettings,
+                                                riskBasedActions: {
+                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    disableCOD: checked,
+                                                },
+                                            })
+                                        }
+                                    />
+                                    <Label htmlFor="disableCOD">Disable Cash on Delivery (COD)</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="showCaptcha"
+                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.showCaptcha || false}
+                                        onCheckedChange={(checked: boolean) =>
+                                            handleSettingsChange('fraudDetectionSettings', {
+                                                ...formState.settings.fraudDetectionSettings,
+                                                riskBasedActions: {
+                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    showCaptcha: checked,
+                                                },
+                                            })
+                                        }
+                                    />
+                                    <Label htmlFor="showCaptcha">Show CAPTCHA</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="manualReview"
+                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.manualReview || false}
+                                        onCheckedChange={(checked: boolean) =>
+                                            handleSettingsChange('fraudDetectionSettings', {
+                                                ...formState.settings.fraudDetectionSettings,
+                                                riskBasedActions: {
+                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    manualReview: checked,
+                                                },
+                                            })
+                                        }
+                                    />
+                                    <Label htmlFor="manualReview">Require Manual Review</Label>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="limitOrderValue">Limit Order Value (USD)</Label>
+                                    <Input
+                                        id="limitOrderValue"
+                                        type="number"
+                                        value={formState.settings.fraudDetectionSettings?.riskBasedActions?.limitOrderValue || ''}
+                                        onChange={(e) =>
+                                            handleSettingsChange('fraudDetectionSettings', {
+                                                ...formState.settings.fraudDetectionSettings,
+                                                riskBasedActions: {
+                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    limitOrderValue: Number(e.target.value),
+                                                },
+                                            })
+                                        }
+                                        placeholder="e.g., 5000"
+                                    />
+                                </div>
+                            </div>
+                        <Button onClick={handleSaveWebsiteSettings} disabled={loading}>Save Fraud Settings</Button>
+                    </CardContent>
+                </Card>
+                </TabsContent>
+
+                <TabsContent value="notifications">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Notifications</CardTitle>
+                            <CardDescription>Manage how you receive notifications.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Email Notifications</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Receive email notifications for important events.
+                                    </p>
+                                </div>
+                                <Checkbox defaultChecked />
+                            </div>
+                            <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+                                <div className="space-y-0.5">
+                                    <Label className="text-base">Push Notifications</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Receive push notifications on your devices.
+                                    </p>
+                                </div>
+                                <Checkbox />
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
 }

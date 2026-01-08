@@ -16,7 +16,7 @@ export interface ExperimentSlice {
   clearSuccess: () => void;
 }
 
-const API_URL = 'http://localhost:5000/api/v1/experiments';
+const API_URL = 'http://localhost:5000/api/experiments';
 
 const handleRequest = async (set: any, request: () => Promise<any>) => {
   set({ loading: true, error: null });

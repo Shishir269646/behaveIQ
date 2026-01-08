@@ -9,28 +9,31 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useWebsites } from '@/hooks/useWebsites';
 import { EmptyState } from '@/components/EmptyState';
-import { formatDate, getStatusColor, copyToClipboard } from '@/lib/utils';
+import { formatDate, getStatusColor, copyToClipboard, cn } from '@/lib/utils';
 import { Globe, Plus, Copy, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { api } from '@/lib/api';
+import { Website } from '@/types'; // Import Website type
 
 export default function WebsitesPage() {
-    const { websites, loading, createWebsite, deleteWebsite, success, clearSuccess, fetchWebsites } = useWebsites();
+    const { websites, loading, createWebsite, deleteWebsite, success, clearSuccess, fetchWebsites, selectedWebsite, selectWebsite } = useWebsites();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-    const [selectedWebsite, setSelectedWebsite] = useState<string | null>(null);
+    const [websiteToDeleteId, setWebsiteToDeleteId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
-        domain: '',
+        url: '', // Changed from domain to url
         industry: '',
-        defaultMessage: '',
     });
+    const [sdkScript, setSdkScript] = useState<string | null>(null);
+    const [isSdkScriptLoading, setIsSdkScriptLoading] = useState(false);
 
     useEffect(() => {
-
-        if (!websites || websites.length === 0) {
-            fetchWebsites();
+        if (!selectedWebsite && websites.length > 0) {
+            selectWebsite(websites[0]._id);
         }
-    }, [fetchWebsites, websites]);
+    }, [websites, selectedWebsite, selectWebsite]);
 
     useEffect(() => {
         if (success) {
@@ -40,16 +43,20 @@ export default function WebsitesPage() {
     }, [success, clearSuccess]);
 
     const handleCreate = async () => {
-        await createWebsite(formData, formData.defaultMessage);
+        if (!formData.name || !formData.url) {
+            toast.error("Name and Domain are required.");
+            return;
+        }
+        await createWebsite({ name: formData.name, url: formData.url });
         setIsCreateOpen(false);
-        setFormData({ name: '', domain: '', industry: '', defaultMessage: '' });
+        setFormData({ name: '', url: '', industry: '' });
     };
 
     const handleDelete = async () => {
-        if (selectedWebsite) {
-            await deleteWebsite(selectedWebsite);
+        if (websiteToDeleteId) {
+            await deleteWebsite(websiteToDeleteId);
             setIsDeleteOpen(false);
-            setSelectedWebsite(null);
+            setWebsiteToDeleteId(null);
         }
     };
 
@@ -58,8 +65,35 @@ export default function WebsitesPage() {
         toast.success('API Key copied!');
     };
 
+    const handleCopySdkScript = () => {
+        if (sdkScript) {
+            copyToClipboard(sdkScript);
+            toast.success('SDK Script copied!');
+        }
+    };
+
+    const fetchSdkScript = async (websiteId: string) => {
+        setIsSdkScriptLoading(true);
+        try {
+            const response = await api.get(`/websites/${websiteId}/sdk-script`);
+            setSdkScript(response.data.data.script);
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || err.message || "Failed to fetch SDK script.");
+            setSdkScript(null);
+        } finally {
+            setIsSdkScriptLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (selectedWebsite?._id) {
+            fetchSdkScript(selectedWebsite._id);
+        }
+    }, [selectedWebsite?._id]);
+
+
     if (loading) {
-        return <div>Loading...</div>;
+        return <div>Loading websites...</div>;
     }
 
     return (
@@ -86,8 +120,8 @@ export default function WebsitesPage() {
                 />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {websites.map((website) => (
-                        <Card key={website._id}>
+                    {websites.map((website: Website) => (
+                        <Card key={website._id} className={cn(selectedWebsite?._id === website._id && "border-primary ring-2 ring-primary/50")}>
                             <CardHeader>
                                 <div className="flex items-start justify-between">
                                     <div className="flex-1">
@@ -132,18 +166,38 @@ export default function WebsitesPage() {
                                         </Button>
                                     </div>
                                 </div>
-
+                                {selectedWebsite?._id === website._id && sdkScript && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-1">SDK Script</p>
+                                        <div className="flex gap-2">
+                                            <Textarea
+                                                readOnly
+                                                value={sdkScript || "Loading SDK script..."}
+                                                rows={5}
+                                                className="flex-1 text-xs"
+                                            />
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={handleCopySdkScript}
+                                                disabled={!sdkScript}
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="flex gap-2">
-                                    <Button size="sm" variant="outline" className="flex-1">
+                                    <Button size="sm" variant="outline" className="flex-1" onClick={() => selectWebsite(website._id)}>
                                         <Settings className="w-4 h-4 mr-2" />
-                                        Settings
+                                        View Details
                                     </Button>
 
                                     <Button
                                         size="sm"
                                         variant="destructive"
                                         onClick={() => {
-                                            setSelectedWebsite(website._id);
+                                            setWebsiteToDeleteId(website._id);
                                             setIsDeleteOpen(true);
                                         }}
                                     >
@@ -182,12 +236,12 @@ export default function WebsitesPage() {
                         </div>
 
                         <div>
-                            <Label htmlFor="domain">Domain</Label>
+                            <Label htmlFor="url">URL</Label>
                             <Input
-                                id="domain"
+                                id="url"
                                 placeholder="https://example.com"
-                                value={formData.domain}
-                                onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                                value={formData.url}
+                                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
                             />
                         </div>
 
@@ -200,23 +254,13 @@ export default function WebsitesPage() {
                                 onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
                             />
                         </div>
-
-                        <div>
-                            <Label htmlFor="defaultMessage">Default Message (Optional)</Label>
-                            <Input
-                                id="defaultMessage"
-                                placeholder="Welcome to our site!"
-                                value={formData.defaultMessage}
-                                onChange={(e) => setFormData({ ...formData, defaultMessage: e.target.value })}
-                            />
-                        </div>
                     </div>
 
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleCreate}>Create Website</Button>
+                        <Button onClick={handleCreate} disabled={loading}>Create Website</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -235,7 +279,7 @@ export default function WebsitesPage() {
                         <Button variant="outline" onClick={() => setIsDeleteOpen(false)}>
                             Cancel
                         </Button>
-                        <Button variant="destructive" onClick={handleDelete}>
+                        <Button variant="destructive" onClick={handleDelete} disabled={loading}>
                             Delete
                         </Button>
                     </DialogFooter>

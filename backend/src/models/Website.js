@@ -46,7 +46,49 @@ const websiteSchema = new mongoose.Schema({
             type: Boolean,
             default: false
         },
-        notificationEmail: String
+        notificationEmail: String,
+        emotionInterventions: [{ // New field for emotion-based interventions
+            emotion: {
+                type: String,
+                enum: ['frustrated', 'confused', 'excited', 'neutral', 'considering'],
+                required: true
+            },
+            action: {
+                type: String,
+                enum: ['show_help_chat', 'show_guide', 'show_social_proof', 'show_comparison', 'none'],
+                required: true
+            },
+            message: String,
+            data: mongoose.Schema.Types.Mixed,
+            status: {
+                type: String,
+                enum: ['active', 'inactive'],
+                default: 'active'
+            },
+            effectiveness: { // Track how well this intervention performs
+                type: Number,
+                default: 0
+            },
+            lastModified: {
+                type: Date,
+                default: Date.now
+            }
+        }],
+        fraudDetectionSettings: { // New field for fraud detection settings
+            sensitivity: {
+                type: String,
+                enum: ['low', 'medium', 'high'],
+                default: 'medium'
+            },
+            riskBasedActions: {
+                requirePhoneVerification: { type: Boolean, default: false },
+                requireEmailVerification: { type: Boolean, default: false },
+                disableCOD: { type: Boolean, default: false },
+                showCaptcha: { type: Boolean, default: false },
+                manualReview: { type: Boolean, default: false },
+                limitOrderValue: { type: Number, default: null } // Max order value allowed if risk is high
+            }
+        }
     },
     learningStartedAt: {
         type: Date,

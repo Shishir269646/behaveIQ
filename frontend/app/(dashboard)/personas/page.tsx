@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePersonas } from "@/hooks/usePersonas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useState, useEffect } from "react";
+import { Persona } from "@/types";
 
 const PersonaGridSkeleton = () => (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -16,7 +18,48 @@ const PersonaGridSkeleton = () => (
 );
 
 export default function PersonasPage() {
-    const { data: personas, isLoading, error } = usePersonas();
+    const { personas: rawPersonas, isLoading, error } = usePersonas();
+    const [groupedPersonas, setGroupedPersonas] = useState<{
+        budget: Persona[];
+        feature: Persona[];
+        researcher: Persona[];
+        impulse: Persona[];
+    }>({
+        budget: [],
+        feature: [],
+        researcher: [],
+        impulse: [],
+    });
+
+    useEffect(() => {
+        if (rawPersonas && rawPersonas.length > 0) {
+            const newGroupedPersonas: {
+                budget: Persona[];
+                feature: Persona[];
+                researcher: Persona[];
+                impulse: Persona[];
+            } = {
+                budget: [],
+                feature: [],
+                researcher: [],
+                impulse: [],
+            };
+
+            rawPersonas.forEach(persona => {
+                if (persona.clusterData.behaviorPattern.priceConscious) {
+                    newGroupedPersonas.budget.push(persona);
+                } else if (persona.clusterData.behaviorPattern.featureFocused) {
+                    newGroupedPersonas.feature.push(persona);
+                } else if (persona.clusterData.behaviorPattern.exploreMore) {
+                    newGroupedPersonas.researcher.push(persona);
+                } else if (persona.clusterData.behaviorPattern.quickDecision) {
+                    newGroupedPersonas.impulse.push(persona);
+                }
+                // If a persona doesn't fit any explicit category, it won't be displayed in these tabs.
+            });
+            setGroupedPersonas(newGroupedPersonas);
+        }
+    }, [rawPersonas]);
 
     if (error) {
         return (
@@ -48,26 +91,26 @@ export default function PersonasPage() {
             <div className="mt-4">
                 <PersonaGridSkeleton />
             </div>
-        ) : personas && (
+        ) : (
             <>
                 <TabsContent value="budget">
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {personas.budget.map(p => <PersonaCard key={p.name} {...p} />)}
+                    {groupedPersonas.budget.map(p => <PersonaCard key={p.name} persona={p} />)}
                   </div>
                 </TabsContent>
                 <TabsContent value="feature">
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                     {personas.feature.map(p => <PersonaCard key={p.name} {...p} />)}
+                     {groupedPersonas.feature.map(p => <PersonaCard key={p.name} persona={p} />)}
                   </div>
                 </TabsContent>
                  <TabsContent value="researcher">
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                     {personas.researcher.map(p => <PersonaCard key={p.name} {...p} />)}
+                     {groupedPersonas.researcher.map(p => <PersonaCard key={p.name} persona={p} />)}
                   </div>
                 </TabsContent>
                  <TabsContent value="impulse">
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                     {personas.impulse.map(p => <PersonaCard key={p.name} {...p} />)}
+                     {groupedPersonas.impulse.map(p => <PersonaCard key={p.name} persona={p} />)}
                   </div>
                 </TabsContent>
             </>

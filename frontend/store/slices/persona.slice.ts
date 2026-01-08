@@ -16,7 +16,7 @@ export interface PersonaSlice {
   clearSuccess: () => void;
 }
 
-const API_URL = 'http://localhost:5000/api/v1/personas';
+const API_URL = 'http://localhost:5000/api/personas';
 
 const handleRequest = async (set: any, request: () => Promise<any>) => {
   set({ loading: true, error: null });

@@ -1,34 +1,153 @@
 // @/store/slices/website.slice.ts
 import { StateCreator } from 'zustand';
+import { api } from '@/lib/api'; // Import the API instance
 
 export interface Website {
-    id: string;
+    _id: string;
+    userId: string;
     name: string;
-    url: string;
+    domain: string;
+    apiKey: string;
+    industry: string;
+    status: 'learning' | 'active' | 'paused';
+    settings: {
+        learningPeriodHours: number;
+        autoPersonalization: boolean;
+        experimentMode: boolean;
+        notificationEmail?: string;
+        emotionInterventions?: {
+            emotion: 'frustrated' | 'confused' | 'excited' | 'neutral' | 'considering';
+            action: 'show_help_chat' | 'show_guide' | 'show_social_proof' | 'show_comparison' | 'none';
+            message?: string;
+            data?: any;
+        }[];
+        fraudDetectionSettings?: {
+            sensitivity: 'low' | 'medium' | 'high';
+            riskBasedActions: {
+                requirePhoneVerification: boolean;
+                requireEmailVerification: boolean;
+                disableCOD: boolean;
+                showCaptcha: boolean;
+                manualReview: boolean;
+                limitOrderValue?: number;
+            };
+        };
+    };
+    learningStartedAt: Date;
+    activatedAt?: Date;
+    stats: {
+        totalSessions: number;
+        totalEvents: number;
+        totalPersonas: number;
+    };
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 export interface WebsiteSlice {
     websites: Website[];
-    selectedWebsite: Website | null;
-    setWebsites: (websites: Website[]) => void;
+    website: Website | null; // Renamed selectedWebsite to website for consistency
+    loading: boolean;
+    error: string | null;
+    success: string | null;
+    fetchWebsites: () => Promise<void>;
+    fetchWebsiteById: (websiteId: string) => Promise<void>;
+    createWebsite: (websiteData: { name: string; url: string }) => Promise<void>;
+    updateWebsite: (websiteId: string, websiteData: Partial<Website>) => Promise<void>;
+    deleteWebsite: (websiteId: string) => Promise<void>;
     selectWebsite: (websiteId: string) => void;
+    clearSuccess: () => void;
 }
 
-// Mock data for websites
-const mockWebsites: Website[] = [
-    { id: '1', name: 'BehaveIQ Platform', url: 'behaveiq.com' },
-    { id: '2', name: 'E-commerce Store', url: 'ecom.example.com' },
-    { id: '3', name: 'SaaS App', url: 'saas.example.com' },
-];
+const handleRequest = async (set: any, request: () => Promise<any>) => {
+    set({ loading: true, error: null, success: null });
+    try {
+        const response = await request();
+        return response;
+    } catch (error: any) {
+        const message = error.response?.data?.message || error.message;
+        set({ error: message, loading: false });
+        throw error; // Re-throw to allow component to catch
+    }
+};
 
-export const createWebsiteSlice: StateCreator<WebsiteSlice, [], [], WebsiteSlice> = (set) => ({
-    websites: mockWebsites,
-    selectedWebsite: mockWebsites[0] || null,
-    setWebsites: (websites) => set({ 
-        websites, 
-        selectedWebsite: websites[0] || null 
-    }),
-    selectWebsite: (websiteId) => set((state) => ({
-        selectedWebsite: state.websites.find(w => w.id === websiteId) || null
-    })),
+export const createWebsiteSlice: StateCreator<WebsiteSlice, [], [], WebsiteSlice> = (set, get) => ({
+    websites: [],
+    website: null,
+    loading: false,
+    error: null,
+    success: null,
+
+    fetchWebsites: async () => {
+        await handleRequest(set, async () => {
+            const response = await api.get('/websites');
+            const fetchedWebsites = response.data.data.websites;
+            set({ websites: fetchedWebsites, loading: false });
+            // If no website is currently selected, select the first one if available
+            if (!get().website && fetchedWebsites.length > 0) {
+                set({ website: fetchedWebsites[0] });
+            }
+            return response;
+        });
+    },
+
+    fetchWebsiteById: async (websiteId: string) => {
+        await handleRequest(set, async () => {
+            const response = await api.get(`/websites/${websiteId}`);
+            set({ website: response.data.data, loading: false });
+            return response;
+        });
+    },
+
+    createWebsite: async (websiteData) => {
+        await handleRequest(set, async () => {
+            const response = await api.post('/websites', websiteData);
+            set((state) => ({
+                websites: [...state.websites, response.data.data.website],
+                website: response.data.data.website, // Select the newly created website
+                success: 'Website created successfully!',
+                loading: false,
+            }));
+            return response;
+        });
+    },
+
+    updateWebsite: async (websiteId, websiteData) => {
+        await handleRequest(set, async () => {
+            const response = await api.patch(`/websites/${websiteId}`, websiteData);
+            set((state) => ({
+                websites: state.websites.map((w) =>
+                    w._id === websiteId ? response.data.data : w
+                ),
+                website: state.website?._id === websiteId ? response.data.data : state.website,
+                success: 'Website updated successfully!',
+                loading: false,
+            }));
+            return response;
+        });
+    },
+
+    deleteWebsite: async (websiteId) => {
+        await handleRequest(set, async () => {
+            await api.delete(`/websites/${websiteId}`);
+            set((state) => ({
+                websites: state.websites.filter((w) => w._id !== websiteId),
+                website: state.website?._id === websiteId ? null : state.website,
+                success: 'Website deleted successfully!',
+                loading: false,
+            }));
+            return true;
+        });
+    },
+
+    selectWebsite: (websiteId: string) => {
+        set((state) => {
+            const selected = state.websites.find((w) => w._id === websiteId);
+            return { website: selected || null };
+        });
+    },
+
+    clearSuccess: () => {
+        set({ success: null });
+    },
 });

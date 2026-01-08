@@ -2,9 +2,8 @@
 import axios from 'axios';
 
 // Base URL for the backend API
-// This should ideally come from environment variables
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
-const ML_API_BASE_URL = process.env.NEXT_PUBLIC_ML_API_BASE_URL || 'http://localhost:8000/ml/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const ML_API_BASE_URL = process.env.NEXT_PUBLIC_ML_API_BASE_URL;
 
 // Create an Axios instance for the main backend API
 export const api = axios.create({

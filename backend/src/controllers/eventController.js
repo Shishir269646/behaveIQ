@@ -4,7 +4,8 @@ const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get events
 // @route   GET /api/v1/events?websiteId=xxx&eventType=click&limit=100
-exports.getEvents = asyncHandler(async (req, res) => {
+const getEvents = asyncHandler(async (req, res) => {
+    console.log('--- getEvents called ---'); // ADDED for debugging
     const { websiteId, eventType, limit = 100 } = req.query;
 
     // Verify ownership
@@ -37,7 +38,7 @@ exports.getEvents = asyncHandler(async (req, res) => {
 
 // @desc    Get event statistics
 // @route   GET /api/v1/events/stats?websiteId=xxx
-exports.getEventStats = asyncHandler(async (req, res) => {
+const getEventStats = asyncHandler(async (req, res) => {
     const { websiteId } = req.query;
 
     // Verify ownership
@@ -68,3 +69,9 @@ exports.getEventStats = asyncHandler(async (req, res) => {
         data: { stats }
     });
 });
+
+
+module.exports = {
+    getEvents,
+    getEventStats
+};

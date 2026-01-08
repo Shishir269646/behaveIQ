@@ -4,7 +4,7 @@ const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get heatmap data for a specific page
 // @route   GET /api/v1/heatmap?websiteId=...&pageUrl=...
-exports.getHeatmapData = asyncHandler(async (req, res) => {
+const getHeatmapData = asyncHandler(async (req, res) => {
     const { websiteId, pageUrl } = req.query;
 
     if (!websiteId || !pageUrl) {
@@ -44,3 +44,8 @@ exports.getHeatmapData = asyncHandler(async (req, res) => {
         data: heatmapData
     });
 });
+
+
+module.exports = {
+    getHeatmapData
+};

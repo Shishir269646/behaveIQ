@@ -1,8 +1,26 @@
 // src/controllers/fraudController.js
 const FraudScore = require('../models/FraudScore');
 const User = require('../models/User');
+const { asyncHandler } = require('../utils/helpers'); // Assuming asyncHandler is available
 
-exports.checkFraud = async (req, res) => {
+// @desc    Get all fraud events
+// @route   GET /api/fraud
+const getFraudEvents = asyncHandler(async (req, res) => {
+  const { userId, riskLevel } = req.query;
+  const filter = {};
+  if (userId) filter.userId = userId;
+  if (riskLevel) filter.riskLevel = riskLevel;
+
+  const fraudEvents = await FraudScore.find(filter).sort('-timestamp');
+
+  res.json({
+    success: true,
+    count: fraudEvents.length,
+    data: fraudEvents
+  });
+});
+
+const checkFraud = async (req, res) => {
   try {
     const { userId, sessionData } = req.body;
 
@@ -33,7 +51,7 @@ exports.checkFraud = async (req, res) => {
 
     // Check 4: Multiple failed payments
     const user = await User.findById(userId);
-    if (user && user.behavior.failedPayments > 2) {
+    if (user && user.behavior && user.behavior.failedPayments > 2) {
       riskScore += 20;
       flags.push({ type: 'multiple_failed_payments', severity: 3 });
       signals.multipleFailedPayments = true;
@@ -41,8 +59,8 @@ exports.checkFraud = async (req, res) => {
 
     // Determine risk level
     const riskLevel = riskScore > 80 ? 'critical' :
-                     riskScore > 60 ? 'high' :
-                     riskScore > 40 ? 'medium' : 'low';
+      riskScore > 60 ? 'high' :
+        riskScore > 40 ? 'medium' : 'low';
 
     // Create experience adjustment
     const experienceAdjustment = {
@@ -91,4 +109,10 @@ exports.checkFraud = async (req, res) => {
       error: error.message
     });
   }
+};
+
+
+module.exports = {
+  getFraudEvents,
+  checkFraud
 };

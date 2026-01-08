@@ -6,9 +6,24 @@ module.exports = {
     output: {
         path: path.resolve(__dirname, 'dist'),
         filename: 'behaveiq.min.js',
-        library: 'BqSdk',
-        libraryTarget: 'umd',
-        globalObject: 'this'
+        library: 'BEHAVEIQ',
+        libraryExport: 'default',
+        libraryTarget: 'var',
+        clean: true
+    },
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['@babel/preset-env'],
+                        sourceType: "module"
+                    }
+                }
+            }
+        ]
     },
     optimization: {
         minimize: true,

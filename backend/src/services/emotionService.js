@@ -14,7 +14,7 @@ class EmotionService {
       const features = this.extractFeatures(behaviorData);
 
       // Call ML service
-      const response = await axios.post(`${this.ML_SERVICE_URL}/predict/emotion`, {
+      const response = await axios.post(`${this.ML_SERVICE_URL}/ml/v1/predict/emotion`, {
         features
       });
 
@@ -44,29 +44,29 @@ class EmotionService {
     const { mouseMovements, scrollData, clickData, timeOnPage } = behaviorData;
 
     // Calculate mouse speed variance
-    const speeds = mouseMovements.map((m, i) => {
-      if (i === 0) return 0;
+    const speeds = (mouseMovements && mouseMovements.length > 1) ? mouseMovements.map((m, i) => {
+      if (i === 0) return null; // Use null to filter later
       const prev = mouseMovements[i - 1];
       const distance = Math.sqrt(
         Math.pow(m.x - prev.x, 2) + Math.pow(m.y - prev.y, 2)
       );
       const time = m.timestamp - prev.timestamp;
-      return distance / time;
-    });
+      return time > 0 ? distance / time : null;
+    }).filter(s => s !== null) : [];
 
-    const avgSpeed = speeds.reduce((a, b) => a + b, 0) / speeds.length;
-    const speedVariance = this.calculateVariance(speeds);
+    const avgSpeed = speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : 0;
+    const speedVariance = speeds.length > 0 ? this.calculateVariance(speeds) : 0;
 
     // Scroll pattern analysis
-    const scrollDepthChanges = scrollData.length > 1 
-      ? scrollData[scrollData.length - 1].depth - scrollData[0].depth 
+    const scrollDepthChanges = (scrollData && scrollData.length > 1)
+      ? scrollData[scrollData.length - 1].depth - scrollData[0].depth
       : 0;
 
-    // Click hesitation
-    const clickHesitation = clickData.reduce((sum, click, i) => {
+    // Click hesitation (average time between clicks)
+    const clickHesitation = (clickData && clickData.length > 1) ? (clickData.reduce((sum, click, i) => {
       if (i === 0) return 0;
       return sum + (click.timestamp - clickData[i - 1].timestamp);
-    }, 0) / clickData.length;
+    }, 0) / (clickData.length - 1)) : 0;
 
     return {
       mouse_speed_variance: speedVariance,
@@ -78,6 +78,9 @@ class EmotionService {
   }
 
   calculateVariance(arr) {
+    if (!arr || arr.length === 0) {
+      return 0;
+    }
     const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
     return arr.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / arr.length;
   }

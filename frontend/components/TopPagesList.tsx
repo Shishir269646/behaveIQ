@@ -15,7 +15,8 @@ import {
     TableRow,
 } from '@/components/ui/table';
 
-import EmptyState from './EmptyState';
+import { EmptyState } from './EmptyState';
+import { FileText } from 'lucide-react';
 
 export default function TopPagesList({ timeRange }: { timeRange: string }) {
     const { data, isLoading, error } = useTopPages(timeRange);
@@ -59,6 +60,7 @@ export default function TopPagesList({ timeRange }: { timeRange: string }) {
                     </Table>
                 ) : (
                     <EmptyState
+                        icon={FileText}
                         title="No top pages"
                         description="There is no page view data for the selected time range."
                     />

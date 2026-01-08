@@ -1,22 +1,23 @@
 
-import { useStore } from '../store';
+import { useAppStore } from '../store';
 
 export const useWebsites = () => {
-  const websites = useStore((state) => state.websites);
-  const website = useStore((state) => state.website);
-  const loading = useStore((state) => state.loading);
-  const error = useStore((state) => state.error);
-  const success = useStore((state) => state.success);
-  const fetchWebsites = useStore((state) => state.fetchWebsites);
-  const fetchWebsiteById = useStore((state) => state.fetchWebsiteById);
-  const createWebsite = useStore((state) => state.createWebsite as (websiteData: any, defaultMessage?: string) => Promise<void>);
-  const updateWebsite = useStore((state) => state.updateWebsite);
-  const deleteWebsite = useStore((state) => state.deleteWebsite);
-  const clearSuccess = useStore((state) => state.clearSuccess);
+  const websites = useAppStore((state) => state.websites);
+  const selectedWebsite = useAppStore((state) => state.website); // Use 'website' from store
+  const loading = useAppStore((state) => state.loading);
+  const error = useAppStore((state) => state.error);
+  const success = useAppStore((state) => state.success);
+  const fetchWebsites = useAppStore((state) => state.fetchWebsites);
+  const fetchWebsiteById = useAppStore((state) => state.fetchWebsiteById);
+  const createWebsite = useAppStore((state) => state.createWebsite);
+  const updateWebsite = useAppStore((state) => state.updateWebsite);
+  const deleteWebsite = useAppStore((state) => state.deleteWebsite);
+  const selectWebsite = useAppStore((state) => state.selectWebsite); // Add selectWebsite
+  const clearSuccess = useAppStore((state) => state.clearSuccess);
 
   return {
     websites,
-    website,
+    selectedWebsite, // Expose selectedWebsite
     loading,
     error,
     success,
@@ -25,6 +26,7 @@ export const useWebsites = () => {
     createWebsite,
     updateWebsite,
     deleteWebsite,
+    selectWebsite, // Expose selectWebsite
     clearSuccess,
   };
 };

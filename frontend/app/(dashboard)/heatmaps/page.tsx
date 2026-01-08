@@ -1,6 +1,6 @@
 // @/app/(dashboard)/heatmaps/page.tsx
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { HeatMapGrid } from "@/components/ui/heatmap"; // Assuming a custom heatmap component exists
+import HeatMapGrid from "@/components/ui/heatmap"; // Assuming a custom heatmap component exists
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 

@@ -1,9 +1,9 @@
-const { asyncHandler } = require('../utils/helpers');
+const emotionService = require('../services/emotionService');
 const Session = require('../models/Session');
-const Website = require('../models/Website');
 const User = require('../models/User');
+const Website = require('../models/Website');
 
-exports.detectEmotion = async (req, res) => {
+const detectEmotion = async (req, res) => {
   try {
     const { userId, sessionId, behaviorData } = req.body;
 
@@ -61,14 +61,14 @@ exports.detectEmotion = async (req, res) => {
   }
 };
 
-// @desc    Get emotion trends
-// @route   GET /api/v1/emotions/trends?websiteId=xxx&timeRange=7d
-exports.getEmotionTrends = asyncHandler(async (req, res) => {
+const getEmotionTrends = async (req, res) => {
+  console.log('--- getEmotionTrends called ---'); // ADDED for debugging
+  try {
     const { websiteId, timeRange = '7d' } = req.query;
 
     const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
     if (!website) {
-        return res.status(404).json({ success: false, message: 'Website not found' });
+      return res.status(404).json({ success: false, message: 'Website not found' });
     }
 
     const days = parseInt(timeRange) || 7;
@@ -76,56 +76,69 @@ exports.getEmotionTrends = asyncHandler(async (req, res) => {
     startDate.setDate(startDate.getDate() - days);
 
     const emotionTrends = await Session.aggregate([
-        {
-            $match: {
-                websiteId: website._id,
-                createdAt: { $gte: startDate },
-                'emotion.current': { $ne: null }
-            }
-        },
-        {
-            $unwind: '$emotion.changes'
-        },
-        {
-            $group: {
-                _id: {
-                    date: { $dateToString: { format: '%Y-%m-%d', date: '$emotion.changes.timestamp' } },
-                    emotion: '$emotion.changes.to'
-                },
-                count: { $sum: 1 }
-            }
-        },
-        {
-            $group: {
-                _id: '$_id.date',
-                emotions: {
-                    $push: {
-                        emotion: '$_id.emotion',
-                        count: '$count'
-                    }
-                }
-            }
-        },
-        {
-            $sort: { _id: 1 }
+      {
+        $match: {
+          websiteId: website._id,
+          createdAt: { $gte: startDate },
+          'emotion.current': { $ne: null }
         }
+      },
+      {
+        $unwind: '$emotion.changes'
+      },
+      {
+        $group: {
+          _id: {
+            date: { $dateToString: { format: '%Y-%m-%d', date: '$emotion.changes.timestamp' } },
+            emotion: '$emotion.changes.to'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: '$_id.date',
+          emotions: {
+            $push: {
+              emotion: '$_id.emotion',
+              count: '$count'
+            }
+          }
+        }
+      },
+      {
+        $sort: { _id: 1 }
+      }
     ]);
 
     const formattedTrends = emotionTrends.map(trend => {
-        const emotions = trend.emotions.reduce((acc, e) => {
-            acc[e.emotion] = e.count;
-            return acc;
-        }, {});
-        return {
-            date: trend._id,
-            ...emotions
-        };
+      const emotions = trend.emotions.reduce((acc, e) => {
+        acc[e.emotion] = e.count;
+        return acc;
+      }, {});
+      return {
+        date: trend._id,
+        ...emotions
+      };
     });
 
     res.json({
-        success: true,
-        data: {
-            trends: formattedTrends
-        }
+      success: true,
+      data: {
+        trends: formattedTrends
+      }
     });
-});
+  } catch (error) {
+    console.error('Error getting emotion trends:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error'
+    });
+  }
+};
+
+
+module.exports = {
+  detectEmotion,
+  getEmotionTrends
+};

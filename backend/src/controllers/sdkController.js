@@ -7,14 +7,14 @@ const Event = require('../models/Event');
 
 // @desc    Get dynamic SDK script for zero-flicker personalization
 // @route   GET /api/v1/sdk/init.js?apiKey=...
-exports.getSdkScript = asyncHandler(async (req, res) => {
+const getSdkScript = asyncHandler(async (req, res) => {
     const { apiKey } = req.query;
 
     if (!apiKey) {
         res.setHeader('Content-Type', 'application/javascript');
         return res.status(400).send('// BEHAVEIQ: API Key is missing.');
     }
-    
+
     let personalizationData = { personalizationRules: [] };
 
     try {
@@ -23,7 +23,7 @@ exports.getSdkScript = asyncHandler(async (req, res) => {
             // This is a simplified version. In a real app, you'd get the session
             // from a cookie or fingerprint to determine the persona.
             // For now, we'll fetch generic rules or rules for a common persona.
-            const session = await Session.findOne({ fingerprint: req.headers['x-fingerprint'] }).sort({createdAt: -1});
+            const session = await Session.findOne({ fingerprint: req.cookies.biq_fp || req.headers['x-fingerprint'] }).sort({ createdAt: -1 });
 
             if (session) {
                 personalizationData = await getPersonalizationService(
@@ -40,20 +40,30 @@ exports.getSdkScript = asyncHandler(async (req, res) => {
         personalizationData = { personalizationRules: [] };
     }
 
+    const sdkBaseUrl = process.env.SDK_BASE_URL || 'http://localhost:3000/behaveiq.min.js';
+
     // Construct the dynamic JavaScript
     const scriptContent = `
 (function() {
-    // This is the main entry point for the BEHAVEIQ SDK
-    if (window.BEHAVEIQ && typeof window.BEHAVEIQ.init === 'function') {
-        
-        // The personalization data is embedded directly into the script by the server.
-        const personalizationOptions = ${JSON.stringify({ personalizationRules: personalizationData.personalizationRules })};
-        
-        // Initialize the SDK. 
-        // The init() function will first apply personalization synchronously
-        // and then set up all asynchronous tracking.
-        window.BEHAVEIQ.init('${apiKey}', personalizationOptions);
-    }
+    const loadScript = (url, callback) => {
+        const script = document.createElement('script');
+        script.src = url;
+        script.onload = callback;
+        script.onerror = () => console.error('Failed to load BEHAVEIQ SDK from:', url);
+        document.head.appendChild(script);
+    };
+
+    const initializeSdk = () => {
+        if (window.BEHAVEIQ && typeof window.BEHAVEIQ.init === 'function') {
+            const personalizationOptions = ${JSON.stringify({ personalizationRules: personalizationData.personalizationRules })};
+            window.BEHAVEIQ.init('${apiKey}', personalizationOptions);
+        } else {
+            console.error('BEHAVEIQ SDK (window.BEHAVEIQ) not found after loading.');
+        }
+    };
+
+    // Load the main SDK bundle first, then initialize
+    loadScript('${sdkBaseUrl}', initializeSdk);
 })();
 `;
 
@@ -62,7 +72,7 @@ exports.getSdkScript = asyncHandler(async (req, res) => {
     res.send(scriptContent);
 });
 
-exports.trackEvent = asyncHandler(async (req, res) => {
+const trackEvent = asyncHandler(async (req, res) => {
     const { apiKey, sessionId, eventType, eventData } = req.body;
 
     const website = await Website.findOne({ apiKey });
@@ -81,10 +91,19 @@ exports.trackEvent = asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, data: event });
 });
 
-exports.getPersonalization = asyncHandler(async (req, res) => {
+const getPersonalization = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, data: {} });
 });
 
-exports.calculateIntent = asyncHandler(async (req, res) => {
+const calculateIntent = asyncHandler(async (req, res) => {
     res.status(200).json({ success: true, data: {} });
 });
+
+
+
+module.exports = {
+    getSdkScript,
+    trackEvent,
+    getPersonalization,
+    calculateIntent
+};

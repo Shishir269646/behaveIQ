@@ -77,28 +77,57 @@ export default function ExperimentsPage() {
                         </TableHeader>
                         <TableBody>
                             {experiments.map((exp) => (
-                                <TableRow key={exp.id}>
+                                <TableRow key={exp._id}>
                                     <TableCell className="font-medium">{exp.name}</TableCell>
                                     <TableCell>
                                         <Badge 
                                             variant={
-                                                exp.status === "Running" ? "default" :
-                                                exp.status === "Completed" ? "secondary" :
+                                                exp.status === "active" ? "default" :
+                                                exp.status === "completed" ? "secondary" :
                                                 "outline"
                                             }
                                         >
                                             {exp.status}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell 
-                                        className={exp.conversionLift.startsWith('+') ? 'text-green-600' : 'text-red-600'}
-                                    >
-                                        {exp.conversionLift}
+                                    {(() => {
+                                        const conversionLiftValue = exp.results?.improvement;
+                                        const formattedConversionLift = conversionLiftValue !== undefined && conversionLiftValue !== null
+                                            ? `${conversionLiftValue > 0 ? '+' : ''}${conversionLiftValue.toFixed(2)}%`
+                                            : exp.status === 'completed' ? 'N/A' : '-'; // Display '-' for active experiments with no result yet
+
+                                        return (
+                                            <TableCell 
+                                                className={
+                                                    conversionLiftValue !== undefined && conversionLiftValue > 0 
+                                                        ? 'text-green-600' 
+                                                        : (conversionLiftValue !== undefined && conversionLiftValue < 0 ? 'text-red-600' : 'text-muted-foreground') // Neutral color for 0 or N/A
+                                                }
+                                            >
+                                                {formattedConversionLift}
+                                            </TableCell>
+                                        );
+                                    })()}
+                                    <TableCell>
+                                        {(() => {
+                                            let progressValue = 0;
+                                            if (exp.status === 'completed') {
+                                                progressValue = 100;
+                                            } else {
+                                                const totalVisitors = exp.variations.reduce((sum, variation) => sum + variation.visitors, 0);
+                                                const minSampleSize = exp.settings.minSampleSize;
+                                                if (minSampleSize > 0) {
+                                                    progressValue = Math.min((totalVisitors / minSampleSize) * 100, 100);
+                                                }
+                                            }
+                                            return <Progress value={progressValue} className="w-full" />;
+                                        })()}
                                     </TableCell>
                                     <TableCell>
-                                        <Progress value={exp.progress} className="w-full" />
+                                        {exp.status === 'completed' 
+                                            ? (exp.results?.winner || 'Undetermined') 
+                                            : 'N/A'}
                                     </TableCell>
-                                    <TableCell>{exp.winner}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

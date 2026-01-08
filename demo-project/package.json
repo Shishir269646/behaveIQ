@@ -1,0 +1,12 @@
+{
+  "name": "behaveiq-demo-server",
+  "version": "1.0.0",
+  "description": "A simple server to demo the BehaveIQ SDK.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

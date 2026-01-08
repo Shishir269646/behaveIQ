@@ -7,6 +7,8 @@ import {
     CircleUser,
     CreditCard,
     Users,
+    RefreshCw,
+    Lightbulb,
 } from 'lucide-react';
 
 import {
@@ -37,14 +39,25 @@ import Link from 'next/link';
 import { useDashboard, Session } from '@/hooks/useDashboard';
 import RevenueTrendChart from '@/components/RevenueTrendChart';
 import PersonaDistributionChart from '@/components/PersonaDistributionChart';
+import SessionDetailSheet from '@/components/SessionDetailSheet';
+import TopPagesList from '@/components/TopPagesList';
 import ConversionFunnelChart from '@/components/ConversionFunnelChart';
 import RealtimeVisitors from '@/components/RealtimeVisitors';
 import EmotionTrendChart from '@/components/EmotionTrendChart';
 import ErrorBoundary from '@/components/ErrorBoundary';
-import EmptyState from '@/components/EmptyState';
+import { EmptyState } from '@/components/EmptyState';
+import IntentScoreDistributionChart from '@/components/IntentScoreDistributionChart'; // New import
+import InsightsList from '@/components/InsightsList'; // New import
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAppStore } from '@/store';
+import { useConversionFunnel } from '@/hooks/useConversionFunnel';
+import { useEmotionTrends } from '@/hooks/useEmotionTrends';
+import { useTopPages } from '@/hooks/useTopPages';
+
 
 export default function DashboardPage() {
     const [timeRange, setTimeRange] = React.useState('7d');
+    const selectedWebsite = useAppStore((state) => state.website);
     const { data, isLoading, error, refetch: refetchDashboard } = useDashboard(timeRange);
     const { refetch: refetchConversionFunnel } = useConversionFunnel(timeRange);
     const { refetch: refetchEmotionTrends } = useEmotionTrends(timeRange);
@@ -67,6 +80,16 @@ export default function DashboardPage() {
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
             </Alert>
+        );
+    }
+
+    if (!selectedWebsite) {
+        return (
+            <EmptyState
+                icon={Lightbulb}
+                title="No Website Selected"
+                description="Please select a website from the dropdown to view dashboard data."
+            />
         );
     }
 
@@ -156,6 +179,11 @@ export default function DashboardPage() {
                     ) : (
                         <PersonaDistributionChart data={data.topPersonas} />
                     )}
+                    {isLoading || !data ? (
+                        <Skeleton className="h-96" />
+                    ) : (
+                        <IntentScoreDistributionChart data={data.intentDistribution} /> // New component
+                    )}
                 </div>
                  <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
                     <Card className="xl:col-span-2">
@@ -204,14 +232,19 @@ export default function DashboardPage() {
                                     </TableBody>
                                 </Table>
                             ) : (
-                                <EmptyState
-                                    title="No recent sessions"
-                                    description="There have been no user sessions in the selected time range."
-                                />
-                            )}
+                                                                 <EmptyState
+                                                                     icon={Activity}
+                                                                     title="No recent sessions"
+                                                                     description="There have been no user sessions in the selected time range."
+                                                                 />                            )}
                         </CardContent>
                     </Card>
                 </div>
+                {isLoading || !data ? (
+                    <Skeleton className="h-48" />
+                ) : (
+                    <InsightsList insights={data.insights} /> // New component
+                )}
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
                     <ConversionFunnelChart timeRange={timeRange} />
                 </div>

@@ -1,4 +1,5 @@
-// @/components/Sidebar.tsx
+"use client"
+
 import Link from 'next/link';
 import {
     Bell,
@@ -11,13 +12,26 @@ import {
     MessageSquareQuote,
     TicketPercent,
     ShieldAlert,
-    Waves
+    Waves,
+    ShoppingCart
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useExperiments } from '@/hooks/useExperiments'; // Use the hook
+import { useEffect, useState } from 'react'; // Use useEffect and useState
 
 const Sidebar = () => {
+    const { experiments, isLoading } = useExperiments(); // Use the hook
+    const [activeExperimentCount, setActiveExperimentCount] = useState(0);
+
+    useEffect(() => {
+        if (experiments) {
+            const activeCount = experiments.filter(exp => exp.status === 'active').length;
+            setActiveExperimentCount(activeCount);
+        }
+    }, [experiments]);
+
     return (
         <div className="hidden border-r bg-muted/40 md:block">
             <div className="flex h-full max-h-screen flex-col gap-2">
@@ -67,9 +81,17 @@ const Sidebar = () => {
                         >
                             <Beaker className="h-4 w-4" />
                             Experiments
-                            <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                                3
-                            </Badge>
+                            {isLoading ? (
+                                <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+                                    ...
+                                </Badge>
+                            ) : (
+                                activeExperimentCount > 0 && (
+                                    <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+                                        {activeExperimentCount}
+                                    </Badge>
+                                )
+                            )}
                         </Link>
                         <Link
                             href="/heatmaps"
@@ -91,6 +113,13 @@ const Sidebar = () => {
                         >
                             <TicketPercent className="h-4 w-4" />
                             Discounts
+                        </Link>
+                        <Link
+                            href="/abandonment"
+                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                        >
+                            <ShoppingCart className="h-4 w-4" />
+                            Cart Abandonment
                         </Link>
                         <Link
                             href="/fraud"

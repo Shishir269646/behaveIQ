@@ -1,9 +1,11 @@
 // src/routes/abandonment.routes.js
 const express = require('express');
 const router = express.Router();
-const abandonmentController = require('../controllers/abandonmentController');
+const { predictRisk, trackInterventionResponse, getAbandonmentStats } = require('../controllers/abandonmentController');
+const { protect } = require('../middleware/auth');
 
-router.post('/predict', abandonmentController.predictRisk);
-router.post('/intervention/response', abandonmentController.trackInterventionResponse);
+router.post('/predict', predictRisk);
+router.post('/intervention/response', trackInterventionResponse);
+router.get('/stats', protect, getAbandonmentStats);
 
 module.exports = router;

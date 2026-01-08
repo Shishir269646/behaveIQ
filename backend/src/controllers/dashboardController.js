@@ -3,10 +3,12 @@ const Event = require('../models/Event');
 const Website = require('../models/Website');
 const Persona = require('../models/Persona');
 const { asyncHandler } = require('../utils/helpers');
+const intentService = require('../services/intentService');
 
 // @desc    Get dashboard overview
 // @route   GET /api/v1/dashboard/overview?websiteId=xxx&timeRange=7d
-exports.getOverview = asyncHandler(async (req, res) => {
+const getOverview = asyncHandler(async (req, res) => {
+    console.log('--- getOverview called ---'); // ADDED for debugging
     const { websiteId, timeRange = '7d' } = req.query;
 
     // Verify ownership
@@ -92,10 +94,9 @@ exports.getOverview = asyncHandler(async (req, res) => {
                     $sum: { $cond: ['$converted', 1, 0] }
                 }
             }
-        },
-        { $sort: { _id: 1 } }
+        }
     ]);
-    
+
     const recentSessions = await Session.find({ websiteId, createdAt: { $gte: startDate } })
         .sort('-createdAt')
         .limit(10)
@@ -104,7 +105,7 @@ exports.getOverview = asyncHandler(async (req, res) => {
 
     const sessions = recentSessions.map(s => ({
         id: s._id,
-        user: s.userId ? { name: s.userId.name, email: s.userId.email } : { name: 'Anonymous', email: ''},
+        user: s.userId ? { name: s.userId.name, email: s.userId.email } : { name: 'Anonymous', email: '' },
         persona: s.personaId ? s.personaId.name : 'Unknown',
         status: s.converted ? 'Converted' : (s.endTime ? 'Abandoned' : 'Active'),
         intentScore: s.intentScore,
@@ -130,7 +131,8 @@ exports.getOverview = asyncHandler(async (req, res) => {
 
 // @desc    Get real-time visitors
 // @route   GET /api/v1/dashboard/realtime?websiteId=xxx
-exports.getRealtimeVisitors = asyncHandler(async (req, res) => {
+const getRealtimeVisitors = asyncHandler(async (req, res) => {
+    console.log('--- getRealtimeVisitors called ---'); // ADDED for debugging
     const { websiteId } = req.query;
 
     // Verify ownership
@@ -191,7 +193,8 @@ exports.getRealtimeVisitors = asyncHandler(async (req, res) => {
 
 // @desc    Get heatmap data
 // @route   GET /api/v1/dashboard/heatmap?websiteId=xxx&pageUrl=/pricing
-exports.getHeatmap = asyncHandler(async (req, res) => {
+const getHeatmap = asyncHandler(async (req, res) => {
+    console.log('--- getHeatmap called ---'); // ADDED for debugging
     const { websiteId, pageUrl } = req.query;
 
     // Verify ownership
@@ -284,7 +287,8 @@ exports.getHeatmap = asyncHandler(async (req, res) => {
 
 // @desc    Get AI insights
 // @route   GET /api/v1/dashboard/insights?websiteId=xxx
-exports.getInsights = asyncHandler(async (req, res) => {
+const getInsights = asyncHandler(async (req, res) => {
+    console.log('--- getInsights called ---'); // ADDED for debugging
     const { websiteId } = req.query;
 
     // Verify ownership
@@ -345,8 +349,8 @@ exports.getInsights = asyncHandler(async (req, res) => {
             message: `${highIntentNoConversion} visitors with high purchase intent didn't convert. Add urgency CTAs or special offers.`,
             action: 'add_cta',
             data: { count: highIntentNoConversion }
-        });
-    }
+            });
+        }
 
     // Insight 3: Persona discovery
     const totalSessions = await Session.countDocuments({ websiteId });
@@ -388,7 +392,8 @@ exports.getInsights = asyncHandler(async (req, res) => {
 
 // @desc    Get conversion funnel
 // @route   GET /api/v1/dashboard/conversion-funnel?websiteId=xxx
-exports.getConversionFunnel = asyncHandler(async (req, res) => {
+const getConversionFunnel = asyncHandler(async (req, res) => {
+    console.log('--- getConversionFunnel called ---'); // ADDED for debugging
     const { websiteId } = req.query;
 
     // Verify ownership
@@ -454,7 +459,8 @@ exports.getConversionFunnel = asyncHandler(async (req, res) => {
 
 // @desc    Get top pages
 // @route   GET /api/v1/dashboard/top-pages?websiteId=xxx&timeRange=7d
-exports.getTopPages = asyncHandler(async (req, res) => {
+const getTopPages = asyncHandler(async (req, res) => {
+    console.log('--- getTopPages called ---'); // ADDED for debugging
     const { websiteId, timeRange = '7d' } = req.query;
 
     const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
@@ -502,3 +508,41 @@ exports.getTopPages = asyncHandler(async (req, res) => {
         }
     });
 });
+
+
+// @desc    Get intent distribution
+// @route   GET /api/v1/dashboard/intent-distribution?websiteId=xxx
+const getIntentDistribution = asyncHandler(async (req, res) => {
+    console.log('--- getIntentDistribution called ---'); // ADDED for debugging
+    const { websiteId } = req.query;
+
+    // Verify ownership
+    const website = await Website.findOne({
+        _id: websiteId,
+        userId: req.user._id
+    });
+
+    if (!website) {
+        return res.status(404).json({
+            success: false,
+            message: 'Website not found'
+        });
+    }
+
+    const distribution = await intentService.getIntentDistribution(websiteId);
+
+    res.json({
+        success: true,
+        data: { intentDistribution: distribution }
+    });
+});
+
+module.exports = {
+    getOverview,
+    getRealtimeVisitors,
+    getHeatmap,
+    getInsights,
+    getConversionFunnel,
+    getTopPages,
+    getIntentDistribution
+};

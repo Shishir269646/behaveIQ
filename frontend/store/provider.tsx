@@ -1,12 +1,16 @@
 
 "use client";
 
-import { useRef } from 'react';
-import { useStore } from '.';
+import { useEffect, useRef } from 'react';
+import { useAppStore } from './index';
 
 const StoreProvider = ({ children }: { children: React.ReactNode }) => {
-  const store = useRef(useStore).current;
-  // You can add initialization logic here if needed
+  const initializeAuth = useAppStore((state) => state.initializeAuth);
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return <>{children}</>;
 };
 

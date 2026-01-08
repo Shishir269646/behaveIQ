@@ -22,7 +22,7 @@ export const useFraud = () => {
             setError(null);
             try {
                 const response = await api.get<FraudEvent[]>('/fraud');
-                setFraudEvents(response.data);
+                setFraudEvents(response.data.data);
             } catch (err: any) {
                 setError(err.response?.data?.message || err.message || "Failed to fetch fraud events.");
             } finally {

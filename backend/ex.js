@@ -1,0 +1,1 @@
+SDK_BASE_URL="../sdk/dist/behaveiq.min.js"

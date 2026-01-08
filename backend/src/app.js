@@ -25,6 +25,7 @@ const eventsRoutes = require('./routes/events');
 const experimentsRoutes = require('./routes/experiments'); // ADDED: Import experiments routes
 
 const personasRoutes = require('./routes/personas'); // ADDED: Import personas routes
+const usersRoutes = require('./routes/users'); // ADDED: Import user routes
 
 // Import middleware
 const { protect: auth } = require('./middleware/auth');
@@ -72,6 +73,7 @@ app.use('/api/dashboard', auth, dashboardRoutes); console.log('Routes mounted: /
 app.use('/api/events', auth, eventsRoutes); console.log('Routes mounted: /api/events');
 app.use('/api/experiments', auth, experimentsRoutes); console.log('Routes mounted: /api/experiments'); // ADDED
 app.use('/api/personas', auth, personasRoutes); console.log('Routes mounted: /api/personas'); // ADDED
+app.use('/api/users', usersRoutes); console.log('Routes mounted: /api/users'); // ADDED
 app.get('/api', (req, res) => {
   res.json({
     success: true,

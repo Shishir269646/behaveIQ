@@ -2,6 +2,13 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const deviceSubSchema = new mongoose.Schema({
+  fingerprint: String,
+  type: String, // mobile, desktop, tablet
+  firstSeen: Date,
+  lastSeen: Date
+}, { _id: false }); // No _id for subdocuments if not needed
+
 const userSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -27,7 +34,7 @@ const userSchema = new mongoose.Schema({
   },
   plan: {
     type: String,
-    enum: ['free', 'pro', 'enterprise'],
+    enum: ['free', 'pro', 'premium', 'enterprise'],
     default: 'free'
   },
   role: {
@@ -43,12 +50,7 @@ const userSchema = new mongoose.Schema({
     index: true,
     sparse: true
   },
-  devices: [{
-    fingerprint: String,
-    type: String, // mobile, desktop, tablet
-    firstSeen: Date,
-    lastSeen: Date
-  }],
+  devices: [deviceSubSchema], // Use the explicitly defined subschema
   persona: {
     primary: {
       type: String,

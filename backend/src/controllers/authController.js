@@ -47,25 +47,36 @@ const register = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
+    console.log('Login attempt for email:', email);
+    console.log('Password received (plaintext - for debug only, be cautious in production):', password);
+
+
     // Find user with password field
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
+        console.warn('Login failed: User not found for email:', email);
         return res.status(401).json({
             success: false,
             message: 'Invalid credentials'
         });
     }
+
+    console.log('User found:', user._id);
+    console.log('Stored hashed password:', user.password);
 
     // Check password
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
+        console.warn('Login failed: Password mismatch for user:', email);
         return res.status(401).json({
             success: false,
             message: 'Invalid credentials'
         });
     }
+
+    console.log('Login successful for user:', email);
 
     // Update last login
     user.lastLogin = new Date();

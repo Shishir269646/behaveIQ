@@ -23,7 +23,7 @@ export default function WebsitesPage() {
     const [websiteToDeleteId, setWebsiteToDeleteId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
-        url: '', // Changed from domain to url
+        domain: '', // Changed from url to domain
         industry: '',
     });
     const [sdkScript, setSdkScript] = useState<string | null>(null);
@@ -47,7 +47,7 @@ export default function WebsitesPage() {
             toast.error("Name and Domain are required.");
             return;
         }
-        await createWebsite({ name: formData.name, url: formData.url });
+        await createWebsite({ name: formData.name, domain: formData.domain });
         setIsCreateOpen(false);
         setFormData({ name: '', url: '', industry: '' });
     };
@@ -188,10 +188,12 @@ export default function WebsitesPage() {
                                     </div>
                                 )}
                                 <div className="flex gap-2">
-                                    <Button size="sm" variant="outline" className="flex-1" onClick={() => selectWebsite(website._id)}>
-                                        <Settings className="w-4 h-4 mr-2" />
-                                        View Details
-                                    </Button>
+                                    <Link href={`/settings?websiteId=${website._id}`} passHref>
+                                        <Button size="sm" variant="outline" className="flex-1">
+                                            <Settings className="w-4 h-4 mr-2" />
+                                            View Details
+                                        </Button>
+                                    </Link>
 
                                     <Button
                                         size="sm"
@@ -235,16 +237,15 @@ export default function WebsitesPage() {
                             />
                         </div>
 
-                        <div>
-                            <Label htmlFor="url">URL</Label>
-                            <Input
-                                id="url"
-                                placeholder="https://example.com"
-                                value={formData.url}
-                                onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                            />
-                        </div>
-
+                                <div>
+                                    <Label htmlFor="domain">Domain</Label>
+                                    <Input
+                                        id="domain"
+                                        placeholder="https://example.com"
+                                        value={formData.domain}
+                                        onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
+                                    />
+                                </div>
                         <div>
                             <Label htmlFor="industry">Industry (Optional)</Label>
                             <Input

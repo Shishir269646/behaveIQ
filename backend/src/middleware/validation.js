@@ -66,3 +66,11 @@ exports.updateWebsiteValidation = [
             throw new Error('limitOrderValue must be a non-negative number if provided');
         }),
 ];
+
+exports.updateUserValidation = [
+    body('email').optional().isEmail().normalizeEmail().withMessage('Valid email is required'),
+    body('fullName').optional().notEmpty().trim().withMessage('Full name is required'),
+    body('companyName').optional().trim(),
+    body('plan').optional().isIn(['free', 'pro', 'premium', 'enterprise']).withMessage('Invalid plan type'),
+    body('role').optional().isIn(['user', 'admin']).withMessage('Invalid role type'),
+];

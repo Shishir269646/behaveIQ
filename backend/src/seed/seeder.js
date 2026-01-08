@@ -1,9 +1,12 @@
+// ... (imports) ...
 const fs = require('fs');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const bcrypt = require('bcryptjs');
+const path = require('path'); // Add path module
 
 // Load env vars
-dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 // Load models
 const User = require('../models/User');
@@ -26,16 +29,20 @@ const websites = JSON.parse(
 const importData = async () => {
     try {
         console.log('Seeding users...');
-        for (const user of users) {
+        for (const userData of users) { // Changed 'user' to 'userData' to avoid confusion
+            // Hash password explicitly before saving
+            const hashedPassword = await bcrypt.hash(userData.password, 10); // 10 is the salt rounds
+            
             await User.findOneAndUpdate(
-                { email: user.email },
-                user,
+                { email: userData.email },
+                { ...userData, password: hashedPassword }, // Overwrite password with hashed version
                 { upsert: true, new: true, setDefaultsOnInsert: true }
             );
         }
         console.log('Users seeded successfully.');
 
         // Seed websites for the admin user if they don't have any
+// ... (rest of the file)
         const adminUser = await User.findOne({ email: 'admin@example.com' });
         if (adminUser) {
             const websiteCount = await Website.countDocuments({ userId: adminUser._id });

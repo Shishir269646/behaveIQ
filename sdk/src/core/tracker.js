@@ -92,7 +92,7 @@ class BehaviorTracker {
       document.addEventListener('click', (e) => {
         const clickData = {
           element: e.target.tagName,
-          id: e.target.id,
+          elementId: e.target.id, // Renamed from 'id'
           class: e.target.className,
           x: e.clientX,
           y: e.clientY,
@@ -193,3 +193,5 @@ class BehaviorTracker {
       }).catch(err => console.error('Tracking error:', err));
     }
 }
+
+export default BehaviorTracker;

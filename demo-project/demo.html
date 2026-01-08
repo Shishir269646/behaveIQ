@@ -202,14 +202,19 @@
 
     <script src="../sdk/dist/behaveiq.min.js"></script>
     <script>
-        new BEHAVEIQ({
-            apiKey: 'biq_1890244583b7190df583e6a66c0c5ca94cf6673431797a0cff0c8ab66bf31c38',
-            apiUrl: 'http://localhost:5000/api', // Make sure this is correct
-            trackMouse: true,
-            trackScroll: true,
-            trackClicks: true,
-            autoPersonalize: true
-        });
+        console.log('Type of BEHAVEIQ:', typeof BEHAVEIQ);
+        if (typeof BEHAVEIQ === 'function') {
+            new BEHAVEIQ({
+                apiKey: 'biq_4270b64ea940ad068039f417b4c7c875a32d89a105159b843ef4dc978842b21f',
+                apiUrl: 'http://localhost:5000/api',
+                trackMouse: true,
+                trackScroll: true,
+                trackClicks: true,
+                autoPersonalize: true
+            });
+        } else {
+            console.error('BEHAVEIQ SDK is not loaded correctly or is not a constructor.');
+        }
     </script>
 
     <!-- <script>

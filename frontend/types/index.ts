@@ -5,7 +5,8 @@ export interface User {
   fullName: string;
   avatar?: string;
   companyName?: string;
-  plan: 'free' | 'starter' | 'growth' | 'enterprise';
+  plan: 'free' | 'pro' | 'premium' | 'enterprise'; // Synchronized with backend
+  role: 'user' | 'admin'; // Added role field
   isActive: boolean;
   lastLogin?: Date;
   createdAt: Date;

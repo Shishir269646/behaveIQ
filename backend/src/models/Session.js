@@ -9,13 +9,15 @@ const sessionSchema = new mongoose.Schema({
   },
   fingerprint: { type: String, required: true },
   sessionId: { type: String, required: true, unique: true },
-  device: {
-    type: String,
-    fingerprint: String,
-    userAgent: String,
-    screenResolution: String,
-    language: String,
-    timezone: String
+  device: { // Now correctly defined as an object
+    type: { // This is the device type (e.g., 'desktop', 'mobile', 'tablet')
+      type: String,
+      enum: ['mobile', 'desktop', 'tablet', 'unknown'],
+      default: 'unknown'
+    },
+    os: String,
+    browser: String,
+    userAgent: String
   },
   location: {
     ip: String,
@@ -33,11 +35,14 @@ const sessionSchema = new mongoose.Schema({
       timeSpent: Number,
       scrollDepth: Number 
     }],
-    clicks: [{ 
-      element: String, 
-      timestamp: Date,
+    clicks: [{ // Now explicitly define the structure for clicks
+      _id: false, // Prevent Mongoose from adding a default _id for click subdocuments
+      element: String,
+      elementId: String, // Changed from 'id' to 'elementId' to match SDK
+      class: String, // Also capture 'class' from eventData
       x: Number,
-      y: Number
+      y: Number,
+      timestamp: Date
     }],
     mouseMovements: [{
       timestamp: Date,

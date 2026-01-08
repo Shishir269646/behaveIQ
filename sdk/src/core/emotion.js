@@ -22,15 +22,14 @@ class EmotionTracker {
         currentPage: window.location.href
       };
 
-      const response = await this.sdk.request('/emotions/detect', {
-        method: 'POST',
-        body: {
-          userId: this.sdk.userId,
-          sessionId: this.sdk.sessionId,
-          behaviorData
-        }
-      });
-
+              const response = await this.sdk.request('/emotion/detect', {
+                method: 'POST',
+                body: {
+                  userId: this.sdk.userId,
+                  sessionId: this.sdk.sessionId,
+                  behaviorData
+                }
+              });
       if (response.success && response.data.response.action !== 'none') {
         this.showEmotionResponse(response.data);
       }

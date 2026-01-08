@@ -1,1 +1,11 @@
-{}
+{
+  "/page": "app/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
+  "/(dashboard)/dashboard/websites/page": "app/(dashboard)/dashboard/websites/page.js",
+  "/(dashboard)/experiments/page": "app/(dashboard)/experiments/page.js",
+  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(dashboard)/events/page": "app/(dashboard)/events/page.js"
+}

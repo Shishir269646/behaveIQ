@@ -52,7 +52,7 @@ export interface WebsiteSlice {
     success: string | null;
     fetchWebsites: () => Promise<void>;
     fetchWebsiteById: (websiteId: string) => Promise<void>;
-    createWebsite: (websiteData: { name: string; url: string }) => Promise<void>;
+    createWebsite: (websiteData: { name: string; domain: string }) => Promise<void>;
     updateWebsite: (websiteId: string, websiteData: Partial<Website>) => Promise<void>;
     deleteWebsite: (websiteId: string) => Promise<void>;
     selectWebsite: (websiteId: string) => void;

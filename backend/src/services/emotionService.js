@@ -86,41 +86,35 @@ class EmotionService {
   }
 
   // Get appropriate response for emotion
-  getEmotionResponse(emotion, currentPage) {
-    const responses = {
-      frustrated: {
-        action: 'show_help_chat',
-        message: 'Need help? Our team is here!',
-        simplifyUI: true,
-        showShortcuts: true,
-        priority: 'high'
-      },
-      confused: {
-        action: 'show_guide',
-        highlightNextStep: true,
-        showComparisonTool: true,
-        message: 'Let us help you find what you need',
-        priority: 'medium'
-      },
-      excited: {
-        action: 'show_social_proof',
-        urgencyMessage: 'Popular choice! 50+ bought today',
-        showRecommendations: true,
-        priority: 'low'
-      },
-      considering: {
-        action: 'show_comparison',
-        enableCompare: true,
-        showReviews: true,
-        priority: 'medium'
-      },
-      neutral: {
-        action: 'none',
-        priority: 'none'
-      }
-    };
+  // Get appropriate response for emotion based on website settings
+  async getEmotionResponse(websiteId, emotion) { // Added websiteId
+    const Website = require('../models/Website'); // Require here to avoid circular dependency
 
-    return responses[emotion] || responses.neutral;
+    const defaultResponse = { action: 'none', message: '' };
+
+    try {
+      const website = await Website.findById(websiteId); // Find by websiteId
+      if (!website || !website.settings || !website.settings.emotionInterventions) {
+        return defaultResponse;
+      }
+
+      const intervention = website.settings.emotionInterventions.find(
+        (int) => int.emotion === emotion && int.status === 'active'
+      );
+
+      if (intervention) {
+        return {
+          action: intervention.action,
+          message: intervention.message,
+          // Add any other dynamic data from the intervention settings here
+          data: intervention.data // Example
+        };
+      }
+    } catch (error) {
+      console.error('Error fetching emotion intervention from website settings:', error);
+    }
+
+    return defaultResponse;
   }
 }
 

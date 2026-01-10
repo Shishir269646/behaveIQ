@@ -1,6 +1,7 @@
 const Website = require('../models/Website');
 const Intervention = require('../models/Intervention');
 const { asyncHandler } = require('../utils/helpers');
+const abandonmentService = require('../services/abandonmentService');
 
 const predictRisk = async (req, res) => {
   try {
@@ -51,44 +52,85 @@ const getAbandonmentStats = asyncHandler(async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    // Fetch interventions data
+    // Overall Risk (Average intent score of non-converted sessions within the time range,
+    // or a more sophisticated ML prediction if available)
+    const nonConvertedSessions = await Session.find({
+        websiteId,
+        converted: false,
+        createdAt: { $gte: startDate }
+    }).select('intentScore');
+
+    const overallRisk = nonConvertedSessions.length > 0
+        ? (nonConvertedSessions.reduce((sum, session) => sum + (session.intentScore || 0), 0) / nonConvertedSessions.length) * 100
+        : 0;
+
+    // Interventions Triggered and Recovery Rate
     const interventions = await Intervention.find({
-        userId: req.user._id, // Assuming interventions are tied to user, not website directly for simplicity
+        websiteId,
         timestamp: { $gte: startDate }
     });
 
-    // Calculate risk trends (mock data for now)
-    const riskTrends = [];
-    for (let i = 0; i < days; i++) {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + i);
-        riskTrends.push({
-            date: date.toISOString().split('T')[0],
-            riskScore: Math.floor(Math.random() * 50) + 30, // Random score between 30-80
-            interventions: Math.floor(Math.random() * 20),
-            conversions: Math.floor(Math.random() * 10)
-        });
-    }
-
-    // Overall stats
-    const totalInterventions = interventions.length;
+    const interventionsTriggered = interventions.length;
     const recoveredInterventions = interventions.filter(i => i.outcome?.converted).length;
-    const recoveryRate = totalInterventions > 0 ? (recoveredInterventions / totalInterventions) * 100 : 0;
+    const recoveryRate = interventionsTriggered > 0 ? (recoveredInterventions / interventionsTriggered) * 100 : 0;
 
-    // Intervention performance (mock data for now)
-    const interventionPerformance = [
-        { type: 'discount', shown: 100, clicked: 30, converted: 15, effectiveness: 15 },
-        { type: 'chat', shown: 80, clicked: 20, converted: 8, effectiveness: 10 },
-    ];
+    // Intervention Performance
+    const interventionPerformanceMap = new Map();
+    for (const intervention of interventions) {
+        const type = intervention.type || 'unknown';
+        if (!interventionPerformanceMap.has(type)) {
+            interventionPerformanceMap.set(type, { shown: 0, clicked: 0, converted: 0, effectiveness: 0 });
+        }
+        const stats = interventionPerformanceMap.get(type);
+        stats.shown++;
+        if (intervention.response?.status === 'clicked') {
+            stats.clicked++;
+        }
+        if (intervention.outcome?.converted) {
+            stats.converted++;
+        }
+    }
+    const interventionPerformance = Array.from(interventionPerformanceMap.entries()).map(([type, stats]) => {
+        stats.effectiveness = stats.shown > 0 ? (stats.converted / stats.shown) * 100 : 0;
+        return { type, ...stats };
+    });
+
+    // Abandonment Risk Trends (Daily average intent score of non-converted sessions)
+    const riskTrends = await Session.aggregate([
+        {
+            $match: {
+                websiteId: website._id,
+                converted: false,
+                createdAt: { $gte: startDate }
+            }
+        },
+        {
+            $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                avgIntentScore: { $avg: '$intentScore' },
+                sessionsCount: { $sum: 1 }
+            }
+        },
+        {
+            $sort: { _id: 1 }
+        }
+    ]);
+
+    const formattedRiskTrends = riskTrends.map(trend => ({
+        date: trend._id,
+        riskScore: trend.avgIntentScore ? parseFloat((trend.avgIntentScore * 100).toFixed(2)) : 0,
+        sessions: trend.sessionsCount
+    }));
+
 
     res.json({
         success: true,
         data: {
-            riskTrends,
-            overallRisk: Math.floor(Math.random() * 50) + 30,
-            interventionsTriggered: totalInterventions,
-            recoveryRate: recoveryRate.toFixed(2),
-            interventionPerformance
+            overallRisk: parseFloat(overallRisk.toFixed(2)),
+            interventionsTriggered,
+            recoveryRate: parseFloat(recoveryRate.toFixed(2)),
+            interventionPerformance,
+            riskTrends: formattedRiskTrends
         }
     });
 });

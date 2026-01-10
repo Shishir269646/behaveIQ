@@ -59,9 +59,58 @@ export interface DashboardData {
     recentSessions: Session[];
     topPersonas: PersonaStat[];
     trendData: TrendData[];
-    intentDistribution: IntentDistribution; // Added
-    insights: Insight[]; // Added
+    intentDistribution: IntentDistribution;
+    insights: Insight[];
+    personaSummary?: PersonaSummary; // New
+    personalizationStatus?: PersonalizationStatus; // New
+    heatmapSummary?: HeatmapSummary; // New
+    experimentSummary?: ExperimentSummary; // New
+    contentSummary?: ContentSummary; // New
+    abandonmentSummary?: AbandonmentSummary; // New
+    discountSummary?: DiscountSummary; // New
+    fraudSummary?: FraudSummary; // New
 }
+
+// New interfaces for DashboardData
+export interface PersonaSummary {
+    totalPersonas: number;
+    newPersonasLast30Days: number;
+}
+
+export interface PersonalizationStatus {
+    enabled: boolean;
+}
+
+export interface HeatmapSummary {
+    hasRecentData: boolean;
+    lastGenerated: string | null; // Date string
+}
+
+export interface ExperimentSummary {
+    activeExperiments: number;
+    totalExperiments: number;
+}
+
+export interface ContentSummary {
+    totalContentGenerated: number;
+    lastContentGenerated: string | null; // Date string
+}
+
+export interface AbandonmentSummary {
+    abandonmentRate: number; // percentage
+    interventionsTriggeredLast30Days: number;
+}
+
+export interface DiscountSummary {
+    totalDiscountsOffered: number;
+    avgDiscountValue: number; // in currency
+}
+
+export interface FraudSummary {
+    fraudIncidentsLast30Days: number;
+    totalFraudScores: number;
+}
+
 
 export const useDashboard = (timeRange: string = '7d') => {
     const [data, setData] = useState<DashboardData | null>(null);
@@ -80,38 +129,61 @@ export const useDashboard = (timeRange: string = '7d') => {
         setError(null);
         try {
             // Fetch data from all endpoints concurrently
-            const [overviewRes, insightsRes, intentDistRes] = await Promise.all([
+            const [
+                overviewRes,
+                insightsRes,
+                intentDistRes,
+                personaSummaryRes, // New
+                personalizationStatusRes, // New
+                heatmapSummaryRes, // New
+                experimentSummaryRes, // New
+                contentSummaryRes, // New
+                abandonmentSummaryRes, // New
+                discountSummaryRes, // New
+                fraudSummaryRes, // New
+            ] = await Promise.all([
                 api.get(`/dashboard/overview?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`),
                 api.get(`/dashboard/insights?websiteId=${selectedWebsite._id}`),
-                api.get(`/dashboard/intent-distribution?websiteId=${selectedWebsite._id}`), // Assuming this endpoint exists
+                api.get(`/dashboard/intent-distribution?websiteId=${selectedWebsite._id}`),
+                api.get(`/dashboard/summary/personas?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`), // New endpoint
+                api.get(`/dashboard/summary/personalization?websiteId=${selectedWebsite._id}`), // New endpoint
+                api.get(`/dashboard/summary/heatmaps?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`), // New endpoint
+                api.get(`/dashboard/summary/experiments?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`), // New endpoint
+                api.get(`/dashboard/summary/content?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`), // New endpoint
+                api.get(`/dashboard/summary/abandonment?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`), // New endpoint
+                api.get(`/dashboard/summary/discounts?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`), // New endpoint
+                api.get(`/dashboard/summary/fraud?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`), // New endpoint
             ]);
 
-            const overviewData = overviewRes.data.data;
-            const insightsData = insightsRes.data.data.insights;
-            const intentDistributionData = intentDistRes.data.data.intentDistribution;
+            const { overview } = overviewRes.data.data;
 
-            // Create a unified DashboardData object
-            const dashboardData: DashboardData = {
+            setData({
                 stats: {
-                    totalVisitors: { value: overviewData.overview.totalVisitors, change: 0 }, // Placeholder for change
-                    totalSessions: { value: overviewData.overview.totalSessions, change: 0 },
-                    totalConversions: { value: overviewData.overview.totalConversions, change: 0 },
-                    avgIntentScore: { value: overviewData.overview.avgIntentScore, change: 0 },
+                    totalVisitors: { value: overview.totalVisitors, change: 0 },
+                    totalSessions: { value: overview.totalSessions, change: 0 },
+                    totalConversions: { value: overview.totalConversions, change: 0 },
+                    avgIntentScore: { value: overview.avgIntentScore, change: 0 },
                 },
-                recentSessions: overviewData.recentSessions,
-                topPersonas: overviewData.topPersonas.map((p: any) => ({
+                recentSessions: overview.recentSessions,
+                topPersonas: overview.topPersonas.map((p: any) => ({
                     name: p.name,
                     description: `Conversion Rate: ${p.stats.conversionRate?.toFixed(2) || 0}%`,
                     userCount: p.stats.sessionCount,
                     conversionRate: p.stats.conversionRate,
-                    confidence: p.stats.confidence || 0, // Assuming confidence from backend
+                    confidence: p.stats.confidence || 0,
                 })),
-                trendData: overviewData.trendData,
-                intentDistribution: intentDistributionData,
-                insights: insightsData,
-            };
-
-            setData(dashboardData);
+                trendData: overview.trendData,
+                intentDistribution: intentDistRes.data.data.intentDistribution, // Corrected
+                insights: insightsRes.data.data.insights, // Corrected
+                personaSummary: personaSummaryRes.data.data,
+                personalizationStatus: personalizationStatusRes.data.data,
+                heatmapSummary: heatmapSummaryRes.data.data,
+                experimentSummary: experimentSummaryRes.data.data,
+                contentSummary: contentSummaryRes.data.data,
+                abandonmentSummary: abandonmentSummaryRes.data.data,
+                discountSummary: discountSummaryRes.data.data,
+                fraudSummary: fraudSummaryRes.data.data,
+            });
 
         } catch (err: any) {
             setError(err.response?.data?.message || err.message || "Failed to fetch dashboard data.");

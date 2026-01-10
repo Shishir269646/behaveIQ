@@ -3,15 +3,43 @@ const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get all websites for user
 // @route   GET /api/v1/websites
+// Helper function
+function generateSDKScript(website) { // Changed signature
+    const cdnUrl = process.env.SDK_CDN_URL || 'http://localhost:3000/sdk/dist/behaveiq.min.js'; // Use SDK_CDN_URL from env or a sensible default
+    
+    // Default tracking settings (assuming defaults if settings are not explicitly defined)
+    const trackMouse = website.settings?.trackMouse ?? true;
+    const trackScroll = website.settings?.trackScroll ?? true;
+    const trackClicks = website.settings?.trackClicks ?? true;
+    const autoPersonalize = website.settings?.autoPersonalization ?? false; // Assuming this is part of settings
+
+    return `<script src="${cdnUrl}"></script>
+<script>
+  BEHAVEIQ.init('${website.apiKey}', {
+    trackMouse: ${trackMouse},
+    trackScroll: ${trackScroll},
+    trackClicks: ${trackClicks},
+    autoPersonalize: ${autoPersonalize}
+  });
+</script>`;
+}
+
+// @desc    Get all websites for user
+// @route   GET /api/v1/websites
 const getWebsites = asyncHandler(async (req, res) => {
     const websites = await Website.find({ userId: req.user._id })
         .sort('-createdAt')
         .select('-__v');
 
+    const websitesWithScripts = websites.map(website => ({
+        ...website._doc,
+        sdkScript: generateSDKScript(website), // Pass website object
+    }));
+
     res.json({
         success: true,
         count: websites.length,
-        data: { websites }
+        data: { websites: websitesWithScripts }
     });
 });
 
@@ -29,14 +57,16 @@ const createWebsite = asyncHandler(async (req, res) => {
     });
 
     // Generate SDK script
-    const sdkScript = generateSDKScript(website.apiKey);
+    const sdkScript = generateSDKScript(website); // Pass website object
 
     res.status(201).json({
         success: true,
         data: {
-            website,
-            apiKey: website.apiKey,
-            sdkScript
+            website: {
+                ...website._doc,
+                sdkScript,
+                apiKey: website.apiKey,
+            }
         }
     });
 });
@@ -55,34 +85,27 @@ const getWebsite = asyncHandler(async (req, res) => {
             message: 'Website not found'
         });
     }
+    
+    // Generate SDK script
+    const sdkScript = generateSDKScript(website); // Pass website object
 
     res.json({
         success: true,
-        data: { website }
+        data: {
+            website: {
+                ...website._doc,
+                sdkScript,
+            }
+        }
     });
 });
 
 // @desc    Update website
 // @route   PATCH /api/v1/websites/:id
 const updateWebsite = asyncHandler(async (req, res) => {
-    const { name, settings, status } = req.body;
+    const { name, settings, status, domain } = req.body; // Added domain as it's a top-level field
 
-    // Build update object dynamically
-    const updateFields = {};
-    if (name !== undefined) updateFields.name = name;
-    if (status !== undefined) updateFields.status = status;
-    if (settings !== undefined) {
-        // Merge or replace settings properties
-        for (const key in settings) {
-            updateFields[`settings.${key}`] = settings[key];
-        }
-    }
-
-    const website = await Website.findOneAndUpdate(
-        { _id: req.params.id, userId: req.user._id },
-        { $set: updateFields }, // Use $set to update specific fields within settings
-        { new: true, runValidators: true }
-    );
+    let website = await Website.findOne({ _id: req.params.id, userId: req.user._id });
 
     if (!website) {
         return res.status(404).json({
@@ -91,15 +114,49 @@ const updateWebsite = asyncHandler(async (req, res) => {
         });
     }
 
+    // Update top-level fields if provided
+    if (name !== undefined) website.name = name;
+    if (domain !== undefined) website.domain = domain; // Allow domain update
+    if (status !== undefined) website.status = status;
+
+    // Handle nested settings updates
+    if (settings !== undefined) {
+        // Merge top-level settings fields
+        for (const key in settings) {
+            if (key === 'fraudDetectionSettings' && typeof settings.fraudDetectionSettings === 'object') {
+                // Deep merge fraudDetectionSettings
+                website.settings.fraudDetectionSettings = {
+                    ...website.settings.fraudDetectionSettings,
+                    ...settings.fraudDetectionSettings
+                };
+            } else if (key === 'emotionInterventions' && Array.isArray(settings.emotionInterventions)) {
+                // Replace the entire emotionInterventions array
+                website.settings.emotionInterventions = settings.emotionInterventions;
+            } else {
+                // For other settings, direct assignment
+                website.settings[key] = settings[key];
+            }
+        }
+    }
+
     // If activating for first time
     if (status === 'active' && !website.activatedAt) {
         website.activatedAt = new Date();
-        await website.save(); // Save again to update activatedAt
     }
+
+    await website.save(); // Save the modified document
+
+    // Generate SDK script
+    const sdkScript = generateSDKScript(website); // Pass website object
 
     res.json({
         success: true,
-        data: { website }
+        data: {
+            website: {
+                ...website._doc,
+                sdkScript,
+            }
+        }
     });
 });
 
@@ -139,27 +196,13 @@ const getSDKScript = asyncHandler(async (req, res) => {
         });
     }
 
-    const script = generateSDKScript(website.apiKey);
+    const script = generateSDKScript(website); // Pass website object
 
     res.json({
         success: true,
         data: { script }
     });
 });
-
-// Helper function
-function generateSDKScript(apiKey) {
-    const cdnUrl = process.env.SDK_CDN_URL || 'https://cdn.behaveiq.com/sdk/v1';
-    return `<script src="${cdnUrl}/behaveiq.min.js"></script>
-<script>
-  BEHAVEIQ.init('${apiKey}', {
-    trackMouse: true,
-    trackScroll: true,
-    trackClicks: true,
-    autoPersonalize: true
-  });
-</script>`;
-}
 
 
 

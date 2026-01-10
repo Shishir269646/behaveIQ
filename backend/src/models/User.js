@@ -42,6 +42,20 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  settings: { // New settings field
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false
+    },
+    emailNotificationsEnabled: {
+      type: Boolean,
+      default: true
+    },
+    pushNotificationsEnabled: {
+      type: Boolean,
+      default: false
+    }
+  },
   lastLogin: {
     type: Date
   },

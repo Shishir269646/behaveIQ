@@ -6,7 +6,7 @@ const { asyncHandler } = require('../utils/helpers');
 // @route   GET /api/v1/events?websiteId=xxx&eventType=click&limit=100
 const getEvents = asyncHandler(async (req, res) => {
     console.log('--- getEvents called ---'); // ADDED for debugging
-    const { websiteId, eventType, limit = 100 } = req.query;
+    const { websiteId, eventType, limit = 10, page = 1, timeRange = '7d' } = req.query; // Added page, timeRange
 
     // Verify ownership
     const website = await Website.findOne({
@@ -24,14 +24,28 @@ const getEvents = asyncHandler(async (req, res) => {
     const query = { websiteId };
     if (eventType) query.eventType = eventType;
 
+    // Time range filtering
+    const days = parseInt(timeRange) || 7;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+    query.timestamp = { $gte: startDate };
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
     const events = await Event.find(query)
         .sort('-timestamp')
+        .skip(skip)
         .limit(parseInt(limit))
         .select('eventType eventData timestamp');
+
+    const totalEvents = await Event.countDocuments(query); // Get total count for pagination
 
     res.json({
         success: true,
         count: events.length,
+        total: totalEvents, // Return total count
+        page: parseInt(page),
+        pages: Math.ceil(totalEvents / parseInt(limit)),
         data: { events }
     });
 });

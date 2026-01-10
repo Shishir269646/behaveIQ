@@ -13,6 +13,7 @@ export const useAuth = () => {
   const logout = useAppStore((state) => state.logout);
   const initializeAuth = useAppStore((state) => state.initializeAuth); // Add initializeAuth
   const clearSuccess = useAppStore((state) => state.clearSuccess);
+  const updateAuthenticatedUser = useAppStore((state) => state.updateAuthenticatedUser); // New
 
   return {
     user,
@@ -24,7 +25,8 @@ export const useAuth = () => {
     register,
     login,
     logout,
-    initializeAuth, // Expose initializeAuth
+    initializeAuth,
     clearSuccess,
+    updateAuthenticatedUser, // New
   };
 };

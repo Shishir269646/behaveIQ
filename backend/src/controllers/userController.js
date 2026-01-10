@@ -36,18 +36,9 @@ const getUser = asyncHandler(async (req, res, next) => {
 // @route   PUT /api/v1/users/:id
 // @access  Private/Admin
 const updateUser = asyncHandler(async (req, res, next) => {
-    const { email, fullName, companyName, plan, role } = req.body;
+    const { email, fullName, companyName, plan, role, settings } = req.body; // Added settings
 
-    const user = await User.findByIdAndUpdate(req.params.id, {
-        email,
-        fullName,
-        companyName,
-        plan,
-        role
-    }, {
-        new: true,
-        runValidators: true
-    }).select('-password');
+    let user = await User.findById(req.params.id).select('+password'); // Fetch user to merge settings
 
     if (!user) {
         return res.status(404).json({
@@ -56,9 +47,29 @@ const updateUser = asyncHandler(async (req, res, next) => {
         });
     }
 
+    // Update top-level fields
+    if (email !== undefined) user.email = email;
+    if (fullName !== undefined) user.fullName = fullName;
+    if (companyName !== undefined) user.companyName = companyName;
+    if (plan !== undefined) user.plan = plan;
+    if (role !== undefined) user.role = role;
+
+    // Merge settings if provided
+    if (settings && typeof settings === 'object') {
+        user.settings = {
+            ...user.settings, // Preserve existing settings
+            ...settings       // Merge new settings
+        };
+    }
+
+    await user.save(); // Save the updated user
+
+    // Exclude password before sending response
+    const updatedUser = await User.findById(user._id).select('-password');
+
     res.json({
         success: true,
-        data: { user }
+        data: { user: updatedUser }
     });
 });
 

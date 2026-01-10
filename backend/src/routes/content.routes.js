@@ -8,4 +8,9 @@ const { protect } = require('../middleware/auth');
 // @access  Private
 router.post('/generate', protect, contentController.generateContent);
 
+// @route   GET api/content/options
+// @desc    Get available personas and content types for content generation
+// @access  Private
+router.get('/options', protect, contentController.getContentOptions);
+
 module.exports = router;

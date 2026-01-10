@@ -1,7 +1,3 @@
-import { StateCreator } from 'zustand';
-import { api } from '@/lib/api'; // Use the api instance
-import { User } from '@/types';
-
 export interface AuthSlice {
   user: User | null;
   token: string | null;
@@ -13,8 +9,9 @@ export interface AuthSlice {
   login: (credentials: any) => Promise<void>;
   logout: () => void;
   getMe: () => Promise<void>;
+  updateAuthenticatedUser: (userData: Partial<User>) => Promise<void>; // New action
   clearSuccess: () => void;
-  initializeAuth: () => Promise<void>; // New action to initialize auth state
+  initializeAuth: () => Promise<void>;
 }
 
 const handleRequest = async (set: any, request: () => Promise<any>) => {
@@ -32,7 +29,7 @@ const handleRequest = async (set: any, request: () => Promise<any>) => {
 
 export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
   user: null,
-  token: typeof window !== 'undefined' ? localStorage.getItem('behaveiq_token') : null, // Use behaveiq_token
+  token: typeof window !== 'undefined' ? localStorage.getItem('behaveiq_token') : null,
   isAuthenticated: false,
   loading: false,
   error: null,
@@ -85,7 +82,21 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set,
         return;
       }
       const response = await api.get('/auth/me');
-      set({ user: response.data.data.user, isAuthenticated: true });
+      const { user } = response.data.data;
+      set({ user, isAuthenticated: true });
+      return response;
+    });
+  },
+
+  updateAuthenticatedUser: async (userData) => {
+    await handleRequest(set, async () => {
+      const state = get();
+      if (!state.user?._id) {
+        throw new Error('User not authenticated.');
+      }
+      const response = await api.put(`/users/${state.user._id}`, userData);
+      const updatedUser = response.data.data.user;
+      set({ user: updatedUser, success: 'Profile updated successfully!' });
       return response;
     });
   },

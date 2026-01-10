@@ -1,29 +1,4 @@
-"use client"
-
-import { PlusCircle, ShoppingCart } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { useAbandonment } from "@/hooks/useAbandonment";
-import { useAppStore } from "@/store";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import AbandonmentRiskChart from '@/components/AbandonmentRiskChart'; // New import
 import { useState, useEffect } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { toast } from "@/hooks/use-toast";
@@ -175,20 +150,14 @@ export default function AbandonmentPage() {
                         <CardDescription>Historical trend of average abandonment risk.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {/* TODO: Add a chart component for riskTrends */}
-                        <div className="h-64 flex items-center justify-center bg-muted rounded-md">
-                            <p className="text-muted-foreground">Chart for Risk Trends coming soon...</p>
-                        </div>
+                        {data.riskTrends && data.riskTrends.length > 0 ? (
+                            <AbandonmentRiskChart data={data.riskTrends} />
+                        ) : (
+                            <div className="h-64 flex items-center justify-center bg-muted rounded-md">
+                                <p className="text-muted-foreground">No risk trend data available.</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </>
         ) : (
-            <EmptyState
-                icon={ShoppingCart}
-                title="No Abandonment Data"
-                description="No cart abandonment data available for the selected website and time range."
-            />
-        )}
-    </div>
-  );
-}

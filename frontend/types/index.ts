@@ -11,6 +11,11 @@ export interface User {
   lastLogin?: Date;
   createdAt: Date;
   updatedAt: Date;
+  settings?: { // New settings field
+    twoFactorEnabled?: boolean;
+    emailNotificationsEnabled?: boolean;
+    pushNotificationsEnabled?: boolean;
+  };
 }
 
 export interface Website {
@@ -52,6 +57,7 @@ export interface Website {
   };
   createdAt: Date;
   updatedAt: Date;
+  sdkScript: string;
 }
 
 export interface Persona {
@@ -183,3 +189,94 @@ export interface Event {
   };
   timestamp: Date;
 }
+
+export interface PageView {
+    page: string;
+    views: number;
+}
+
+export interface TopPagesData {
+    pages: PageView[];
+}
+
+export interface DeviceInfo {
+    fingerprint: string;
+    type: string; // mobile, desktop, tablet
+    firstSeen: string;
+    lastSeen: string;
+    stitchedWith: {
+        fingerprint: string;
+        confidence: number;
+        stitchedAt: string;
+    }[];
+}
+
+export interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    start: () => void;
+    stop: () => void;
+    onresult: (event: SpeechRecognitionEvent) => void;
+    onerror: (event: Event) => void;
+    onend: () => void;
+}
+
+export interface SpeechRecognitionEvent extends Event {
+    results: {
+        transcript: string;
+    }[][];
+}
+
+export interface FraudEvent {
+    id: string;
+    risk: "High" | "Medium" | "Low";
+    score: number;
+    reason: string;
+    status: "Blocked" | "Requires Review" | "Allowed";
+    timestamp: string;
+}
+
+export interface HeatmapPoint {
+    x: number;
+    y: number;
+    value: number;
+}
+
+export interface ScrollDepthData {
+    avgScrollDepth: number;
+    maxScrollDepth: number;
+}
+
+export interface ConfusionZoneData {
+    element: string;
+    avgHoverTime: string;
+    confusionScore: string;
+}
+
+export interface HeatmapResponseData {
+    pageUrl: string;
+    clicks: HeatmapPoint[];
+    scrollDepth: ScrollDepthData;
+    confusionZones: ConfusionZoneData[];
+}
+
+export interface ActiveSession {
+    sessionId: string;
+    personaType: string;
+    intentScore: number;
+    currentPage: string;
+    duration: number;
+}
+
+export interface RecentPageView {
+    page: string;
+    timestamp: string;
+}
+
+export interface RealtimeData {
+    activeVisitors: number;
+    activeSessions: ActiveSession[];
+    recentPageViews: RecentPageView[];
+}
+

@@ -580,37 +580,190 @@ const getFraudSummary = asyncHandler(async (req, res) => {
 
 // Placeholder for getPersonaSummary
 const getPersonaSummary = asyncHandler(async (req, res) => {
-    res.status(501).json({ success: false, message: 'Persona Summary Not Implemented' });
+    const { websiteId } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    const totalPersonas = await Persona.countDocuments({ websiteId, isActive: true });
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const newPersonasLast30Days = await Persona.countDocuments({
+        websiteId,
+        createdAt: { $gte: thirtyDaysAgo }
+    });
+
+    res.json({
+        success: true,
+        data: {
+            totalPersonas,
+            newPersonasLast30Days
+        }
+    });
 });
 
 // Placeholder for getPersonalizationStatus
 const getPersonalizationStatus = asyncHandler(async (req, res) => {
-    res.status(501).json({ success: false, message: 'Personalization Status Not Implemented' });
+    const { websiteId } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    const enabled = website.settings.autoPersonalization || false;
+
+    res.json({
+        success: true,
+        data: {
+            enabled
+        }
+    });
 });
 
 // Placeholder for getHeatmapSummary
 const getHeatmapSummary = asyncHandler(async (req, res) => {
-    res.status(501).json({ success: false, message: 'Heatmap Summary Not Implemented' });
+    const { websiteId } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    const fortyEightHoursAgo = new Date();
+    fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
+
+    const recentClickEvent = await ClickEvent.findOne({
+        websiteId,
+        timestamp: { $gte: fortyEightHoursAgo }
+    }).sort('-timestamp');
+
+    const hasRecentData = !!recentClickEvent;
+    const lastGenerated = recentClickEvent ? recentClickEvent.timestamp : null;
+
+    res.json({
+        success: true,
+        data: {
+            hasRecentData,
+            lastGenerated
+        }
+    });
 });
 
 // Placeholder for getExperimentSummary
 const getExperimentSummary = asyncHandler(async (req, res) => {
-    res.status(501).json({ success: false, message: 'Experiment Summary Not Implemented' });
+    const { websiteId } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    const totalExperiments = await Experiment.countDocuments({ websiteId });
+    const activeExperiments = await Experiment.countDocuments({ websiteId, status: 'active' });
+
+    res.json({
+        success: true,
+        data: {
+            totalExperiments,
+            activeExperiments
+        }
+    });
 });
 
 // Placeholder for getContentSummary
 const getContentSummary = asyncHandler(async (req, res) => {
-    res.status(501).json({ success: false, message: 'Content Summary Not Implemented' });
+    const { websiteId } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    // --- TEMPORARY / SIMULATED IMPLEMENTATION ---
+    // A proper implementation would require a dedicated ContentGenerationLog model
+    // or a specific eventType in the Event model to track content generations.
+    // For now, we return placeholder data.
+    const totalContentGenerated = 0; // Simulate 0 for now
+    const lastContentGenerated = null; // Simulate null for now
+
+    res.json({
+        success: true,
+        data: {
+            totalContentGenerated,
+            lastContentGenerated
+        }
+    });
 });
 
 // Placeholder for getAbandonmentSummary
 const getAbandonmentSummary = asyncHandler(async (req, res) => {
-    res.status(501).json({ success: false, message: 'Abandonment Summary Not Implemented' });
+    const { websiteId } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const totalSessions = await Session.countDocuments({ websiteId, createdAt: { $gte: thirtyDaysAgo } });
+    const abandonedSessions = await Session.countDocuments({ websiteId, outcome: 'cart_abandon', createdAt: { $gte: thirtyDaysAgo } });
+    const abandonmentRate = totalSessions > 0 ? (abandonedSessions / totalSessions) * 100 : 0;
+
+    const interventionsTriggeredLast30Days = await Intervention.countDocuments({
+        // Assuming 'Intervention' model has a websiteId field
+        // If not, it needs to be filtered by userId and then check website relationship
+        // For simplicity, assuming websiteId on Intervention for now.
+        websiteId, 
+        type: 'cart_abandon_prevention',
+        timestamp: { $gte: thirtyDaysAgo }
+    });
+
+    res.json({
+        success: true,
+        data: {
+            abandonmentRate: parseFloat(abandonmentRate.toFixed(2)),
+            interventionsTriggeredLast30Days
+        }
+    });
 });
 
 // Placeholder for getDiscountSummary
 const getDiscountSummary = asyncHandler(async (req, res) => {
-    res.status(501).json({ success: false, message: 'Discount Summary Not Implemented' });
+    const { websiteId } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    const totalDiscountsOffered = await Discount.countDocuments({ websiteId });
+
+    const avgDiscountValueResult = await Discount.aggregate([
+        { $match: { websiteId: website._id } },
+        {
+            $group: {
+                _id: null,
+                avgDiscountValue: { $avg: '$value' }
+            }
+        }
+    ]);
+
+    const avgDiscountValue = avgDiscountValueResult.length > 0 ? avgDiscountValueResult[0].avgDiscountValue : 0;
+
+    res.json({
+        success: true,
+        data: {
+            totalDiscountsOffered,
+            avgDiscountValue: parseFloat(avgDiscountValue.toFixed(2))
+        }
+    });
 });
 
 module.exports = {

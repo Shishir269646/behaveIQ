@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox"
 import { useWebsites } from "@/hooks/useWebsites"; // Import useWebsites
+import { useAuth } from "@/hooks/useAuth"; // New import
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,10 +24,11 @@ const EMOTIONS = ['frustrated', 'confused', 'excited', 'neutral', 'considering']
 const INTERVENTION_ACTIONS = ['show_help_chat', 'show_guide', 'show_social_proof', 'show_comparison', 'none'];
 
 export default function SettingsPage() {
-    const { selectedWebsite, updateWebsite, loading, success, error, clearSuccess } = useWebsites();
+    const { selectedWebsite, updateWebsite, loading: websiteLoading, error: websiteError, success: websiteSuccess, clearSuccess: clearWebsiteSuccess } = useWebsites();
+    const { user, loading: authLoading, error: authError, success: authSuccess, updateAuthenticatedUser, clearSuccess: clearAuthSuccess } = useAuth(); // New
 
 
-    const [formState, setFormState] = useState({
+    const [websiteFormState, setWebsiteFormState] = useState({ // Renamed from formState to websiteFormState
         name: selectedWebsite?.name || '',
         domain: selectedWebsite?.domain || '',
         settings: selectedWebsite?.settings || {
@@ -34,12 +36,43 @@ export default function SettingsPage() {
             autoPersonalization: false,
             experimentMode: false,
             emotionInterventions: [],
+            fraudDetectionSettings: { // Ensure fraudDetectionSettings are initialized
+                sensitivity: 'medium',
+                riskBasedActions: {
+                    requirePhoneVerification: false,
+                    requireEmailVerification: false,
+                    disableCOD: false,
+                    showCaptcha: false,
+                    manualReview: false,
+                    limitOrderValue: null,
+                }
+            }
         },
+    });
+
+    const [profileFormState, setProfileFormState] = useState<Partial<User>>({ // New
+        fullName: user?.fullName || '',
+        email: user?.email || '',
+        settings: user?.settings || { // Initialize with user settings
+            twoFactorEnabled: false,
+            emailNotificationsEnabled: true,
+            pushNotificationsEnabled: false,
+        }
+    });
+
+    const [profileFormState, setProfileFormState] = useState<Partial<User>>({ // New
+        fullName: user?.fullName || '',
+        email: user?.email || '',
+        settings: user?.settings || { // Initialize with user settings
+            twoFactorEnabled: false,
+            emailNotificationsEnabled: true,
+            pushNotificationsEnabled: false,
+        }
     });
 
     useEffect(() => {
         if (selectedWebsite) {
-            setFormState({
+            setWebsiteFormState({
                 name: selectedWebsite.name,
                 domain: selectedWebsite.domain,
                 settings: selectedWebsite.settings,
@@ -47,23 +80,55 @@ export default function SettingsPage() {
         }
     }, [selectedWebsite]);
 
+    useEffect(() => { // For user profile state
+        if (user) {
+            setProfileFormState({
+                fullName: user.fullName,
+                email: user.email,
+                settings: user.settings || {
+                    twoFactorEnabled: false,
+                    emailNotificationsEnabled: true,
+                    pushNotificationsEnabled: false,
+                }
+            });
+        }
+    }, [user]);
+
     useEffect(() => {
-        if (success) {
+        if (websiteSuccess) {
             toast({
                 title: "Success",
-                description: success,
+                description: websiteSuccess,
             });
-            clearSuccess();
+            clearWebsiteSuccess();
         }
-        if (error) {
+        if (websiteError) {
             toast({
                 title: "Error",
-                description: error,
+                description: websiteError,
                 variant: "destructive",
             });
-            clearSuccess();
+            clearWebsiteSuccess();
         }
-    }, [success, error, clearSuccess, toast]);
+    }, [websiteSuccess, websiteError, clearWebsiteSuccess, toast]);
+
+    useEffect(() => { // For auth success/error
+        if (authSuccess) {
+            toast({
+                title: "Success",
+                description: authSuccess,
+            });
+            clearAuthSuccess();
+        }
+        if (authError) {
+            toast({
+                title: "Error",
+                description: authError,
+                variant: "destructive",
+            });
+            clearAuthSuccess();
+        }
+    }, [authSuccess, authError, clearAuthSuccess, toast]);
 
     const handleFormChange = (field: string, value: any) => {
         setFormState((prev) => ({
@@ -72,8 +137,25 @@ export default function SettingsPage() {
         }));
     };
 
-    const handleSettingsChange = (field: string, value: any) => {
-        setFormState((prev: any) => ({
+    const handleWebsiteSettingsChange = (field: string, value: any) => { // Renamed
+        setWebsiteFormState((prev: any) => ({
+            ...prev,
+            settings: {
+                ...prev.settings,
+                [field]: value,
+            },
+        }));
+    };
+
+    const handleProfileFormChange = (field: string, value: any) => { // New
+        setProfileFormState((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const handleProfileSettingsChange = (field: string, value: any) => { // New
+        setProfileFormState((prev) => ({
             ...prev,
             settings: {
                 ...prev.settings,
@@ -128,7 +210,7 @@ export default function SettingsPage() {
         }
 
         // Basic frontend validation
-        if (!formState.name.trim()) {
+        if (!websiteFormState.name.trim()) {
             toast({
                 title: "Validation Error",
                 description: "Website Name cannot be empty.",
@@ -137,7 +219,7 @@ export default function SettingsPage() {
             return;
         }
 
-        if (!formState.domain.trim()) {
+        if (!websiteFormState.domain.trim()) {
             toast({
                 title: "Validation Error",
                 description: "Website Domain cannot be empty.",
@@ -147,9 +229,58 @@ export default function SettingsPage() {
         }
 
         await updateWebsite(selectedWebsite._id, {
-            name: formState.name,
-            domain: formState.domain,
-            settings: formState.settings,
+            name: websiteFormState.name,
+            domain: websiteFormState.domain,
+            settings: websiteFormState.settings,
+        });
+    };
+
+    const handleSaveProfile = async () => { // New function
+        if (!user?._id) {
+            toast({
+                title: "Error",
+                description: "User not authenticated.",
+                variant: "destructive",
+            });
+            return;
+        }
+        if (!profileFormState.fullName?.trim()) { // Added optional chaining and trim
+            toast({
+                title: "Validation Error",
+                description: "Full Name cannot be empty.",
+                variant: "destructive",
+            });
+            return;
+        }
+        await updateAuthenticatedUser({ fullName: profileFormState.fullName }); // Only update fullName
+    };
+
+    const handleSaveSecurity = async () => { // New function
+        if (!user?._id) {
+            toast({
+                title: "Error",
+                description: "User not authenticated.",
+                variant: "destructive",
+            });
+            return;
+        }
+        await updateAuthenticatedUser({ settings: { twoFactorEnabled: profileFormState.settings?.twoFactorEnabled } });
+    };
+
+    const handleSaveNotifications = async () => { // New function
+        if (!user?._id) {
+            toast({
+                title: "Error",
+                description: "User not authenticated.",
+                variant: "destructive",
+            });
+            return;
+        }
+        await updateAuthenticatedUser({ 
+            settings: {
+                emailNotificationsEnabled: profileFormState.settings?.emailNotificationsEnabled,
+                pushNotificationsEnabled: profileFormState.settings?.pushNotificationsEnabled,
+            }
         });
     };
 
@@ -175,14 +306,24 @@ export default function SettingsPage() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input id="name" defaultValue="John Doe" />
+                                <Label htmlFor="fullName">Full Name</Label>
+                                <Input
+                                    id="fullName"
+                                    value={profileFormState.fullName || ''}
+                                    onChange={(e) => handleProfileFormChange('fullName', e.target.value)}
+                                    disabled={authLoading}
+                                />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="email">Email</Label>
-                                <Input id="email" type="email" defaultValue="john.doe@example.com" />
+                                <Input
+                                    id="email"
+                                    type="email"
+                                    value={profileFormState.email || ''}
+                                    disabled={true} // Email should generally not be editable directly from profile
+                                />
                             </div>
-                            <Button>Save changes</Button>
+                            <Button onClick={handleSaveProfile} disabled={authLoading}>Save changes</Button>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -318,8 +459,14 @@ export default function SettingsPage() {
                                         Add an extra layer of security to your account.
                                     </p>
                                 </div>
-                                <Checkbox id="2fa" />
+                                <Checkbox
+                                    id="2fa"
+                                    checked={profileFormState.settings?.twoFactorEnabled || false} // Use optional chaining
+                                    onCheckedChange={(checked: boolean) => handleProfileSettingsChange('twoFactorEnabled', checked)}
+                                    disabled={authLoading}
+                                />
                             </div>
+                            <Button onClick={handleSaveSecurity} disabled={authLoading}>Save Security Settings</Button>
                         </CardContent>
                     </Card>
 
@@ -475,7 +622,12 @@ export default function SettingsPage() {
                                         Receive email notifications for important events.
                                     </p>
                                 </div>
-                                <Checkbox defaultChecked />
+                                <Checkbox
+                                    id="emailNotifications"
+                                    checked={profileFormState.settings?.emailNotificationsEnabled || false} // Use optional chaining
+                                    onCheckedChange={(checked: boolean) => handleProfileSettingsChange('emailNotificationsEnabled', checked)}
+                                    disabled={authLoading}
+                                />
                             </div>
                             <div className="flex flex-row items-center justify-between rounded-lg border p-4">
                                 <div className="space-y-0.5">
@@ -484,8 +636,14 @@ export default function SettingsPage() {
                                         Receive push notifications on your devices.
                                     </p>
                                 </div>
-                                <Checkbox />
+                                <Checkbox
+                                    id="pushNotifications"
+                                    checked={profileFormState.settings?.pushNotificationsEnabled || false} // Use optional chaining
+                                    onCheckedChange={(checked: boolean) => handleProfileSettingsChange('pushNotificationsEnabled', checked)}
+                                    disabled={authLoading}
+                                />
                             </div>
+                            <Button onClick={handleSaveNotifications} disabled={authLoading}>Save Notification Settings</Button>
                         </CardContent>
                     </Card>
                 </TabsContent>

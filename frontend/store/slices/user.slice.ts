@@ -42,9 +42,10 @@ export const createUserSlice: StateCreator<UserSlice, [], [], UserSlice> = (set,
     updateUser: async (userId, userData) => {
         await handleRequest(set, async () => {
             const response = await api.put(`/users/${userId}`, userData);
+            const { user } = response.data.data;
             set((state) => ({
                 users: state.users.map((u) =>
-                    u._id === userId ? response.data.data.user : u
+                    u._id === userId ? user : u
                 ),
                 success: 'User updated successfully!',
                 loading: false,

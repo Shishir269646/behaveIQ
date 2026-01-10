@@ -2,29 +2,7 @@ import { useState, useCallback } from 'react';
 import { api } from '@/lib/api'; // Use api instance
 import { useAppStore } from '@/store';
 
-export interface HeatmapPoint {
-    x: number;
-    y: number;
-    value: number;
-}
-
-export interface ScrollDepthData {
-    avgScrollDepth: number;
-    maxScrollDepth: number;
-}
-
-export interface ConfusionZoneData {
-    element: string;
-    avgHoverTime: string;
-    confusionScore: string;
-}
-
-export interface HeatmapResponseData {
-    pageUrl: string;
-    clicks: HeatmapPoint[];
-    scrollDepth: ScrollDepthData;
-    confusionZones: ConfusionZoneData[];
-}
+import { HeatmapPoint, ScrollDepthData, ConfusionZoneData, HeatmapResponseData } from '@/types';
 
 interface UseHeatmapReturn {
     data: HeatmapResponseData | null; // Changed to full response data

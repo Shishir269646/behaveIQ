@@ -50,7 +50,8 @@ export const useDiscounts = () => {
         }
         await handleRequest(async () => {
             const response = await api.post('/discounts', { ...discountData, websiteId: selectedWebsite._id });
-            setDiscounts((prev) => [...prev, response.data.data]);
+            const { discount } = response.data.data;
+            setDiscounts((prev) => [...prev, discount]);
             setSuccess('Discount created successfully!');
         });
     }, [selectedWebsite?._id, handleRequest]);
@@ -58,7 +59,8 @@ export const useDiscounts = () => {
     const updateDiscount = useCallback(async (id: string, discountData: Partial<Discount>) => {
         await handleRequest(async () => {
             const response = await api.patch(`/discounts/${id}`, discountData);
-            setDiscounts((prev) => prev.map((disc) => (disc._id === id ? response.data.data : disc)));
+            const { discount } = response.data.data;
+            setDiscounts((prev) => prev.map((disc) => (disc._id === id ? discount : disc)));
             setSuccess('Discount updated successfully!');
         });
     }, [handleRequest]);

@@ -2,14 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-export interface FraudEvent {
-    id: string;
-    risk: "High" | "Medium" | "Low";
-    score: number;
-    reason: string;
-    status: "Blocked" | "Requires Review" | "Allowed";
-    timestamp: string;
-}
+import { FraudEvent } from '@/types';
 
 export const useFraud = () => {
     const [fraudEvents, setFraudEvents] = useState<FraudEvent[]>([]);

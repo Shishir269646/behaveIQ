@@ -27,8 +27,8 @@ export const useEmotionTrends = (timeRange: string = '7d') => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await api.get(`/emotions/trends?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`); // MODIFIED
-            setData(response.data.data);
+            const response = await api.get<{ trends: EmotionTrend[] }>(`/emotions/trends?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`); // MODIFIED
+            setData({ trends: response.data.trends });
         } catch (err: any) {
             setError(err.response?.data?.message || err.message || "Failed to fetch emotion trends data.");
         } finally {

@@ -17,6 +17,8 @@ router.route('/')
     .get(getWebsites)
     .post(websiteValidation, validate, createWebsite);
 
+//router.post('/', createWebsite);
+
 router.route('/:id')
     .get(getWebsite)
     .patch(updateWebsiteValidation, validate, updateWebsite)

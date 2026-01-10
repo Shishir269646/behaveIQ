@@ -1,8 +1,8 @@
 // sdk/emotion.js - Emotion Tracker
 class EmotionTracker {
-    constructor(sdk) {
+    constructor(sdk, emotionCheckInterval) {
       this.sdk = sdk;
-      this.checkInterval = 10000; // Check every 10 seconds
+      this.checkInterval = emotionCheckInterval || 10000; // Check every 10 seconds
     }
 
     start() {
@@ -11,7 +11,7 @@ class EmotionTracker {
 
     async analyzeEmotion() {
       if (!this.sdk.userId || !this.sdk.sessionId) {
-        console.warn('BqSdk EmotionTracker: userId or sessionId not available, skipping emotion analysis.');
+        if (this.sdk.debug) console.warn('BqSdk EmotionTracker: userId or sessionId not available, skipping emotion analysis.');
         return;
       }
       const behaviorData = {
@@ -22,7 +22,7 @@ class EmotionTracker {
         currentPage: window.location.href
       };
 
-              const response = await this.sdk.request('/emotion/detect', {
+              const response = await this.sdk.request('/emotions/detect', {
                 method: 'POST',
                 body: {
                   userId: this.sdk.userId,
@@ -81,7 +81,7 @@ class EmotionTracker {
     }
 
     showGuide(message) {
-      console.log('Guide:', message);
+      if (this.sdk.debug) console.log('Guide:', message);
       // Implement guide overlay
     }
   }

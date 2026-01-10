@@ -58,9 +58,9 @@ app.get('/health', (req, res) => {
 
 // API Routes (with auth middleware)
 app.use('/api/auth', authRoutes); console.log('Routes mounted: /api/auth');
-app.use('/api/identity', identityRoutes); console.log('Routes mounted: /api/identity');
+app.use('/api/identity', auth, identityRoutes); console.log('Routes mounted: /api/identity');
 app.use('/api/behavior', auth, behaviorRoutes); console.log('Routes mounted: /api/behavior');
-app.use('/api/emotion', auth, emotionRoutes); console.log('Routes mounted: /api/emotion');
+app.use('/api/emotions', auth, emotionRoutes); console.log('Routes mounted: /api/emotions');
 app.use('/api/abandonment', auth, abandonmentRoutes); console.log('Routes mounted: /api/abandonment');
 app.use('/api/device', auth, deviceRoutes); console.log('Routes mounted: /api/device');
 app.use('/api/discount', auth, discountRoutes); console.log('Routes mounted: /api/discount');

@@ -12,7 +12,15 @@
       "static/media/Geist_Variable-s.p.f406b17f.woff2",
       "static/media/GeistMono_Variable.p.6bae060c.woff2"
     ],
-    "[project]/app/(dashboard)/experiments/page": [
+    "[project]/app/(dashboard)/dashboard/personas/page": [
+      "static/media/Geist_Variable-s.p.f406b17f.woff2",
+      "static/media/GeistMono_Variable.p.6bae060c.woff2"
+    ],
+    "[project]/app/(dashboard)/personas/page": [
+      "static/media/Geist_Variable-s.p.f406b17f.woff2",
+      "static/media/GeistMono_Variable.p.6bae060c.woff2"
+    ],
+    "[project]/app/(dashboard)/events/page": [
       "static/media/Geist_Variable-s.p.f406b17f.woff2",
       "static/media/GeistMono_Variable.p.6bae060c.woff2"
     ],
@@ -20,15 +28,15 @@
       "static/media/Geist_Variable-s.p.f406b17f.woff2",
       "static/media/GeistMono_Variable.p.6bae060c.woff2"
     ],
+    "[project]/app/(dashboard)/fraud/page": [
+      "static/media/Geist_Variable-s.p.f406b17f.woff2",
+      "static/media/GeistMono_Variable.p.6bae060c.woff2"
+    ],
+    "[project]/app/(dashboard)/heatmaps/page": [
+      "static/media/Geist_Variable-s.p.f406b17f.woff2",
+      "static/media/GeistMono_Variable.p.6bae060c.woff2"
+    ],
     "[project]/app/_not-found/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(auth)/login/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(dashboard)/events/page": [
       "static/media/Geist_Variable-s.p.f406b17f.woff2",
       "static/media/GeistMono_Variable.p.6bae060c.woff2"
     ]

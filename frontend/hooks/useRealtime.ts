@@ -3,24 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store'; // ADDED
 
-export interface ActiveSession {
-    sessionId: string;
-    personaType: string;
-    intentScore: number;
-    currentPage: string;
-    duration: number;
-}
-
-export interface RecentPageView {
-    page: string;
-    timestamp: string;
-}
-
-export interface RealtimeData {
-    activeVisitors: number;
-    activeSessions: ActiveSession[];
-    recentPageViews: RecentPageView[];
-}
+import { ActiveSession, RecentPageView, RealtimeData } from '@/types';
 
 export const useRealtime = (refreshInterval: number = 5000) => {
     const [data, setData] = useState<RealtimeData | null>(null);

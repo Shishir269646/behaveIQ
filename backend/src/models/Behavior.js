@@ -8,6 +8,12 @@ const behaviorSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  websiteId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Website',
+    required: true,
+    index: true
+  },
   sessionId: {
     type: String,
     required: true,

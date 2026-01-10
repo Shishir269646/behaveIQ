@@ -51,7 +51,8 @@ export const useExperiments = () => {
         }
         await handleRequest(async () => {
             const response = await api.post('/experiments', { ...experimentData, websiteId: selectedWebsite._id });
-            setExperiments((prev) => [...prev, response.data.data.experiment]);
+            const { experiment } = response.data.data;
+            setExperiments((prev) => [...prev, experiment]);
             setSuccess('Experiment created successfully!');
         });
     }, [selectedWebsite?._id, handleRequest]);
@@ -59,7 +60,8 @@ export const useExperiments = () => {
     const fetchExperimentById = useCallback(async (id: string) => {
         await handleRequest(async () => {
             const response = await api.get(`/experiments/${id}`);
-            setExperiment(response.data.data.experiment);
+            const { experiment } = response.data.data;
+            setExperiment(experiment);
             setSuccess('Experiment fetched successfully!');
         });
     }, [handleRequest]);
@@ -67,8 +69,9 @@ export const useExperiments = () => {
     const updateExperimentStatus = useCallback(async (id: string, status: Experiment['status']) => {
         await handleRequest(async () => {
             const response = await api.patch(`/experiments/${id}/status`, { status });
-            setExperiments((prev) => prev.map((exp) => (exp._id === id ? response.data.data.experiment : exp)));
-            setExperiment(response.data.data.experiment); // Update if this is the currently viewed experiment
+            const { experiment } = response.data.data;
+            setExperiments((prev) => prev.map((exp) => (exp._id === id ? experiment : exp)));
+            setExperiment(experiment); // Update if this is the currently viewed experiment
             setSuccess('Experiment status updated successfully!');
         });
     }, [handleRequest]);
@@ -76,8 +79,9 @@ export const useExperiments = () => {
     const declareWinner = useCallback(async (id: string, winningVariation: string) => {
         await handleRequest(async () => {
             const response = await api.post(`/experiments/${id}/declare-winner`, { winningVariation });
-            setExperiments((prev) => prev.map((exp) => (exp._id === id ? response.data.data.experiment : exp)));
-            setExperiment(response.data.data.experiment); // Update if this is the currently viewed experiment
+            const { experiment } = response.data.data;
+            setExperiments((prev) => prev.map((exp) => (exp._id === id ? experiment : exp)));
+            setExperiment(experiment); // Update if this is the currently viewed experiment
             setSuccess('Winner declared successfully!');
         });
     }, [handleRequest]);

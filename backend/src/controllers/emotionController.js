@@ -38,10 +38,18 @@ const detectEmotion = async (req, res) => {
       }
     });
 
+    // Ensure that a website context is available from the auth middleware
+    if (!req.website) {
+        return res.status(403).json({
+            success: false,
+            error: 'Forbidden: A valid API key linked to a registered website is required.'
+        });
+    }
+
     // Get appropriate response
-    const response = emotionService.getEmotionResponse(
-      result.emotion,
-      behaviorData.currentPage
+    const response = await emotionService.getEmotionResponse(
+      req.website._id, // Pass websiteId
+      result.emotion
     );
 
     res.json({

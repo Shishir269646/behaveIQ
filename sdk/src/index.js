@@ -5,9 +5,10 @@ import VoiceSearch from './core/voice';
 
 class BqSdk {
     constructor(config) {
-      console.log('BqSdk: Constructor called with config:', config);
+      this.debug = config.debug || false;
+      if (this.debug) console.log('BqSdk: Constructor called with config:', config);
       if (!config || !config.apiKey) {
-        console.error('BqSdk: API Key is required for initialization.');
+        if (this.debug) console.error('BqSdk: API Key is required for initialization.');
         return;
       }
       this.apiUrl = config.apiUrl || 'http://localhost:5000/api';
@@ -20,45 +21,45 @@ class BqSdk {
       // Initialize components
       this.fingerprintGenerator = new FingerprintGenerator();
       this.tracker = new BehaviorTracker(this);
-      this.emotionTracker = new EmotionTracker(this);
+      this.emotionTracker = new EmotionTracker(this, config.emotionCheckInterval);
       this.voiceSearch = new VoiceSearch(this);
       
       // Auto-initialize
       this.init();
-      console.log('BqSdk: Constructor finished.');
+      if (this.debug) console.log('BqSdk: Constructor finished.');
     }
 
     async init() {
-      console.log('BqSdk: init() started.');
+      if (this.debug) console.log('BqSdk: init() started.');
       try {
         // Generate fingerprint
-        console.log('BqSdk: Generating fingerprint...');
+        if (this.debug) console.log('BqSdk: Generating fingerprint...');
         this.fingerprint = await this.fingerprintGenerator.generate();
-        console.log('BqSdk: Fingerprint generated:', this.fingerprint);
+        if (this.debug) console.log('BqSdk: Fingerprint generated:', this.fingerprint);
         
         // Identify user
-        console.log('BqSdk: Identifying user...');
+        if (this.debug) console.log('BqSdk: Identifying user...');
         await this.identifyUser();
-        console.log('BqSdk: User identified. userId:', this.userId, 'sessionId:', this.sessionId);
+        if (this.debug) console.log('BqSdk: User identified. userId:', this.userId, 'sessionId:', this.sessionId);
         
         // Start tracking
-        console.log('BqSdk: Starting trackers...');
+        if (this.debug) console.log('BqSdk: Starting trackers...');
         this.tracker.start();
         this.emotionTracker.start();
         
-        console.log('✅ BqSdk initialized');
+        if (this.debug) console.log('✅ BqSdk initialized');
       } catch (error) {
-        console.error('❌ BqSdk initialization failed:', error);
+        if (this.debug) console.error('❌ BqSdk initialization failed:', error);
       }
-      console.log('BqSdk: init() finished.');
+      if (this.debug) console.log('BqSdk: init() finished.');
     }
 
     async identifyUser() {
-      console.log('BqSdk: identifyUser() started.');
+      if (this.debug) console.log('BqSdk: identifyUser() started.');
       const deviceInfo = this.getDeviceInfo();
       const location = await this.getLocation();
       
-      console.log('BqSdk: Sending identity request...');
+      if (this.debug) console.log('BqSdk: Sending identity request...');
       const response = await this.request('/identity/identify', {
         method: 'POST',
         body: {
@@ -73,11 +74,11 @@ class BqSdk {
         this.userId = response.data.userId;
         this.sessionId = response.data.sessionId;
         this.persona = response.data.persona;
-        console.log('BqSdk: Identity request successful. userId:', this.userId);
+        if (this.debug) console.log('BqSdk: Identity request successful. userId:', this.userId);
       } else {
-        console.error('BqSdk: Identity request failed:', response.error);
+        if (this.debug) console.error('BqSdk: Identity request failed:', response.error);
       }
-      console.log('BqSdk: identifyUser() finished.');
+      if (this.debug) console.log('BqSdk: identifyUser() finished.');
     }
 
     getDeviceInfo() {
@@ -117,7 +118,7 @@ class BqSdk {
                         });
                     },
                     (error) => {
-                        console.warn('Geolocation error:', error.message);
+                        if (this.debug) console.warn('Geolocation error:', error.message);
                         resolve({ latitude: null, longitude: null, error: error.message });
                     },
                     { timeout: 5000, enableHighAccuracy: false, maximumAge: 60000 }
@@ -129,10 +130,10 @@ class BqSdk {
     }
 
     async request(endpoint, options = {}) {
-      console.log('BqSdk: Making request to endpoint:', endpoint);
+      if (this.debug) console.log('BqSdk: Making request to endpoint:', endpoint);
       const url = `${this.apiUrl}${endpoint}`;
 
-      console.log('BqSdk: Full request URL:', url); // Added log
+      if (this.debug) console.log('BqSdk: Full request URL:', url); // Added log
       const config = {
         method: options.method || 'GET',
         headers: {
@@ -144,10 +145,10 @@ class BqSdk {
       if (options.body) {
         config.body = JSON.stringify(options.body);
       }
-      console.log('BqSdk: Request config:', config); // Added log
+      if (this.debug) console.log('BqSdk: Request config:', config); // Added log
 
       const response = await fetch(url, config);
-      console.log('BqSdk: Request response status:', response.status);
+      if (this.debug) console.log('BqSdk: Request response status:', response.status);
       return response.json();
     }
   }

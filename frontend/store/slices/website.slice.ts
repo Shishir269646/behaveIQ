@@ -42,6 +42,7 @@ export interface Website {
     };
     createdAt: Date;
     updatedAt: Date;
+    sdkScript: string;
 }
 
 export interface WebsiteSlice {
@@ -81,11 +82,11 @@ export const createWebsiteSlice: StateCreator<WebsiteSlice, [], [], WebsiteSlice
     fetchWebsites: async () => {
         await handleRequest(set, async () => {
             const response = await api.get('/websites');
-            const fetchedWebsites = response.data.data.websites;
-            set({ websites: fetchedWebsites, loading: false });
+            const { websites } = response.data.data;
+            set({ websites, loading: false });
             // If no website is currently selected, select the first one if available
-            if (!get().website && fetchedWebsites.length > 0) {
-                set({ website: fetchedWebsites[0] });
+            if (!get().website && websites.length > 0) {
+                set({ website: websites[0] });
             }
             return response;
         });
@@ -94,7 +95,8 @@ export const createWebsiteSlice: StateCreator<WebsiteSlice, [], [], WebsiteSlice
     fetchWebsiteById: async (websiteId: string) => {
         await handleRequest(set, async () => {
             const response = await api.get(`/websites/${websiteId}`);
-            set({ website: response.data.data, loading: false });
+            const { website } = response.data.data;
+            set({ website, loading: false });
             return response;
         });
     },
@@ -102,9 +104,10 @@ export const createWebsiteSlice: StateCreator<WebsiteSlice, [], [], WebsiteSlice
     createWebsite: async (websiteData) => {
         await handleRequest(set, async () => {
             const response = await api.post('/websites', websiteData);
+            const { website } = response.data.data;
             set((state) => ({
-                websites: [...state.websites, response.data.data.website],
-                website: response.data.data.website, // Select the newly created website
+                websites: [...state.websites, website],
+                website: website, // Select the newly created website
                 success: 'Website created successfully!',
                 loading: false,
             }));
@@ -115,11 +118,12 @@ export const createWebsiteSlice: StateCreator<WebsiteSlice, [], [], WebsiteSlice
     updateWebsite: async (websiteId, websiteData) => {
         await handleRequest(set, async () => {
             const response = await api.patch(`/websites/${websiteId}`, websiteData);
+            const { website } = response.data.data;
             set((state) => ({
                 websites: state.websites.map((w) =>
-                    w._id === websiteId ? response.data.data : w
+                    w._id === websiteId ? website : w
                 ),
-                website: state.website?._id === websiteId ? response.data.data : state.website,
+                website: state.website?._id === websiteId ? website : state.website,
                 success: 'Website updated successfully!',
                 loading: false,
             }));

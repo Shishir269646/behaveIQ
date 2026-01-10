@@ -5,25 +5,36 @@ const emotionService = require('../services/emotionService');
 
 const trackEvent = async (req, res) => {
   try {
+    // Ensure that a website context is available from the auth middleware
+    if (!req.website) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: A valid API key linked to a registered website is required.'
+      });
+    }
+
     const { userId, sessionId, eventType, eventData } = req.body;
 
     // Create behavior event
     const behavior = await Behavior.create({
       userId,
+      websiteId: req.website._id, // Associate behavior with the website
       sessionId,
       eventType,
       eventData,
       timestamp: new Date()
     });
 
-    // Update session
+    // Update session - websiteId is already on session, no need to add here again
     await Session.findOneAndUpdate(
-      { sessionId },
+      { sessionId, websiteId: req.website._id }, // Ensure we update session for the correct website
       {
         $push: {
           [`behavior.${eventType}s`]: {
             ...eventData,
             timestamp: new Date()
+            // Add websiteId to individual events within session behavior if needed for finer filtering,
+            // but for now, it's on the Session itself.
           }
         }
       }
@@ -41,9 +52,9 @@ const trackEvent = async (req, res) => {
         });
 
         // Get appropriate response
-        const response = emotionService.getEmotionResponse(
-          emotionResult.emotion,
-          eventData.url
+        const response = await emotionService.getEmotionResponse(
+          req.website._id, // Pass websiteId
+          emotionResult.emotion
         );
 
         return res.json({

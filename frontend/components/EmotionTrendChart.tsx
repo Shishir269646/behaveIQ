@@ -41,7 +41,7 @@ export default function EmotionTrendChart({ timeRange }: { timeRange: string }) 
         );
     }
     
-    const emotions = data?.trends.length 
+    const emotions = data?.trends && data.trends.length > 0 
         ? Object.keys(data.trends[0]).filter(key => key !== 'date') 
         : [];
 

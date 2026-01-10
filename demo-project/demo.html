@@ -205,12 +205,13 @@
         console.log('Type of BEHAVEIQ:', typeof BEHAVEIQ);
         if (typeof BEHAVEIQ === 'function') {
             new BEHAVEIQ({
-                apiKey: 'biq_4270b64ea940ad068039f417b4c7c875a32d89a105159b843ef4dc978842b21f',
+                apiKey: 'biq_6a08b526bd03c32cdec03a04f2ea67d5438e8ee29784118763775463a3f617f6',
                 apiUrl: 'http://localhost:5000/api',
                 trackMouse: true,
                 trackScroll: true,
                 trackClicks: true,
-                autoPersonalize: true
+                autoPersonalize: true,
+                debug: true
             });
         } else {
             console.error('BEHAVEIQ SDK is not loaded correctly or is not a constructor.');

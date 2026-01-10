@@ -2,24 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { api } from '@/lib/api'; // Import the api instance
 
-// Define the shape of the recognition object
-interface SpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    start: () => void;
-    stop: () => void;
-    onresult: (event: SpeechRecognitionEvent) => void;
-    onerror: (event: Event) => void;
-    onend: () => void;
-}
-
-interface SpeechRecognitionEvent extends Event {
-    results: {
-        transcript: string;
-    }[][];
-}
-
+import { SpeechRecognition, SpeechRecognitionEvent } from '@/types';
 
 // Extend window to include webkitSpeechRecognition
 declare global {

@@ -3,14 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store'; // ADDED
 
-export interface PageView {
-    page: string;
-    views: number;
-}
-
-export interface TopPagesData {
-    pages: PageView[];
-}
+import { PageView, TopPagesData } from '@/types';
 
 export const useTopPages = (timeRange: string = '7d') => {
     const [data, setData] = useState<TopPagesData | null>(null);

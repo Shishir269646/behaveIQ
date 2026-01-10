@@ -17,10 +17,10 @@ export const usePersonas = () => {
         setError(null);
         setSuccess(null);
         try {
-            const response = await api.get<{ data: Persona[] }>('/personas', {
+            const response = await api.get<{ data: { personas: Persona[] } }>('/personas', {
                 params: { websiteId }
             });
-            setPersonas(response.data.data); // Backend response is data: { personas: [] }
+            setPersonas(response.data.data.personas);
             setSuccess('Personas fetched successfully!');
         } catch (err: any) {
             setError(err.response?.data?.message || err.message || "Failed to fetch persona data.");

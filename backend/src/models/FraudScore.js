@@ -8,6 +8,12 @@ const fraudScoreSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  websiteId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Website',
+    required: true,
+    index: true
+  },
   sessionId: String,
   score: { type: Number, required: true, min: 0, max: 100 },
   riskLevel: {

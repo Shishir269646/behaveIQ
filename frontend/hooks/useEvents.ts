@@ -4,15 +4,7 @@ import { CircleUser, FileText, MousePointerClick, Link as LinkIcon, ShoppingCart
 import { api } from '@/lib/api';
 import { useAppStore } from '@/store'; // ADDED
 
-export type EventType = 'page_view' | 'click' | 'session_start' | 'add_to_cart' | 'purchase' | 'session_end';
-
-export interface Event {
-    id: string;
-    type: EventType;
-    user: string;
-    details: string;
-    timestamp: string; // Using string for simplicity, could be Date object
-}
+import { Event, EventType } from '@/types';
 
 export const useEvents = (isLive: boolean = false) => {
     const [events, setEvents] = useState<Event[]>([]);

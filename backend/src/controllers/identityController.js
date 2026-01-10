@@ -4,7 +4,16 @@ const Session = require('../models/Session');
 const { v4: uuidv4 } = require('uuid');
 
 const identify = async (req, res) => {
+  
   try {
+    // Ensure that a website context is available from the auth middleware
+    if (!req.website) {
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: A valid API key linked to a registered website is required.'
+      });
+    }
+
     const { fingerprint, deviceInfo, fpComponents, location } = req.body;
 
     // Validate fingerprint
@@ -21,21 +30,26 @@ const identify = async (req, res) => {
     const sessionId = uuidv4();
 
     // Identify or create user
+    // The fingerprintService.identifyUser might internally create a guest user
+    // but it needs the website context to tie that user/session to the correct website
     const user = await fingerprintService.identifyUser(fingerprint, deviceInfo, {
       sessionId,
       fpComponents,
-      location
+      location,
+      websiteId: req.website._id // Pass websiteId to fingerprintService as well
     });
 
     // Create session
     const session = await Session.create({
       userId: user._id,
+      websiteId: req.website._id, // Associate session with the website
       fingerprint,
       sessionId,
       device: deviceInfo,
       location,
       startTime: new Date()
     });
+
 
     res.cookie('biq_fp', fingerprint, {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days

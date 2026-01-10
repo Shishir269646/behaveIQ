@@ -19,7 +19,7 @@ class BehaviorTracker {
 
     trackPageView() {
       if (!this.sdk.userId || !this.sdk.sessionId) {
-        console.warn('BqSdk BehaviorTracker: userId or sessionId not available, skipping pageview tracking.');
+        if (this.sdk.debug) console.warn('BqSdk BehaviorTracker: userId or sessionId not available, skipping pageview tracking.');
         return;
       }
       const pageData = {
@@ -133,7 +133,7 @@ class BehaviorTracker {
 
     async checkAbandonmentRisk() {
       if (!this.sdk.userId || !this.sdk.sessionId) {
-        console.warn('BqSdk BehaviorTracker: userId or sessionId not available, skipping abandonment risk check.');
+        if (this.sdk.debug) console.warn('BqSdk BehaviorTracker: userId or sessionId not available, skipping abandonment risk check.');
         return;
       }
       const cartDuration = Date.now() - this.cartActions[0].timestamp;
@@ -155,7 +155,7 @@ class BehaviorTracker {
       });
 
       if (response.success && response.data.shouldIntervene) {
-        console.log('🚨 High abandonment risk detected!');
+        if (this.sdk.debug) console.log('🚨 High abandonment risk detected!');
       }
     }
 
@@ -173,13 +173,14 @@ class BehaviorTracker {
     }
 
     getCartValue() {
-      // Get from your cart system
-      return 0; // Placeholder
+      // TODO: Implement actual logic to retrieve cart value from the website's cart system.
+      // For now, returning a static value to avoid errors.
+      return 0; 
     }
 
     sendBehaviorData(eventType, eventData) {
       if (!this.sdk.userId || !this.sdk.sessionId) {
-        console.warn(`BqSdk BehaviorTracker: userId or sessionId not available, skipping ${eventType} tracking.`);
+        if (this.sdk.debug) console.warn(`BqSdk BehaviorTracker: userId or sessionId not available, skipping ${eventType} tracking.`);
         return;
       }
       this.sdk.request('/behavior/track', {
@@ -190,7 +191,7 @@ class BehaviorTracker {
           eventType,
           eventData
         }
-      }).catch(err => console.error('Tracking error:', err));
+      }).catch(err => { if (this.sdk.debug) console.error('Tracking error:', err); });
     }
 }
 

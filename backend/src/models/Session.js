@@ -7,6 +7,12 @@ const sessionSchema = new mongoose.Schema({
     required: true,
     index: true
   },
+  websiteId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Website',
+    required: true,
+    index: true
+  },
   fingerprint: { type: String, required: true },
   sessionId: { type: String, required: true, unique: true },
   device: { // Now correctly defined as an object

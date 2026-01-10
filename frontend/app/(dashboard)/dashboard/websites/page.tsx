@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -42,17 +44,17 @@ export default function WebsitesPage() {
         }
     }, [success, clearSuccess]);
 
-    const handleCreate = async () => {
-        if (!formData.name || !formData.url) {
+    const handleCreate = async (): Promise<void> => {
+        if (!formData.name || !formData.domain) {
             toast.error("Name and Domain are required.");
             return;
         }
         await createWebsite({ name: formData.name, domain: formData.domain });
         setIsCreateOpen(false);
-        setFormData({ name: '', url: '', industry: '' });
+        setFormData({ name: '', domain: '', industry: '' });
     };
 
-    const handleDelete = async () => {
+    const handleDelete = async (): Promise<void> => {
         if (websiteToDeleteId) {
             await deleteWebsite(websiteToDeleteId);
             setIsDeleteOpen(false);

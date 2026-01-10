@@ -29,8 +29,8 @@ export const useConversionFunnel = (timeRange: string = '7d') => {
         setIsLoading(true);
         setError(null);
         try {
-            const response = await api.get<ConversionFunnelData>(`/dashboard/conversion-funnel?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`); // MODIFIED
-            setData(response.data);
+            const response = await api.get<{ funnel: FunnelStep[] }>(`/dashboard/conversion-funnel?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`); // MODIFIED
+            setData({ funnel: response.data.funnel });
         } catch (err: any) {
             setError(err.response?.data?.message || err.message || "Failed to fetch conversion funnel data.");
         } finally {

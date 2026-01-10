@@ -9,6 +9,14 @@ import {
     Users,
     RefreshCw,
     Lightbulb,
+    UserSquare, // New
+    ToggleRight, // New
+    Map, // New
+    FlaskConical, // New
+    FileText, // New
+    ShoppingCart, // New
+    Tag, // New
+    ShieldAlert, // New
 } from 'lucide-react';
 
 import {
@@ -115,8 +123,8 @@ export default function DashboardPage() {
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
                     <RealtimeVisitors />
                 </div>
-                <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-                    {isLoading ? (
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-4">
+                    {isLoading || !data ? (
                         <>
                             <Skeleton className="h-32" />
                             <Skeleton className="h-32" />
@@ -168,6 +176,164 @@ export default function DashboardPage() {
                         </>
                     )}
                 </div>
+                {/* New Feature Summary Cards */}
+                <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4 mt-6">
+                    {isLoading || !data ? (
+                        <>
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                            <Skeleton className="h-32" />
+                        </>
+                    ) : data && (
+                        <>
+                            {/* Persona Summary Card */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Total Personas</CardTitle>
+                                    <UserSquare className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatNumber(data.personaSummary?.totalPersonas || 0)}</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {data.personaSummary?.newPersonasLast30Days ? `+${data.personaSummary.newPersonasLast30Days} new last 30 days` : 'No new personas'}
+                                    </p>
+                                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+                                        <Link href="/personas">View Personas</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Personalization Status Card */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Personalization</CardTitle>
+                                    <ToggleRight className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">
+                                        {data.personalizationStatus?.enabled ? 'Enabled' : 'Disabled'}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Status across website
+                                    </p>
+                                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+                                        <Link href="/settings">Configure</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Heatmap Summary Card */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Heatmap Data</CardTitle>
+                                    <Map className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">
+                                        {data.heatmapSummary?.hasRecentData ? 'Available' : 'No Recent Data'}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {data.heatmapSummary?.lastGenerated ? `Last updated ${new Date(data.heatmapSummary.lastGenerated).toLocaleDateString()}` : 'No data collected'}
+                                    </p>
+                                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+                                        <Link href="/heatmaps">View Heatmaps</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Experiment Summary Card */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Experiments</CardTitle>
+                                    <FlaskConical className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatNumber(data.experimentSummary?.activeExperiments || 0)} Active</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Out of {formatNumber(data.experimentSummary?.totalExperiments || 0)} total
+                                    </p>
+                                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+                                        <Link href="/experiments">Manage Experiments</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Content Summary Card */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Content Generated</CardTitle>
+                                    <FileText className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatNumber(data.contentSummary?.totalContentGenerated || 0)}</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {data.contentSummary?.lastContentGenerated ? `Last: ${new Date(data.contentSummary.lastContentGenerated).toLocaleDateString()}` : 'No content generated'}
+                                    </p>
+                                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+                                        <Link href="/content">View Content</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Abandonment Summary Card */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Abandonment Rate</CardTitle>
+                                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{data.abandonmentSummary?.abandonmentRate?.toFixed(2) || '0.00'}%</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {data.abandonmentSummary?.interventionsTriggeredLast30Days ? `${data.abandonmentSummary.interventionsTriggeredLast30Days} interventions last 30 days` : 'No interventions recently'}
+                                    </p>
+                                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+                                        <Link href="/abandonment">Analyze Abandonment</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Discount Summary Card */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Discounts</CardTitle>
+                                    <Tag className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatNumber(data.discountSummary?.totalDiscountsOffered || 0)} Offered</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Avg. Value: ${data.discountSummary?.avgDiscountValue?.toFixed(2) || '0.00'}
+                                    </p>
+                                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+                                        <Link href="/discounts">Manage Discounts</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+
+                            {/* Fraud Summary Card */}
+                            <Card>
+                                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                    <CardTitle className="text-sm font-medium">Fraud Detection</CardTitle>
+                                    <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold">{formatNumber(data.fraudSummary?.fraudIncidentsLast30Days || 0)} Incidents</div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Out of {formatNumber(data.fraudSummary?.totalFraudScores || 0)} scores last 30 days
+                                    </p>
+                                    <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+                                        <Link href="/settings">Configure Fraud</Link>
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </>
+                    )}
+                </div>
+
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
                     {isLoading || !data ? (
                         <Skeleton className="h-96" />
@@ -207,7 +373,7 @@ export default function DashboardPage() {
                                     <Skeleton className="h-10 w-full" />
                                     <Skeleton className="h-10 w-full" />
                                 </div>
-                            ) : data && data.recentSessions.length > 0 ? (
+                            ) : data?.recentSessions && data.recentSessions.length > 0 ? (
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -236,7 +402,8 @@ export default function DashboardPage() {
                                                                      icon={Activity}
                                                                      title="No recent sessions"
                                                                      description="There have been no user sessions in the selected time range."
-                                                                 />                            )}
+                                                                 />
+                            )}
                         </CardContent>
                     </Card>
                 </div>

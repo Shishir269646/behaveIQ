@@ -10,12 +10,14 @@ class VoiceSearch {
         this.recognition = new SpeechRecognition();
         this.recognition.continuous = false;
         this.recognition.lang = 'en-US';
+      } else {
+        if (this.sdk.debug) console.error('Voice recognition not supported by this browser.');
       }
     }
 
     start(callback) {
       if (!this.isSupported) {
-        console.error('Voice recognition not supported');
+        if (this.sdk.debug) console.error('Voice recognition not supported');
         return;
       }
 
@@ -27,7 +29,7 @@ class VoiceSearch {
       };
 
       this.recognition.onerror = (event) => {
-        console.error('Voice recognition error:', event.error);
+        if (this.sdk.debug) console.error('Voice recognition error:', event.error);
       };
     }
 

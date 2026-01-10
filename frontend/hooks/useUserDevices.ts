@@ -1,17 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
 
-export interface DeviceInfo {
-    fingerprint: string;
-    type: string; // mobile, desktop, tablet
-    firstSeen: string;
-    lastSeen: string;
-    stitchedWith: {
-        fingerprint: string;
-        confidence: number;
-        stitchedAt: string;
-    }[];
-}
+import { DeviceInfo } from '@/types';
 
 export const useUserDevices = (userId: string | undefined) => {
     const [devices, setDevices] = useState<DeviceInfo[]>([]);

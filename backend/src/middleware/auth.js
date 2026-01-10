@@ -40,6 +40,10 @@ exports.protect = async (req, res, next) => {
     try {
       const website = await Website.findOne({ apiKey });
       if (!website) {
+        if (req.originalUrl.startsWith('/api/identity')) {
+            console.warn('Auth middleware: Invalid API Key provided for /api/identity. Website not found.');
+            return res.status(403).json({ success: false, message: 'Forbidden: Invalid API Key or Website not found.' });
+        }
         console.warn('Auth middleware: Invalid API Key - no website found. Allowing to proceed without specific website context.');
         req.website = null; // No website associated with this API key
         req.user = null; // No user associated
@@ -71,6 +75,10 @@ exports.protect = async (req, res, next) => {
                               req.originalUrl.startsWith('/api/sdk'); // Broad match for SDK endpoints
 
     if (isSdkTrackingPath) {
+        if (req.originalUrl.startsWith('/api/identity')) {
+            console.warn('Auth middleware: No API Key provided for /api/identity. Unauthorized.');
+            return res.status(401).json({ success: false, message: 'Unauthorized: API Key is required for identity operations.' });
+        }
         console.warn('Auth middleware: No token or API key provided for SDK tracking path. Allowing to proceed as anonymous.');
         req.website = null;
         req.user = null;
@@ -91,6 +99,17 @@ exports.protect = async (req, res, next) => {
       console.warn('Auth middleware: User from JWT not found.');
       return res.status(401).json({ success: false, message: 'User from JWT not found' });
     }
+
+    // Attempt to find a website associated with the authenticated user
+    const userWebsite = await Website.findOne({ userId: req.user._id });
+    if (userWebsite) {
+      req.website = userWebsite;
+      console.log('Auth middleware: Website found for authenticated user:', req.website._id);
+    } else {
+      req.website = null; // No website found for this user
+      console.warn('Auth middleware: No website found for authenticated user.');
+    }
+
     next();
   } catch (err) {
     console.error('Auth middleware JWT error:', err);

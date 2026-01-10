@@ -8,21 +8,18 @@ const { asyncHandler } = require('../utils/helpers');
 // @route   GET /api/v1/personas?websiteId=xxx
 const getPersonas = asyncHandler(async (req, res) => {
     console.log('--- getPersonas called ---'); // ADDED for debugging
-    const { websiteId } = req.query;
-    console.log(`websiteId: ${websiteId}, userId: ${req.user._id}`); // ADDED for debugging
 
-    // Verify website ownership
-    const website = await Website.findOne({
-        _id: websiteId,
-        userId: req.user._id
-    });
-
-    if (!website) {
-        return res.status(404).json({
+    // Ensure req.website is populated by the auth middleware
+    if (!req.website || !req.website._id) {
+        console.warn('getPersonas: No website context found for authenticated user.');
+        return res.status(400).json({
             success: false,
-            message: 'Website not found'
+            message: 'No website context found. Please ensure you are authenticated and have an associated website.'
         });
     }
+
+    const websiteId = req.website._id;
+    console.log(`Fetching personas for websiteId: ${websiteId}, userId: ${req.user._id}`); // ADDED for debugging
 
     const personas = await Persona.find({
         websiteId,
@@ -39,20 +36,21 @@ const getPersonas = asyncHandler(async (req, res) => {
 // @desc    Discover new personas using ML
 // @route   POST /api/v1/personas/discover
 const discoverPersonas = asyncHandler(async (req, res) => {
-    const { websiteId, minSessions = 100 } = req.body;
-
-    // Verify website ownership
-    const website = await Website.findOne({
-        _id: websiteId,
-        userId: req.user._id
-    });
-
-    if (!website) {
-        return res.status(405).json({
+    // Ensure req.website is populated by the auth middleware
+    if (!req.website || !req.website._id) {
+        console.warn('discoverPersonas: No website context found for authenticated user.');
+        return res.status(400).json({
             success: false,
-            message: 'Website not found'
+            message: 'No website context found. Please ensure you are authenticated and have an associated website.'
         });
     }
+
+    const websiteId = req.website._id;
+    const { minSessions = 100 } = req.body;
+
+    // The website ownership is now verified by the auth middleware populating req.website
+    // No need for explicit Website.findOne here.
+    const website = req.website; 
 
     // Check if enough data
     const sessionCount = await Session.countDocuments({ websiteId });
@@ -129,16 +127,12 @@ const getPersona = asyncHandler(async (req, res) => {
         });
     }
 
-    // Verify ownership
-    const website = await Website.findOne({
-        _id: persona.websiteId,
-        userId: req.user._id
-    });
-
-    if (!website) {
+    // Ensure req.website is populated by the auth middleware
+    if (!req.website || !req.website._id || persona.websiteId.toString() !== req.website._id.toString()) {
+        console.warn('getPersona: Not authorized to access this persona or website context missing.');
         return res.status(403).json({
             success: false,
-            message: 'Not authorized'
+            message: 'Not authorized to access this persona.'
         });
     }
 
@@ -153,11 +147,7 @@ const getPersona = asyncHandler(async (req, res) => {
 const updatePersona = asyncHandler(async (req, res) => {
     const { name, description, isActive } = req.body;
 
-    const persona = await Persona.findByIdAndUpdate(
-        req.params.id,
-        { name, description, isActive },
-        { new: true, runValidators: true }
-    );
+    let persona = await Persona.findById(req.params.id);
 
     if (!persona) {
         return res.status(404).json({
@@ -165,6 +155,21 @@ const updatePersona = asyncHandler(async (req, res) => {
             message: 'Persona not found'
         });
     }
+
+    // Ensure req.website is populated by the auth middleware and matches persona's websiteId
+    if (!req.website || !req.website._id || persona.websiteId.toString() !== req.website._id.toString()) {
+        console.warn('updatePersona: Not authorized to update this persona or website context missing.');
+        return res.status(403).json({
+            success: false,
+            message: 'Not authorized to update this persona.'
+        });
+    }
+
+    persona = await Persona.findByIdAndUpdate(
+        req.params.id,
+        { name, description, isActive },
+        { new: true, runValidators: true }
+    );
 
     res.json({
         success: true,
@@ -183,6 +188,15 @@ const createPersonalizationRule = asyncHandler(async (req, res) => {
         return res.status(404).json({
             success: false,
             message: 'Persona not found'
+        });
+    }
+
+    // Ensure req.website is populated by the auth middleware and matches persona's websiteId
+    if (!req.website || !req.website._id || persona.websiteId.toString() !== req.website._id.toString()) {
+        console.warn('createPersonalizationRule: Not authorized to create rule for this persona or website context missing.');
+        return res.status(403).json({
+            success: false,
+            message: 'Not authorized to create personalization rule for this persona.'
         });
     }
 

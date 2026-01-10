@@ -2,6 +2,10 @@ const Session = require('../models/Session');
 const Event = require('../models/Event');
 const Website = require('../models/Website');
 const Persona = require('../models/Persona');
+const Experiment = require('../models/Experiment'); // New
+const Discount = require('../models/Discount');     // New
+const FraudScore = require('../models/FraudScore'); // New
+const Intervention = require('../models/Intervention'); // New
 const { asyncHandler } = require('../utils/helpers');
 const intentService = require('../services/intentService');
 
@@ -28,75 +32,61 @@ const getOverview = asyncHandler(async (req, res) => {
     const days = parseInt(timeRange) || 7;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
+    const prevStartDate = new Date();
+    prevStartDate.setDate(prevStartDate.getDate() - days * 2);
 
-    // Get metrics
-    const totalSessions = await Session.countDocuments({
-        websiteId,
-        createdAt: { $gte: startDate }
-    });
-
-    const totalVisitors = await Session.distinct('fingerprint', {
-        websiteId,
-        createdAt: { $gte: startDate }
-    }).then(arr => arr.length);
-
-    const conversionData = await Session.aggregate([
-        {
-            $match: {
-                websiteId: website._id,
-                createdAt: { $gte: startDate }
-            }
-        },
-        {
-            $group: {
-                _id: null,
-                totalConversions: {
-                    $sum: { $cond: ['$converted', 1, 0] }
-                },
-                avgIntentScore: { $avg: '$intentScore' }
-            }
-        }
-    ]);
-
-    const conversions = conversionData[0]?.totalConversions || 0;
-    const avgIntentScore = conversionData[0]?.avgIntentScore || 0;
-    const conversionRate = totalSessions > 0
-        ? ((conversions / totalSessions) * 100).toFixed(2)
-        : 0;
-
-    // Get top personas
-    const topPersonas = await Persona.find({
-        websiteId,
-        isActive: true
-    })
-        .sort('-stats.sessionCount')
-        .limit(5)
-        .select('name stats.sessionCount stats.conversionRate');
-
-    // Get trend data (daily)
-    const trendData = await Session.aggregate([
-        {
-            $match: {
-                websiteId: website._id,
-                createdAt: { $gte: startDate }
-            }
-        },
-        {
-            $group: {
-                _id: {
-                    $dateToString: {
-                        format: '%Y-%m-%d',
-                        date: '$createdAt'
-                    }
-                },
-                sessions: { $sum: 1 },
-                conversions: {
-                    $sum: { $cond: ['$converted', 1, 0] }
+    // Helper function to get metrics for a period
+    const getMetrics = async (start, end) => {
+        const totalSessions = await Session.countDocuments({
+            websiteId,
+            createdAt: { $gte: start, $lt: end }
+        });
+        const totalVisitors = await Session.distinct('fingerprint', {
+            websiteId,
+            createdAt: { $gte: start, $lt: end }
+        }).then(arr => arr.length);
+        const conversionData = await Session.aggregate([
+            { $match: { websiteId: website._id, createdAt: { $gte: start, $lt: end } } },
+            {
+                $group: {
+                    _id: null,
+                    totalConversions: { $sum: { $cond: ['$converted', 1, 0] } },
+                    avgIntentScore: { $avg: '$intentScore' }
                 }
             }
-        }
-    ]);
+        ]);
+        const conversions = conversionData[0]?.totalConversions || 0;
+        const avgIntentScore = conversionData[0]?.avgIntentScore || 0;
+        return { totalSessions, totalVisitors, conversions, avgIntentScore };
+    };
 
+    // Get current and previous period metrics
+    const currentMetrics = await getMetrics(startDate, new Date());
+    const prevMetrics = await getMetrics(prevStartDate, startDate);
+
+    // Calculate percentage change
+    const calculateChange = (current, previous) => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous) * 100;
+    };
+
+    const conversionRate = currentMetrics.totalSessions > 0
+        ? ((currentMetrics.conversions / currentMetrics.totalSessions) * 100)
+        : 0;
+
+    // Get top personas, trend data, recent sessions (remains the same)
+    const topPersonas = await Persona.find({ websiteId, isActive: true }).sort('-stats.sessionCount').limit(5).select('name stats');
+    const trendData = await Session.aggregate([
+        { $match: { websiteId: website._id, createdAt: { $gte: startDate } } },
+        {
+            $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                sessions: { $sum: 1 },
+                conversions: { $sum: { $cond: ['$converted', 1, 0] } }
+            }
+        },
+        { $sort: { _id: 1 } }
+    ]);
     const recentSessions = await Session.find({ websiteId, createdAt: { $gte: startDate } })
         .sort('-createdAt')
         .limit(10)
@@ -105,21 +95,34 @@ const getOverview = asyncHandler(async (req, res) => {
 
     const sessions = recentSessions.map(s => ({
         id: s._id,
-        user: s.userId ? { name: s.userId.name, email: s.userId.email } : { name: 'Anonymous', email: '' },
+        user: s.userId ? { id: s.userId._id, name: s.userId.name, email: s.userId.email } : { id: 'anonymous', name: 'Anonymous', email: '' },
         persona: s.personaId ? s.personaId.name : 'Unknown',
         status: s.converted ? 'Converted' : (s.endTime ? 'Abandoned' : 'Active'),
         intentScore: s.intentScore,
+        events: s.events, // Assuming events are populated or stored
     }));
+
 
     res.json({
         success: true,
         data: {
             overview: {
-                totalVisitors,
-                totalSessions,
-                conversionRate: parseFloat(conversionRate),
-                avgIntentScore: parseFloat(avgIntentScore.toFixed(2)),
-                totalConversions: conversions
+                totalVisitors: {
+                    value: currentMetrics.totalVisitors,
+                    change: calculateChange(currentMetrics.totalVisitors, prevMetrics.totalVisitors)
+                },
+                totalSessions: {
+                    value: currentMetrics.totalSessions,
+                    change: calculateChange(currentMetrics.totalSessions, prevMetrics.totalSessions)
+                },
+                totalConversions: {
+                    value: currentMetrics.conversions,
+                    change: calculateChange(currentMetrics.conversions, prevMetrics.conversions)
+                },
+                avgIntentScore: {
+                    value: parseFloat(currentMetrics.avgIntentScore.toFixed(2)),
+                    change: calculateChange(currentMetrics.avgIntentScore, prevMetrics.avgIntentScore)
+                },
             },
             topPersonas,
             trendData,
@@ -195,7 +198,7 @@ const getRealtimeVisitors = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/dashboard/heatmap?websiteId=xxx&pageUrl=/pricing
 const getHeatmap = asyncHandler(async (req, res) => {
     console.log('--- getHeatmap called ---'); // ADDED for debugging
-    const { websiteId, pageUrl } = req.query;
+    const { websiteId, pageUrl = '/' } = req.query; // Default to '/' if not provided
 
     // Verify ownership
     const website = await Website.findOne({
@@ -349,8 +352,8 @@ const getInsights = asyncHandler(async (req, res) => {
             message: `${highIntentNoConversion} visitors with high purchase intent didn't convert. Add urgency CTAs or special offers.`,
             action: 'add_cta',
             data: { count: highIntentNoConversion }
-            });
-        }
+        });
+    }
 
     // Insight 3: Persona discovery
     const totalSessions = await Session.countDocuments({ websiteId });
@@ -537,6 +540,79 @@ const getIntentDistribution = asyncHandler(async (req, res) => {
     });
 });
 
+
+// @desc    Get fraud summary
+// @route   GET /api/v1/dashboard/summary/fraud?websiteId=xxx
+const getFraudSummary = asyncHandler(async (req, res) => {
+    const { websiteId, timeRange = '30d' } = req.query;
+
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(404).json({ success: false, message: 'Website not found' });
+    }
+
+    const days = parseInt(timeRange.replace('d', '')) || 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const fraudIncidentsLast30Days = await FraudScore.countDocuments({
+        websiteId,
+        createdAt: { $gte: startDate },
+        score: { $gte: 0.7 } // Assuming score > 0.7 indicates an incident
+    });
+
+    const totalFraudScores = await FraudScore.countDocuments({
+        websiteId,
+        createdAt: { $gte: startDate }
+    });
+
+    res.json({
+        success: true,
+        data: {
+            fraudIncidentsLast30Days,
+            totalFraudScores
+        }
+    });
+});
+
+
+
+
+// Placeholder for getPersonaSummary
+const getPersonaSummary = asyncHandler(async (req, res) => {
+    res.status(501).json({ success: false, message: 'Persona Summary Not Implemented' });
+});
+
+// Placeholder for getPersonalizationStatus
+const getPersonalizationStatus = asyncHandler(async (req, res) => {
+    res.status(501).json({ success: false, message: 'Personalization Status Not Implemented' });
+});
+
+// Placeholder for getHeatmapSummary
+const getHeatmapSummary = asyncHandler(async (req, res) => {
+    res.status(501).json({ success: false, message: 'Heatmap Summary Not Implemented' });
+});
+
+// Placeholder for getExperimentSummary
+const getExperimentSummary = asyncHandler(async (req, res) => {
+    res.status(501).json({ success: false, message: 'Experiment Summary Not Implemented' });
+});
+
+// Placeholder for getContentSummary
+const getContentSummary = asyncHandler(async (req, res) => {
+    res.status(501).json({ success: false, message: 'Content Summary Not Implemented' });
+});
+
+// Placeholder for getAbandonmentSummary
+const getAbandonmentSummary = asyncHandler(async (req, res) => {
+    res.status(501).json({ success: false, message: 'Abandonment Summary Not Implemented' });
+});
+
+// Placeholder for getDiscountSummary
+const getDiscountSummary = asyncHandler(async (req, res) => {
+    res.status(501).json({ success: false, message: 'Discount Summary Not Implemented' });
+});
+
 module.exports = {
     getOverview,
     getRealtimeVisitors,
@@ -544,5 +620,13 @@ module.exports = {
     getInsights,
     getConversionFunnel,
     getTopPages,
-    getIntentDistribution
+    getIntentDistribution,
+    getFraudSummary,
+    getPersonaSummary,        // Added export
+    getPersonalizationStatus, // Added export
+    getHeatmapSummary,        // Added export
+    getExperimentSummary,     // Added export
+    getContentSummary,        // Added export
+    getAbandonmentSummary,    // Added export
+    getDiscountSummary,       // Added export
 };

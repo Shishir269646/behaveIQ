@@ -4,19 +4,18 @@ import * as React from 'react';
 import {
     Activity,
     ArrowUpRight,
-    CircleUser,
-    CreditCard,
     Users,
+    CreditCard,
     RefreshCw,
     Lightbulb,
-    UserSquare, // New
-    ToggleRight, // New
-    Map, // New
-    FlaskConical, // New
-    FileText, // New
-    ShoppingCart, // New
-    Tag, // New
-    ShieldAlert, // New
+    UserSquare,
+    ToggleRight,
+    Map,
+    FlaskConical,
+    FileText,
+    ShoppingCart,
+    Tag,
+    ShieldAlert,
 } from 'lucide-react';
 
 import {
@@ -44,7 +43,6 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
-import { useDashboard, Session } from '@/hooks/useDashboard';
 import RevenueTrendChart from '@/components/RevenueTrendChart';
 import PersonaDistributionChart from '@/components/PersonaDistributionChart';
 import SessionDetailSheet from '@/components/SessionDetailSheet';
@@ -54,32 +52,40 @@ import RealtimeVisitors from '@/components/RealtimeVisitors';
 import EmotionTrendChart from '@/components/EmotionTrendChart';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import { EmptyState } from '@/components/EmptyState';
-import IntentScoreDistributionChart from '@/components/IntentScoreDistributionChart'; // New import
-import InsightsList from '@/components/InsightsList'; // New import
+import IntentScoreDistributionChart from '@/components/IntentScoreDistributionChart';
+import InsightsList from '@/components/InsightsList';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppStore } from '@/store';
-import { useConversionFunnel } from '@/hooks/useConversionFunnel';
-import { useEmotionTrends } from '@/hooks/useEmotionTrends';
-import { useTopPages } from '@/hooks/useTopPages';
-
+import { Session, Website } from '@/types';
 
 export default function DashboardPage() {
     const [timeRange, setTimeRange] = React.useState('7d');
-    const selectedWebsite = useAppStore((state) => state.website);
-    const { data, isLoading, error, refetch: refetchDashboard } = useDashboard(timeRange);
-    const { refetch: refetchConversionFunnel } = useConversionFunnel(timeRange);
-    const { refetch: refetchEmotionTrends } = useEmotionTrends(timeRange);
-    const { refetch: refetchTopPages } = useTopPages(timeRange);
+    const {
+        website: selectedWebsite,
+        overview,
+        topPersonas,
+        trendData,
+        recentSessions,
+        loading: isLoading,
+        error,
+        fetchDashboardData
+    } = useAppStore();
+
     const [selectedSession, setSelectedSession] = React.useState<Session | null>(null);
     
+    React.useEffect(() => {
+        if (selectedWebsite) {
+            fetchDashboardData(selectedWebsite._id, timeRange);
+        }
+    }, [selectedWebsite, timeRange, fetchDashboardData]);
+
     const formatNumber = (value: number) => new Intl.NumberFormat('en-US').format(value);
     const formatChange = (value: number) => `${value >= 0 ? '+' : ''}${value}%`;
 
     const handleRefresh = () => {
-        refetchDashboard();
-        refetchConversionFunnel();
-        refetchEmotionTrends();
-        refetchTopPages();
+        if (selectedWebsite) {
+            fetchDashboardData(selectedWebsite._id, timeRange);
+        }
     };
 
     if (error) {
@@ -116,22 +122,22 @@ export default function DashboardPage() {
                             <SelectItem value="90d">90 days</SelectItem>
                         </SelectContent>
                     </Select>
-                    <Button onClick={handleRefresh} size="icon" variant="outline">
-                        <RefreshCw className="h-4 w-4" />
+                    <Button onClick={handleRefresh} size="icon" variant="outline" disabled={isLoading}>
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                     </Button>
                 </div>
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
                     <RealtimeVisitors />
                 </div>
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-4">
-                    {isLoading || !data ? (
+                    {isLoading || !overview ? (
                         <>
                             <Skeleton className="h-32" />
                             <Skeleton className="h-32" />
                             <Skeleton className="h-32" />
                             <Skeleton className="h-32" />
                         </>
-                    ) : data && (
+                    ) : (
                         <>
                             <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -139,8 +145,8 @@ export default function DashboardPage() {
                                     <Users className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{formatNumber(data.stats.totalVisitors.value)}</div>
-                                    <p className="text-xs text-muted-foreground">{formatChange(data.stats.totalVisitors.change)} from last month</p>
+                                    <div className="text-2xl font-bold">{formatNumber(overview.totalVisitors.value)}</div>
+                                    <p className="text-xs text-muted-foreground">{formatChange(overview.totalVisitors.change)} from last month</p>
                                 </CardContent>
                             </Card>
                              <Card>
@@ -149,8 +155,8 @@ export default function DashboardPage() {
                                     <Activity className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{formatNumber(data.stats.totalSessions.value)}</div>
-                                    <p className="text-xs text-muted-foreground">{formatChange(data.stats.totalSessions.change)} from last month</p>
+                                    <div className="text-2xl font-bold">{formatNumber(overview.totalSessions.value)}</div>
+                                    <p className="text-xs text-muted-foreground">{formatChange(overview.totalSessions.change)} from last month</p>
                                 </CardContent>
                             </Card>
                             <Card>
@@ -159,8 +165,8 @@ export default function DashboardPage() {
                                     <CreditCard className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{formatNumber(data.stats.totalConversions.value)}</div>
-                                    <p className="text-xs text-muted-foreground">{formatChange(data.stats.totalConversions.change)} from last month</p>
+                                    <div className="text-2xl font-bold">{formatNumber(overview.totalConversions.value)}</div>
+                                    <p className="text-xs text-muted-foreground">{formatChange(overview.totalConversions.change)} from last month</p>
                                 </CardContent>
                             </Card>
                             <Card>
@@ -169,8 +175,8 @@ export default function DashboardPage() {
                                     <Activity className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{data.stats.avgIntentScore.value.toFixed(2)}</div>
-                                    <p className="text-xs text-muted-foreground">{formatChange(data.stats.avgIntentScore.change)} since last hour</p>
+                                    <div className="text-2xl font-bold">{overview.avgIntentScore.value.toFixed(2)}</div>
+                                    <p className="text-xs text-muted-foreground">{formatChange(overview.avgIntentScore.change)} since last hour</p>
                                 </CardContent>
                             </Card>
                         </>
@@ -178,7 +184,7 @@ export default function DashboardPage() {
                 </div>
                 {/* New Feature Summary Cards */}
                 <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4 mt-6">
-                    {isLoading || !data ? (
+                    {isLoading || !selectedWebsite ? ( // Use selectedWebsite to determine loading of these cards
                         <>
                             <Skeleton className="h-32" />
                             <Skeleton className="h-32" />
@@ -189,7 +195,7 @@ export default function DashboardPage() {
                             <Skeleton className="h-32" />
                             <Skeleton className="h-32" />
                         </>
-                    ) : data && (
+                    ) : (
                         <>
                             {/* Persona Summary Card */}
                             <Card>
@@ -198,9 +204,11 @@ export default function DashboardPage() {
                                     <UserSquare className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{formatNumber(data.personaSummary?.totalPersonas || 0)}</div>
+                                    <div className="text-2xl font-bold">{formatNumber(selectedWebsite.stats?.totalPersonas || 0)}</div>
                                     <p className="text-xs text-muted-foreground">
-                                        {data.personaSummary?.newPersonasLast30Days ? `+${data.personaSummary.newPersonasLast30Days} new last 30 days` : 'No new personas'}
+                                        {/* This data is not directly available from selectedWebsite.stats in this format */}
+                                        {/* For accurate data, would need a dedicated API endpoint for persona summary */}
+                                        No new personas (placeholder)
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/personas">View Personas</Link>
@@ -216,7 +224,7 @@ export default function DashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">
-                                        {data.personalizationStatus?.enabled ? 'Enabled' : 'Disabled'}
+                                        {selectedWebsite.settings?.autoPersonalization ? 'Enabled' : 'Disabled'}
                                     </div>
                                     <p className="text-xs text-muted-foreground">
                                         Status across website
@@ -235,10 +243,12 @@ export default function DashboardPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <div className="text-2xl font-bold">
-                                        {data.heatmapSummary?.hasRecentData ? 'Available' : 'No Recent Data'}
+                                        {/* This data is not directly available from selectedWebsite.stats in this format */}
+                                        {/* For accurate data, would need a dedicated API endpoint for heatmap summary */}
+                                        Not available (placeholder)
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        {data.heatmapSummary?.lastGenerated ? `Last updated ${new Date(data.heatmapSummary.lastGenerated).toLocaleDateString()}` : 'No data collected'}
+                                        No data collected (placeholder)
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/heatmaps">View Heatmaps</Link>
@@ -253,9 +263,12 @@ export default function DashboardPage() {
                                     <FlaskConical className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{formatNumber(data.experimentSummary?.activeExperiments || 0)} Active</div>
+                                    <div className="text-2xl font-bold">
+                                        {/* This data is not directly available from selectedWebsite.stats in this format */}
+                                        0 Active (placeholder)
+                                    </div>
                                     <p className="text-xs text-muted-foreground">
-                                        Out of {formatNumber(data.experimentSummary?.totalExperiments || 0)} total
+                                        0 total (placeholder)
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/experiments">Manage Experiments</Link>
@@ -270,9 +283,9 @@ export default function DashboardPage() {
                                     <FileText className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{formatNumber(data.contentSummary?.totalContentGenerated || 0)}</div>
+                                    <div className="text-2xl font-bold">0</div>
                                     <p className="text-xs text-muted-foreground">
-                                        {data.contentSummary?.lastContentGenerated ? `Last: ${new Date(data.contentSummary.lastContentGenerated).toLocaleDateString()}` : 'No content generated'}
+                                        No content generated (placeholder)
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/content">View Content</Link>
@@ -287,9 +300,9 @@ export default function DashboardPage() {
                                     <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{data.abandonmentSummary?.abandonmentRate?.toFixed(2) || '0.00'}%</div>
+                                    <div className="text-2xl font-bold">0.00%</div>
                                     <p className="text-xs text-muted-foreground">
-                                        {data.abandonmentSummary?.interventionsTriggeredLast30Days ? `${data.abandonmentSummary.interventionsTriggeredLast30Days} interventions last 30 days` : 'No interventions recently'}
+                                        0 interventions last 30 days (placeholder)
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/abandonment">Analyze Abandonment</Link>
@@ -304,9 +317,9 @@ export default function DashboardPage() {
                                     <Tag className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{formatNumber(data.discountSummary?.totalDiscountsOffered || 0)} Offered</div>
+                                    <div className="text-2xl font-bold">0 Offered</div>
                                     <p className="text-xs text-muted-foreground">
-                                        Avg. Value: ${data.discountSummary?.avgDiscountValue?.toFixed(2) || '0.00'}
+                                        Avg. Value: $0.00 (placeholder)
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/discounts">Manage Discounts</Link>
@@ -321,9 +334,9 @@ export default function DashboardPage() {
                                     <ShieldAlert className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{formatNumber(data.fraudSummary?.fraudIncidentsLast30Days || 0)} Incidents</div>
+                                    <div className="text-2xl font-bold">0 Incidents</div>
                                     <p className="text-xs text-muted-foreground">
-                                        Out of {formatNumber(data.fraudSummary?.totalFraudScores || 0)} scores last 30 days
+                                        0 scores last 30 days (placeholder)
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/settings">Configure Fraud</Link>
@@ -333,22 +346,22 @@ export default function DashboardPage() {
                         </>
                     )}
                 </div>
-
+                
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
-                    {isLoading || !data ? (
+                    {isLoading || !trendData ? (
                         <Skeleton className="h-96" />
                     ) : (
-                        <RevenueTrendChart data={data.trendData} />
+                        <RevenueTrendChart data={trendData} />
                     )}
-                    {isLoading || !data ? (
+                    {isLoading || !topPersonas ? (
                         <Skeleton className="h-96" />
                     ) : (
-                        <PersonaDistributionChart data={data.topPersonas} />
+                        <PersonaDistributionChart data={topPersonas} />
                     )}
-                    {isLoading || !data ? (
+                    {isLoading || !selectedWebsite?.stats || !(selectedWebsite.stats as any).intentDistribution ? (
                         <Skeleton className="h-96" />
                     ) : (
-                        <IntentScoreDistributionChart data={data.intentDistribution} /> // New component
+                        <IntentScoreDistributionChart data={(selectedWebsite.stats as any).intentDistribution} />
                     )}
                 </div>
                  <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
@@ -373,7 +386,7 @@ export default function DashboardPage() {
                                     <Skeleton className="h-10 w-full" />
                                     <Skeleton className="h-10 w-full" />
                                 </div>
-                            ) : data?.recentSessions && data.recentSessions.length > 0 ? (
+                            ) : recentSessions && recentSessions.length > 0 ? (
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
@@ -384,7 +397,7 @@ export default function DashboardPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {data.recentSessions.map(session => (
+                                        {recentSessions.map(session => (
                                             <TableRow key={session.id} onClick={() => setSelectedSession(session)} className="cursor-pointer">
                                                 <TableCell>
                                                     <div className="font-medium">{session.user.name}</div>
@@ -407,10 +420,10 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-                {isLoading || !data ? (
+                {isLoading || !selectedWebsite?.stats || !(selectedWebsite.stats as any).insights ? ( // insights are part of website stats
                     <Skeleton className="h-48" />
                 ) : (
-                    <InsightsList insights={data.insights} /> // New component
+                    <InsightsList insights={(selectedWebsite.stats as any).insights} />
                 )}
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
                     <ConversionFunnelChart timeRange={timeRange} />

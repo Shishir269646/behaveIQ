@@ -6,17 +6,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useUsers } from '@/hooks/useUsers';
+import { useAppStore } from '@/store';
 import { EmptyState } from '@/components/EmptyState';
 import { Users as UsersIcon, Plus, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { User } from '@/types'; // Assuming User type is defined
+import { User } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
 export default function UsersPage() {
-    const { users, loading, fetchUsers, updateUser, deleteUser, success, error, clearSuccess } = useUsers();
+    const { users, loading, fetchUsers, updateUser, deleteUser, success, error, clearSuccess } = useAppStore();
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -39,7 +39,7 @@ export default function UsersPage() {
         }
         if (error) {
             toast.error(error);
-            clearSuccess(); // Clear error after showing
+            clearSuccess();
         }
     }, [success, error, clearSuccess]);
 
@@ -57,7 +57,7 @@ export default function UsersPage() {
 
     const handleUpdateUser = async () => {
         if (selectedUser) {
-            await updateUser(selectedUser._id, editFormData);
+            await updateUser(selectedUser._id, editFormData as Partial<User>);
             setIsEditDialogOpen(false);
             setSelectedUser(null);
         }
@@ -148,7 +148,7 @@ export default function UsersPage() {
                                 id="edit-email"
                                 value={editFormData.email}
                                 onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
-                                disabled // Email usually not editable directly
+                                disabled
                             />
                         </div>
                         <div>

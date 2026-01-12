@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Lightbulb, AlertCircle, TrendingUp } from 'lucide-react';
-import { Insight } from '@/hooks/useDashboard';
+import { Insight } from '@/types';
 import { EmptyState } from './EmptyState';
 
 interface InsightsListProps {

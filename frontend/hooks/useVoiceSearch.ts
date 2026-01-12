@@ -1,8 +1,7 @@
 // @/hooks/useVoiceSearch.ts
-import { useEffect, useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { SpeechRecognitionErrorEvent, SpeechRecognition, SpeechRecognitionEvent } from '@/types';
 import { api } from '@/lib/api'; // Import the api instance
-
-import { SpeechRecognition, SpeechRecognitionEvent } from '@/types';
 
 // Extend window to include webkitSpeechRecognition
 declare global {
@@ -10,6 +9,15 @@ declare global {
         webkitSpeechRecognition: new () => SpeechRecognition;
         SpeechRecognition: new () => SpeechRecognition;
     }
+}
+
+
+interface VoiceSearchHook {
+    isListening: boolean;
+    startListening: () => void;
+    stopListening: () => void;
+    error: string | null;
+    isSupported: boolean;
 }
 
 
@@ -49,7 +57,8 @@ export const useVoiceSearch = (onSearchComplete: (results: any[]) => void) => {
         };
 
         recognition.onerror = (event: Event) => {
-            setError(`Speech recognition error: ${event.type}`);
+            const errorEvent = event as SpeechRecognitionErrorEvent;
+            setError(`Speech recognition error: ${errorEvent.error}`);
             setIsListening(false);
         };
 

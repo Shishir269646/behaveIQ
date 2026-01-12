@@ -48,8 +48,22 @@ const importData = async () => {
             const websiteCount = await Website.countDocuments({ userId: adminUser._id });
             if (websiteCount === 0) {
                 const sampleWebsites = websites.map(website => ({ ...website, userId: adminUser._id }));
-                await Website.create(sampleWebsites);
+                const createdWebsites = await Website.create(sampleWebsites);
                 console.log('Sample websites seeded for admin user.');
+                if (createdWebsites.length > 0) {
+                    console.log('---');
+                    console.log('🎉 Your API Key for the demo project is:');
+                    console.log(createdWebsites[0].apiKey);
+                    console.log('---');
+                }
+            } else {
+                const existingWebsite = await Website.findOne({ userId: adminUser._id });
+                if (existingWebsite) {
+                    console.log('---');
+                    console.log('🔑 Your existing API Key for the demo project is:');
+                    console.log(existingWebsite.apiKey);
+                    console.log('---');
+                }
             }
         }
         

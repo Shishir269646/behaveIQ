@@ -1,4 +1,3 @@
-// @/app/(dashboard)/discounts/page.tsx
 "use client"
 
 import { PlusCircle, MoreHorizontal, Edit, Trash2, Tag, CalendarDays, Percent, DollarSign, Gift } from "lucide-react";
@@ -26,7 +25,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useDiscounts } from "@/hooks/useDiscounts"; // Updated hook import
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { EmptyState } from "@/components/EmptyState";
@@ -61,9 +59,18 @@ interface DiscountFormState {
 }
 
 export default function DiscountsPage() {
-    const { discounts, isLoading, error, success, fetchDiscounts, createDiscount, updateDiscount, deleteDiscount, clearSuccess } = useDiscounts();
-
-    const selectedWebsite = useAppStore((state) => state.website);
+    const { 
+        discounts, 
+        loading: isLoading, 
+        error, 
+        success, 
+        fetchDiscounts, 
+        createDiscount, 
+        updateDiscount, 
+        deleteDiscount, 
+        clearSuccess,
+        website: selectedWebsite
+    } = useAppStore();
 
     const [isCreateEditOpen, setIsCreateEditOpen] = useState(false);
     const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
@@ -82,7 +89,7 @@ export default function DiscountsPage() {
 
     useEffect(() => {
         if (selectedWebsite?._id) {
-            fetchDiscounts();
+            fetchDiscounts(selectedWebsite._id);
         }
     }, [selectedWebsite?._id, fetchDiscounts]);
 
@@ -118,7 +125,7 @@ export default function DiscountsPage() {
             ...formState,
             value: Number(formState.value),
             expiresAt: formState.expiresAt.toISOString(),
-            userId: selectedWebsite.userId, // Assuming userId is available in selectedWebsite
+            userId: selectedWebsite.userId,
             websiteId: selectedWebsite._id,
         };
         
@@ -126,7 +133,7 @@ export default function DiscountsPage() {
             if (editingDiscount) {
                 await updateDiscount(editingDiscount._id, dataToSave);
             } else {
-                await createDiscount(dataToSave as any); // Type assertion needed here
+                await createDiscount(dataToSave as any);
             }
             setIsCreateEditOpen(false);
             setEditingDiscount(null);

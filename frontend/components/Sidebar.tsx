@@ -1,6 +1,7 @@
 "use client"
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
     Bell,
     Home,
@@ -13,24 +14,63 @@ import {
     TicketPercent,
     ShieldAlert,
     Waves,
-    ShoppingCart
+    ShoppingCart,
+    LayoutDashboard,
+    Globe,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useExperiments } from '@/hooks/useExperiments'; // Use the hook
-import { useEffect, useState } from 'react'; // Use useEffect and useState
+import { useEffect, useState } from 'react';
+import { useAppStore } from '@/store'; // Import useAppStore
+import { SubMenu } from './SubMenu';
 
 const Sidebar = () => {
-    const { experiments, isLoading } = useExperiments(); // Use the hook
+    const pathname = usePathname();
+    const { 
+        experiments, 
+        loading: isLoadingExperiments, 
+        fetchExperiments, 
+        website: selectedWebsite 
+    } = useAppStore(); // Get experiments data and actions from store
     const [activeExperimentCount, setActiveExperimentCount] = useState(0);
 
+    // Fetch experiments when selectedWebsite changes
+    useEffect(() => {
+        if (selectedWebsite?._id) {
+            fetchExperiments(selectedWebsite._id);
+        }
+    }, [selectedWebsite?._id, fetchExperiments]);
+
+    // Update active experiment count whenever experiments data changes
     useEffect(() => {
         if (experiments) {
             const activeCount = experiments.filter(exp => exp.status === 'active').length;
             setActiveExperimentCount(activeCount);
         }
     }, [experiments]);
+
+    const navItems = [
+        {
+            href: '/dashboard',
+            label: 'Dashboard',
+            icon: LayoutDashboard,
+            children: [
+                { href: '/dashboard', label: 'Overview', icon: Home },
+                { href: '/dashboard/users', label: 'Users', icon: Users },
+                { href: '/dashboard/websites', label: 'Websites', icon: Globe },
+            ],
+        },
+        { href: '/settings', label: 'Settings', icon: Settings },
+        { href: '/events', label: 'Live Events', icon: Waves },
+        { href: '/personas', label: 'Personas', icon: Users },
+        { href: '/experiments', label: 'Experiments', icon: Beaker, badge: activeExperimentCount },
+        { href: '/heatmaps', label: 'Heatmaps', icon: Palette },
+        { href: '/content', label: 'Content Generation', icon: MessageSquareQuote },
+        { href: '/discounts', label: 'Discounts', icon: TicketPercent },
+        { href: '/abandonment', label: 'Cart Abandonment', icon: ShoppingCart },
+        { href: '/fraud', label: 'Fraud Detection', icon: ShieldAlert },
+    ];
 
     return (
         <div className="hidden border-r bg-muted/40 md:block">
@@ -47,87 +87,27 @@ const Sidebar = () => {
                 </div>
                 <div className="flex-1">
                     <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-                        <Link
-                            href="/dashboard"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Home className="h-4 w-4" />
-                            Dashboard
-                        </Link>
-                        <Link
-                            href="/settings"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Settings className="h-4 w-4" />
-                            Settings
-                        </Link>
-                        <Link
-                            href="/events"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Waves className="h-4 w-4" />
-                            Live Events
-                        </Link>
-                        <Link
-                            href="/personas"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Users className="h-4 w-4" />
-                            Personas
-                        </Link>
-                        <Link
-                            href="/experiments"
-                            className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
-                        >
-                            <Beaker className="h-4 w-4" />
-                            Experiments
-                            {isLoading ? (
-                                <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                                    ...
-                                </Badge>
+                        {navItems.map((item) => (
+                            item.children ? (
+                                <SubMenu key={item.href} item={item} />
                             ) : (
-                                activeExperimentCount > 0 && (
-                                    <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                                        {activeExperimentCount}
-                                    </Badge>
-                                )
-                            )}
-                        </Link>
-                        <Link
-                            href="/heatmaps"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <Palette className="h-4 w-4" />
-                            Heatmaps
-                        </Link>
-                        <Link
-                            href="/content"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <MessageSquareQuote className="h-4 w-4" />
-                            Content Generation
-                        </Link>
-                        <Link
-                            href="/discounts"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <TicketPercent className="h-4 w-4" />
-                            Discounts
-                        </Link>
-                        <Link
-                            href="/abandonment"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <ShoppingCart className="h-4 w-4" />
-                            Cart Abandonment
-                        </Link>
-                        <Link
-                            href="/fraud"
-                            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-                        >
-                            <ShieldAlert className="h-4 w-4" />
-                            Fraud Detection
-                        </Link>
+                                <Link
+                                    key={item.href}
+                                    href={item.href}
+                                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${
+                                        pathname === item.href ? 'bg-muted text-primary' : ''
+                                    }`}
+                                >
+                                    <item.icon className="h-4 w-4" />
+                                    {item.label}
+                                    {item.badge && (
+                                        <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
+                                            {item.badge}
+                                        </Badge>
+                                    )}
+                                </Link>
+                            )
+                        ))}
                     </nav>
                 </div>
                 <div className="mt-auto p-4">

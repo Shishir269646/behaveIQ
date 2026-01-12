@@ -14,7 +14,14 @@ const identify = async (req, res) => {
       });
     }
 
-    const { fingerprint, deviceInfo, fpComponents, location } = req.body;
+    const { fingerprint, deviceInfo, fpComponents, location, websiteId } = req.body;
+
+    if (websiteId && websiteId !== req.website._id.toString()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request: The websiteId in the request body does not match the API key.'
+      });
+    }
 
     // Validate fingerprint
     const validation = fingerprintService.validateFingerprint(fpComponents);

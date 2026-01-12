@@ -28,7 +28,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { useAuth } from '@/hooks/useAuth'; // Correctly placed import
+import { useAppStore } from '@/store';
 
 
 const Header = () => {
@@ -36,12 +36,12 @@ const Header = () => {
     const [searchResults, setSearchResults] = useState<any[]>([]);
     const [showSearchResults, setShowSearchResults] = useState(false);
 
-    const { user, logout } = useAuth(); // Correctly placed hook call
+    const { user, logout } = useAppStore();
     const { isListening, startListening, isSupported } = useVoiceSearch((results) => {
         setSearchResults(results);
         setShowSearchResults(results.length > 0);
         if (results.length > 0) {
-            setSearchValue(results[0].name || results[0].query || ""); // Set search value to the first result or query
+            setSearchValue(results[0].name || results[0].query || "");
         }
     });
     const router = useRouter();
@@ -60,23 +60,18 @@ const Header = () => {
 
     const handleSearchSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        // Here you would typically perform a text-based search
         console.log("Performing text search for:", searchValue);
-        // For now, let's clear results after a hypothetical search
         setSearchResults([]);
         setShowSearchResults(false);
     };
 
     const handleSearchResultClick = (result: any) => {
-        // Handle clicking a search result, e.g., navigate to a product page
         console.log("Clicked search result:", result);
-        // router.push(`/products/${result.id}`); // Example navigation
-        setSearchValue(result.name || result.query || ""); // Update input with selected result
+        setSearchValue(result.name || result.query || "");
         setShowSearchResults(false);
     };
 
     useEffect(() => {
-        // Close search results when clicking outside
         const handleClickOutside = (event: MouseEvent) => {
             if (searchInputRef.current && !searchInputRef.current.contains(event.target as Node)) {
                 setShowSearchResults(false);
@@ -119,7 +114,6 @@ const Header = () => {
                             value={searchValue}
                             onChange={(e) => {
                                 setSearchValue(e.target.value);
-                                // Potentially trigger text search as user types
                             }}
                             onFocus={() => setShowSearchResults(searchResults.length > 0)}
                             className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"

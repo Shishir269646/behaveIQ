@@ -13,7 +13,7 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { TrendData } from '@/hooks/useDashboard';
+import { TrendData } from '@/types';
 
 interface RevenueTrendChartProps {
     data: TrendData[];
@@ -21,7 +21,7 @@ interface RevenueTrendChartProps {
 
 export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
     const formattedData = data.map(item => ({
-        date: new Date(item._id).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         Sessions: item.sessions,
         Conversions: item.conversions,
     }));

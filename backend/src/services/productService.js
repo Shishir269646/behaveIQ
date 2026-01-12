@@ -1,7 +1,17 @@
 // src/services/productService.js
 
-// This is a placeholder for a real product database or external product catalog service.
-// In a real application, this would interact with your e-commerce platform's API or a dedicated product microservice.
+/**
+ * @file This service is a placeholder for a real product database or external product catalog service.
+ * In a production application, this would typically interact with your e-commerce platform's API,
+ * a dedicated product microservice, or a product information management (PIM) system.
+ *
+ * Current Implementation: Uses hardcoded mock data for demonstration and initial development purposes.
+ *
+ * To Integrate with a Real Product Source:
+ * 1. Replace the 'products' array with calls to your external product API or database.
+ * 2. Adjust 'searchProducts' and 'getProductById' to query the real data source.
+ * 3. Consider caching mechanisms (e.g., using cacheService) for performance if frequently accessed.
+ */
 
 const products = [
     { id: 'prod1', name: 'Premium Wireless Headphones', category: 'Electronics', price: 199.99, description: 'High-fidelity sound with noise cancellation.' },

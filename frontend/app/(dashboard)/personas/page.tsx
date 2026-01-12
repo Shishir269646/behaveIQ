@@ -3,11 +3,11 @@
 
 import { PersonaCard } from "@/components/PersonaCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePersonas } from "@/hooks/usePersonas";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useState, useEffect } from "react";
 import { Persona } from "@/types";
+import { useAppStore } from "@/store";
 
 const PersonaGridSkeleton = () => (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -18,7 +18,14 @@ const PersonaGridSkeleton = () => (
 );
 
 export default function PersonasPage() {
-    const { personas: rawPersonas, isLoading, error } = usePersonas();
+    const { 
+        personas: rawPersonas, 
+        loading: isLoading, 
+        error, 
+        fetchPersonas,
+        website: selectedWebsite
+    } = useAppStore();
+
     const [groupedPersonas, setGroupedPersonas] = useState<{
         budget: Persona[];
         feature: Persona[];
@@ -30,6 +37,12 @@ export default function PersonasPage() {
         researcher: [],
         impulse: [],
     });
+
+    useEffect(() => {
+        if (selectedWebsite?._id) {
+            fetchPersonas(selectedWebsite._id);
+        }
+    }, [selectedWebsite?._id, fetchPersonas]);
 
     useEffect(() => {
         if (rawPersonas && rawPersonas.length > 0) {
@@ -55,7 +68,6 @@ export default function PersonasPage() {
                 } else if (persona.clusterData.behaviorPattern.quickDecision) {
                     newGroupedPersonas.impulse.push(persona);
                 }
-                // If a persona doesn't fit any explicit category, it won't be displayed in these tabs.
             });
             setGroupedPersonas(newGroupedPersonas);
         }

@@ -51,7 +51,6 @@ exports.protect = async (req, res, next) => {
       }
       req.user = await User.findById(website.userId); // req.user is the owner of the website
       req.website = website;
-      console.log('Auth middleware: API key authenticated. req.user (owner):', req.user ? req.user._id : 'null', 'req.website:', req.website ? req.website._id : 'null');
       if (!req.user) {
         console.warn('Auth middleware: User (owner) linked to API key website not found. Allowing to proceed with website context but no owner user.');
         // Still provide website context if found, but user (owner) is null

@@ -54,6 +54,7 @@ export interface Website {
     totalSessions: number;
     totalEvents: number;
     totalPersonas: number;
+    intentDistribution?: IntentDistribution;
   };
   createdAt: Date;
   updatedAt: Date;
@@ -147,6 +148,7 @@ export interface Experiment {
 export interface Discount {
   _id: string;
   userId: string;
+  websiteId: string; // Added websiteId
   code: string;
   type: 'percentage' | 'fixed_amount';
   value: number;
@@ -166,7 +168,7 @@ export interface Discount {
   expiresAt: string;
 }
 
-export interface Event {
+export interface AppEvent {
   _id: string;
   sessionId: string;
   websiteId: string;
@@ -211,22 +213,7 @@ export interface DeviceInfo {
     }[];
 }
 
-export interface SpeechRecognition extends EventTarget {
-    continuous: boolean;
-    interimResults: boolean;
-    lang: string;
-    start: () => void;
-    stop: () => void;
-    onresult: (event: SpeechRecognitionEvent) => void;
-    onerror: (event: Event) => void;
-    onend: () => void;
-}
 
-export interface SpeechRecognitionEvent extends Event {
-    results: {
-        transcript: string;
-    }[][];
-}
 
 export interface FraudEvent {
     id: string;
@@ -278,5 +265,131 @@ export interface RealtimeData {
     activeVisitors: number;
     activeSessions: ActiveSession[];
     recentPageViews: RecentPageView[];
+}
+
+export interface InterventionPerformance {
+  type: string;
+  shown: number;
+  clicked: number;
+  converted: number;
+  effectiveness: number;
+}
+
+export interface RiskTrend {
+  date: string;
+  risk: number;
+}
+
+export interface AbandonmentData {
+  overallRisk: number;
+  interventionsTriggered: number;
+  recoveryRate: number;
+  interventionPerformance: InterventionPerformance[];
+  riskTrends: RiskTrend[];
+}
+
+export interface Session {
+  id: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  persona: string;
+  status: string;
+  intentScore: number;
+  events?: AppEvent[];
+}
+
+export interface SpeechRecognition extends EventTarget {
+    continuous: boolean;
+    interimResults: boolean;
+    lang: string;
+    start: () => void;
+    stop: () => void;
+    onresult: (event: SpeechRecognitionEvent) => void;
+    onerror: (event: Event) => void;
+    onend: () => void;
+}
+
+export interface SpeechRecognitionEvent extends Event {
+    results: SpeechRecognitionResultList;
+}
+
+export interface SpeechRecognitionResultList {
+    [index: number]: SpeechRecognitionResult;
+    length: number;
+    item(index: number): SpeechRecognitionResult;
+}
+export interface SpeechRecognitionResult {
+    [index: number]: SpeechRecognitionAlternative;
+    length: number;
+    final: boolean;
+    item(index: number): SpeechRecognitionAlternative;
+}
+export interface SpeechRecognitionAlternative {
+    transcript: string;
+    confidence: number;
+}
+
+export interface SpeechRecognitionErrorEvent extends Event {
+  error: SpeechRecognitionErrorCode;
+  message: string;
+}
+
+export type SpeechRecognitionErrorCode =
+  | "no-speech"
+  | "aborted"
+  | "audio-capture"
+  | "network"
+  | "not-allowed"
+  | "service-not-allowed"
+  | "bad-grammar"
+  | "language-not-supported";
+
+
+
+export interface Insight {
+  type: 'opportunity' | 'action_needed' | 'warning';
+  priority: 'high' | 'medium' | 'low';
+  message: string;
+  action?: string;
+  data?: any;
+}
+
+export interface IntentDistribution {
+  low: number;
+  medium: number;
+  high: number;
+}
+
+export interface PersonaChartData {
+  name: string;
+  sessionCount: number;
+}
+
+export interface TrendData {
+  date: string;
+  sessions: number;
+  conversions: number;
+}
+
+export interface OverviewData {
+  totalVisitors: {
+    value: number;
+    change: number;
+  };
+  totalSessions: {
+    value: number;
+    change: number;
+  };
+  totalConversions: {
+    value: number;
+    change: number;
+  };
+  avgIntentScore: {
+    value: number;
+    change: number;
+  };
 }
 

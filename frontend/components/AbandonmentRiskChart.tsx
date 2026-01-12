@@ -1,10 +1,10 @@
 // frontend/components/AbandonmentRiskChart.tsx
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { AbandonmentStat } from '@/hooks/useAbandonment';
+import { RiskTrend } from '@/types';
 
 interface AbandonmentRiskChartProps {
-    data: AbandonmentStat[];
+    data: RiskTrend[];
 }
 
 const AbandonmentRiskChart: React.FC<AbandonmentRiskChartProps> = ({ data }) => {
@@ -25,11 +25,9 @@ const AbandonmentRiskChart: React.FC<AbandonmentRiskChartProps> = ({ data }) => 
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="date" />
                 <YAxis yAxisId="left" label={{ value: 'Risk Score (%)', angle: -90, position: 'insideLeft' }} domain={[0, 100]} />
-                <YAxis yAxisId="right" orientation="right" label={{ value: 'Sessions', angle: 90, position: 'insideRight' }} />
                 <Tooltip />
                 <Legend />
-                <Line yAxisId="left" type="monotone" dataKey="riskScore" stroke="#8884d8" activeDot={{ r: 8 }} name="Avg. Risk Score" />
-                <Line yAxisId="right" type="monotone" dataKey="sessions" stroke="#82ca9d" name="Sessions" />
+                <Line yAxisId="left" type="monotone" dataKey="risk" stroke="#8884d8" activeDot={{ r: 8 }} name="Avg. Risk Score" />
             </LineChart>
         </ResponsiveContainer>
     );

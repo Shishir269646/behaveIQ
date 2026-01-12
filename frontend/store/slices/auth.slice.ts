@@ -1,3 +1,7 @@
+import { StateCreator } from 'zustand';
+import { User } from '@/types';
+import { api } from '@/lib/api';
+
 export interface AuthSlice {
   user: User | null;
   token: string | null;
@@ -29,17 +33,22 @@ const handleRequest = async (set: any, request: () => Promise<any>) => {
 
 export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set, get) => ({
   user: null,
-  token: typeof window !== 'undefined' ? localStorage.getItem('behaveiq_token') : null,
+  token: null,
   isAuthenticated: false,
-  loading: false,
+  loading: true, // Start with loading true
   error: null,
   success: null,
 
   initializeAuth: async () => {
-    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('behaveiq_token') : null;
+    // Ensure this runs only on the client
+    if (typeof window === 'undefined') {
+      set({ loading: false });
+      return;
+    }
+
+    const storedToken = localStorage.getItem('behaveiq_token');
     if (storedToken) {
       set({ token: storedToken, isAuthenticated: true });
-      // Attempt to fetch user details to validate token
       try {
         await (get() as any).getMe();
       } catch (e) {
@@ -47,6 +56,7 @@ export const createAuthSlice: StateCreator<AuthSlice, [], [], AuthSlice> = (set,
         (get() as any).logout(); // Clear invalid token
       }
     }
+    set({ loading: false }); // Set loading to false after check
   },
 
   register: async (userData) => {

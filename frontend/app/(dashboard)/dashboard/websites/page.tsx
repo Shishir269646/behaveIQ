@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,27 +8,31 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useWebsites } from '@/hooks/useWebsites';
+import { useAppStore } from '@/store';
 import { EmptyState } from '@/components/EmptyState';
 import { formatDate, getStatusColor, copyToClipboard, cn } from '@/lib/utils';
 import { Globe, Plus, Copy, Settings, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { api } from '@/lib/api';
-import { Website } from '@/types'; // Import Website type
+import { Website } from '@/types';
 
 export default function WebsitesPage() {
-    const { websites, loading, createWebsite, deleteWebsite, success, clearSuccess, fetchWebsites, selectedWebsite, selectWebsite } = useWebsites();
+    const { websites, loading, createWebsite, deleteWebsite, success, clearSuccess, fetchWebsites, website: selectedWebsite, selectWebsite } = useAppStore();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
     const [websiteToDeleteId, setWebsiteToDeleteId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         name: '',
-        domain: '', // Changed from url to domain
+        domain: '',
         industry: '',
     });
     const [sdkScript, setSdkScript] = useState<string | null>(null);
     const [isSdkScriptLoading, setIsSdkScriptLoading] = useState(false);
+
+    useEffect(() => {
+        fetchWebsites();
+    }, [fetchWebsites]);
 
     useEffect(() => {
         if (!selectedWebsite && websites.length > 0) {

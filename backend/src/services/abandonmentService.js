@@ -1,32 +1,92 @@
-// src/services/abandonmentService.js
+const mlServiceClient = require('./mlServiceClient');
+const Session = require('../models/Session');
+const Intervention = require('../models/Intervention');
+const Website = require('../models/Website'); // Needed to get website settings for interventions
 
-const predictAbandonmentRisk = async (userId, sessionData) => {
-    // This is a placeholder for actual ML-powered abandonment prediction.
-    // In a real scenario, this would involve:
-    // 1. Sending sessionData to an ML model (e.g., via mlServiceClient).
-    // 2. Receiving a risk score and prediction.
-    console.log(`[AbandonmentService] Predicting risk for user ${userId} with session data:`, sessionData);
+const predictAbandonmentRisk = async (sessionId, websiteId, userId) => {
+    try {
+        const session = await Session.findById(sessionId);
+        if (!session) {
+            console.warn(`[AbandonmentService] Session not found for ID: ${sessionId}`);
+            return { riskScore: 0, prediction: 'low_risk', recommendedIntervention: 'none' };
+        }
 
-    // Simulate ML response
-    const riskScore = Math.random(); // 0 to 1
-    const prediction = riskScore > 0.5 ? 'high_risk' : 'low_risk';
+        // Extract relevant features for ML prediction
+        const features = {
+            timeOnPage: session.duration || 0,
+            pageViewCount: session.behavior.pageViews.length,
+            cartActionCount: session.behavior.cartActions.length,
+            intentScore: session.intentScore?.current || 0,
+            // Add more features from session.behavior as needed by the ML model
+            // e.g., lastPageViewTime, timeSinceLastCartAction, scrollDepth
+        };
 
-    return {
-        riskScore: parseFloat(riskScore.toFixed(2)),
-        prediction,
-        recommendedIntervention: riskScore > 0.7 ? 'offer_discount' : (riskScore > 0.5 ? 'show_help_chat' : 'none')
-    };
+        const mlResult = await mlServiceClient.callMLService('/predict/abandonment', {
+            websiteId: websiteId.toString(),
+            sessionId: sessionId.toString(),
+            features: features
+        });
+
+        const riskScore = mlResult.riskScore || 0;
+        const prediction = mlResult.prediction || 'low_risk';
+        const recommendedIntervention = mlResult.recommendedIntervention || 'none'; // ML model suggests intervention
+
+        // Update session's abandonment risk
+        session.abandonmentRisk = {
+            score: riskScore,
+            prediction: prediction,
+            timestamp: new Date()
+        };
+        await session.save();
+
+        return {
+            riskScore,
+            prediction,
+            recommendedIntervention
+        };
+    } catch (error) {
+        console.error('[AbandonmentService] Error predicting abandonment risk:', error);
+        // Fallback to default or safe values if ML service fails
+        return { riskScore: 0.1, prediction: 'low_risk', recommendedIntervention: 'none' };
+    }
 };
 
-const trackInterventionResponse = async (interventionId, responseStatus) => {
-    // This is a placeholder for tracking the effectiveness of an intervention.
-    // In a real scenario, this would involve:
-    // 1. Updating the Intervention model with the user's response.
-    // 2. Potentially updating effectiveness metrics.
-    console.log(`[AbandonmentService] Tracking intervention ${interventionId} response: ${responseStatus}`);
+const trackInterventionResponse = async (interventionId, responseStatus, sessionOutcome = null) => {
+    try {
+        const intervention = await Intervention.findById(interventionId);
+        if (!intervention) {
+            console.warn(`[AbandonmentService] Intervention not found for ID: ${interventionId}`);
+            return { success: false, message: 'Intervention not found' };
+        }
 
-    // Simulate update
-    return { success: true, interventionId, responseStatus };
+        intervention.response.status = responseStatus;
+        intervention.response.timestamp = new Date();
+
+        // Calculate effectiveness based on outcome (e.g., if user converted after intervention)
+        if (sessionOutcome === 'purchase') {
+            intervention.response.effectiveness = 1; // 100% effective
+            intervention.outcome.prevented = true;
+            intervention.outcome.converted = true;
+            // Assuming we might also get revenue data
+            // intervention.outcome.revenue = someRevenueValue;
+        } else if (responseStatus === 'clicked') {
+            intervention.response.effectiveness = 0.5; // Partial effectiveness
+        } else {
+            intervention.response.effectiveness = 0; // Not effective
+        }
+
+        await intervention.save();
+
+        // Optionally, update the session outcome if provided
+        if (sessionOutcome) {
+            await Session.findByIdAndUpdate(intervention.sessionId, { outcome: sessionOutcome });
+        }
+
+        return { success: true, intervention };
+    } catch (error) {
+        console.error('[AbandonmentService] Error tracking intervention response:', error);
+        throw error;
+    }
 };
 
 module.exports = {

@@ -25,10 +25,11 @@ export const mlApi = axios.create({
 // You would typically get the token from local storage or a global state (e.g., Zustand)
 api.interceptors.request.use(
   (config) => {
-    // Example: get token from local storage
-    const token = localStorage.getItem('behaveiq_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== 'undefined') { // Only access localStorage on the client-side
+      const token = localStorage.getItem('behaveiq_token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },

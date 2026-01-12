@@ -1,4 +1,7 @@
 // @/components/SessionDetailSheet.tsx
+"use client"
+
+import * as React from "react"
 import {
   Sheet,
   SheetContent,
@@ -9,12 +12,12 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Session } from "@/hooks/useDashboard"
+import { AppEvent, Session } from "@/types"
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Card } from "@/components/ui/card";
 import { CircleUser, MousePointerClick, FileText, ShoppingCart, Clock, Monitor, Smartphone, Tablet, GitMerge } from "lucide-react"
-import { useUserDevices } from "@/hooks/useUserDevices" // New import
-import { formatDate, formatRelativeTime } from "@/lib/utils" // New import
+import { useAppStore } from "@/store"
+import { formatDate, formatRelativeTime } from "@/lib/utils"
 
 interface SessionDetailSheetProps {
   session: Session | null;
@@ -39,7 +42,13 @@ const deviceIcons: { [key: string]: React.ReactNode } = {
 export default function SessionDetailSheet({ session, isOpen, onOpenChange }: SessionDetailSheetProps) {
     if (!session) return null;
 
-    const { devices, isLoading: isLoadingDevices, error: devicesError } = useUserDevices(session.user.id);
+    const { devices, loading: isLoadingDevices, error: devicesError, fetchUserDevices } = useAppStore();
+
+    React.useEffect(() => {
+        if (session.user.id) {
+            fetchUserDevices(session.user.id);
+        }
+    }, [session.user.id, fetchUserDevices]);
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -51,8 +60,8 @@ export default function SessionDetailSheet({ session, isOpen, onOpenChange }: Se
           </SheetDescription>
         </SheetHeader>
         <Separator className="my-4" />
-        <ScrollArea className="h-[calc(100vh-100px)] pr-4"> {/* Adjust height for scrollable content */}
-            <div className="space-y-4 pb-4"> {/* Add padding-bottom */}
+        <ScrollArea className="h-[calc(100vh-100px)] pr-4">
+            <div className="space-y-4 pb-4">
                 <div>
                     <h4 className="text-sm font-medium">User</h4>
                     <p className="text-sm text-muted-foreground">{session.user.name}</p>
@@ -69,7 +78,6 @@ export default function SessionDetailSheet({ session, isOpen, onOpenChange }: Se
                     </div>
                 </div>
 
-                {/* Cross-Device Journey Mapping */}
                 <div>
                     <h4 className="text-sm font-medium mb-2">User Devices ({devices.length})</h4>
                     {isLoadingDevices ? (
@@ -110,13 +118,12 @@ export default function SessionDetailSheet({ session, isOpen, onOpenChange }: Se
                     )}
                 </div>
 
-                {/* Event Timeline - Using mock data for now, replace with actual session events */}
                 <div>
                     <h4 className="text-sm font-medium">Event Timeline</h4>
                     <ScrollArea className="h-96 w-full rounded-md border mt-2">
                         <div className="p-4">
                             {session.events && session.events.length > 0 ? (
-                                session.events.map((event, index) => (
+                                session.events.map((event: AppEvent, index) => (
                                     <div key={index} className="mb-4 grid grid-cols-[25px_1fr] items-start pb-4 last:mb-0 last:pb-0">
                                         <span className="flex h-2 w-2 translate-y-1 rounded-full bg-sky-500" />
                                         <div className="grid gap-1">

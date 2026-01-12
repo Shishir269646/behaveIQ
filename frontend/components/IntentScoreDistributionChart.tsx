@@ -10,18 +10,18 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { IntentDistribution } from '@/hooks/useDashboard';
+import { IntentDistribution } from '@/types';
 import { EmptyState } from './EmptyState';
 import { Target } from 'lucide-react';
 
 interface IntentScoreDistributionChartProps {
-    data: IntentDistribution;
+    data: IntentDistribution | null;
 }
 
 const COLORS = ['#FF6B6B', '#FFD93D', '#6BCB77']; // Low, Medium, High
 
 export default function IntentScoreDistributionChart({ data }: IntentScoreDistributionChartProps) {
-    if (!data) {
+    if (!data || (data.low === 0 && data.medium === 0 && data.high === 0)) {
         return (
             <Card>
                 <CardHeader>

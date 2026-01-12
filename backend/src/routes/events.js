@@ -6,7 +6,7 @@ const { getEvents, getEventStats } = require('../controllers/eventController');
 
 // router.use(protect); // Moved to app.js mounting
 
-router.get('/', getEvents); console.log('Events route registered: /'); // ADDED
-router.get('/stats', getEventStats); console.log('Events route registered: /stats'); // ADDED
+router.get('/', getEvents);
+router.get('/stats', getEventStats);
 
 module.exports = router;

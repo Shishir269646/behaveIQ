@@ -1,15 +1,18 @@
-
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { useAppStore } from './index';
+import { useHasMounted } from '@/hooks/use-has-mounted';
 
 const StoreProvider = ({ children }: { children: React.ReactNode }) => {
   const initializeAuth = useAppStore((state) => state.initializeAuth);
+  const hasMounted = useHasMounted();
 
   useEffect(() => {
-    initializeAuth();
-  }, [initializeAuth]);
+    if (hasMounted) {
+      initializeAuth();
+    }
+  }, [hasMounted, initializeAuth]);
 
   return <>{children}</>;
 };

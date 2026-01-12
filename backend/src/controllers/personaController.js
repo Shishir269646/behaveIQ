@@ -4,21 +4,25 @@ const Session = require('../models/Session');
 const { callMLService } = require('../services/mlServiceClient');
 const { asyncHandler } = require('../utils/helpers');
 
-// @desc    Get all personas
-// @route   GET /api/v1/personas?websiteId=xxx
+// @desc    Get all personas for a specific website
+// @route   GET /api/v1/websites/:id/personas
 const getPersonas = asyncHandler(async (req, res) => {
     console.log('--- getPersonas called ---'); // ADDED for debugging
 
-    // Ensure req.website is populated by the auth middleware
-    if (!req.website || !req.website._id) {
-        console.warn('getPersonas: No website context found for authenticated user.');
+    // The website ID is now coming from the nested route parameter
+    const websiteId = req.params.id;
+
+    if (!websiteId) {
+        console.warn('getPersonas: No website ID provided in the route.');
         return res.status(400).json({
             success: false,
-            message: 'No website context found. Please ensure you are authenticated and have an associated website.'
+            message: 'No website ID provided.'
         });
     }
 
-    const websiteId = req.website._id;
+    // The `protect` middleware already ensures the user is authenticated.
+    // The association between user and website is handled by the `protect` middleware.
+
     console.log(`Fetching personas for websiteId: ${websiteId}, userId: ${req.user._id}`); // ADDED for debugging
 
     const personas = await Persona.find({

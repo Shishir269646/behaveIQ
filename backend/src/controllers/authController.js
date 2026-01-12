@@ -35,7 +35,8 @@ const register = asyncHandler(async (req, res) => {
                 fullName: user.fullName,
                 companyName: user.companyName,
                 plan: user.plan,
-                role: user.role
+                role: user.role,
+                settings: user.settings // New
             },
             token
         }
@@ -94,7 +95,8 @@ const login = asyncHandler(async (req, res) => {
                 fullName: user.fullName,
                 companyName: user.companyName,
                 plan: user.plan,
-                role: user.role
+                role: user.role,
+                settings: user.settings // New
             },
             token
         }

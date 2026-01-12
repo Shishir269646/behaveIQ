@@ -6,7 +6,13 @@ const { asyncHandler } = require('../utils/helpers');
 // @desc    Get all experiments
 // @route   GET /api/v1/experiments?websiteId=xxx&status=active
 const getExperiments = asyncHandler(async (req, res) => {
-    const { websiteId, status } = req.query;
+    // Determine websiteId from either req.query (for /experiments) or req.params.id (for /websites/:id/experiments)
+    const websiteId = req.query.websiteId || req.params.id;
+    const { status } = req.query;
+
+    if (!websiteId) {
+        return res.status(400).json({ success: false, message: 'Website ID is required.' });
+    }
 
     // Verify ownership
     const website = await Website.findOne({
@@ -17,7 +23,7 @@ const getExperiments = asyncHandler(async (req, res) => {
     if (!website) {
         return res.status(404).json({
             success: false,
-            message: 'Website not found'
+            message: 'Website not found or not authorized'
         });
     }
 

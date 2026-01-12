@@ -19,7 +19,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { useWebsites } from "@/hooks/useWebsites"
+import { useAppStore } from "@/store"
 import { useEffect } from "react"
 import { Website } from "@/types";
 
@@ -30,7 +30,7 @@ interface WebsiteSwitcherProps extends PopoverTriggerProps {}
 
 export default function WebsiteSwitcher({ className }: WebsiteSwitcherProps) {
   const [open, setOpen] = React.useState(false)
-  const { websites, selectedWebsite, selectWebsite, fetchWebsites } = useWebsites();
+  const { websites, website: selectedWebsite, selectWebsite, fetchWebsites } = useAppStore();
 
   useEffect(() => {
     if (websites.length === 0) {
@@ -60,9 +60,9 @@ export default function WebsiteSwitcher({ className }: WebsiteSwitcherProps) {
             <CommandGroup heading="Websites">
               {websites.map((website: Website) => (
                 <CommandItem
-                  key={website._id} // Use _id
+                  key={website._id}
                   onSelect={() => {
-                    selectWebsite(website._id); // Use _id
+                    selectWebsite(website._id);
                     setOpen(false)
                   }}
                   className="text-sm"
@@ -71,7 +71,7 @@ export default function WebsiteSwitcher({ className }: WebsiteSwitcherProps) {
                   <Check
                     className={cn(
                       "ml-auto h-4 w-4",
-                      selectedWebsite?._id === website._id // Use _id
+                      selectedWebsite?._id === website._id
                         ? "opacity-100"
                         : "opacity-0"
                     )}

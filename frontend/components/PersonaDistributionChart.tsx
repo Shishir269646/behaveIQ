@@ -11,17 +11,24 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { PersonaStat } from '@/hooks/useDashboard';
+import { Persona, PersonaChartData } from '@/types';
 import { EmptyState } from './EmptyState';
 import { Users } from 'lucide-react';
 
 interface PersonaDistributionChartProps {
-    data: PersonaStat[];
+    data: Persona[];
 }
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#AF19FF'];
 
 export default function PersonaDistributionChart({ data }: PersonaDistributionChartProps) {
+    const chartData: PersonaChartData[] = React.useMemo(() => {
+        return data.map(persona => ({
+            name: persona.name,
+            sessionCount: persona.stats.sessionCount,
+        })).filter(item => item.sessionCount > 0);
+    }, [data]);
+
     return (
         <Card>
             <CardHeader>
@@ -29,12 +36,12 @@ export default function PersonaDistributionChart({ data }: PersonaDistributionCh
                 <CardDescription>Distribution of your top user personas.</CardDescription>
             </CardHeader>
             <CardContent>
-                {data && data.length > 0 ? (
+                {chartData && chartData.length > 0 ? (
                     <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                             <Pie
-                                data={data}
-                                dataKey="userCount"
+                                data={chartData}
+                                dataKey="sessionCount"
                                 nameKey="name"
                                 cx="50%"
                                 cy="50%"
@@ -42,7 +49,7 @@ export default function PersonaDistributionChart({ data }: PersonaDistributionCh
                                 fill="#8884d8"
                                 label
                             >
-                                {data.map((entry, index) => (
+                                {chartData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                 ))}
                             </Pie>

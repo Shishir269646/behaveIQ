@@ -1,17 +1,37 @@
 const mlServiceClient = require('../services/mlServiceClient');
 const Persona = require('../models/Persona'); // New Import
 const Website = require('../models/Website'); // New Import
+const Event = require('../models/Event'); // New Import
 const { asyncHandler } = require('../utils/helpers'); // New Import
 
 const generateContent = async (req, res, next) => {
     try {
-        const { persona, contentType } = req.body;
-        if (!persona || !contentType) {
-            return res.status(400).json({ message: 'Persona and contentType are required.' });
+        const { persona, contentType, websiteId } = req.body; // Added websiteId
+        console.log('Content generateContent received websiteId:', websiteId); // DEBUG LOG
+        if (!persona || !contentType || !websiteId) {
+            return res.status(400).json({ message: 'Persona, contentType, and websiteId are required.' });
         }
 
-        // Pass websiteId to the ML service if needed for contextual generation
-        const content = await mlServiceClient.generateContent(persona, contentType);
+        const website = await Website.findById(websiteId); // Verify website ownership or existence
+        console.log('Website found by ID:', website ? website._id : 'No website found'); // DEBUG LOG
+        if (!website || website.userId.toString() !== req.user.id) {
+            return res.status(404).json({ success: false, message: 'Website not found or not authorized.' });
+        }
+
+        const content = await mlServiceClient.generateContent(persona, contentType); // Pass websiteId to the ML service if needed
+        
+        await Event.create({
+            websiteId: website._id,
+            sessionId: req.body.sessionId || null, // Optional, depending on context
+            eventType: 'content_generated',
+            eventData: {
+                personaId: persona,
+                contentType: contentType,
+                generatedContentSnippet: content.generated_content ? content.generated_content.substring(0, 200) + '...' : '', // Store snippet
+                // Full content might be too large; consider storing a reference or summary
+            },
+        });
+
         res.json(content);
     } catch (error) {
         next(error);

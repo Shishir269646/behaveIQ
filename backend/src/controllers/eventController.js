@@ -8,6 +8,13 @@ const getEvents = asyncHandler(async (req, res) => {
     console.log('--- getEvents called ---'); // ADDED for debugging
     const { websiteId, eventType, limit = 10, page = 1, timeRange = '7d' } = req.query; // Added page, timeRange
 
+    if (!websiteId) {
+        return res.status(400).json({
+            success: false,
+            message: 'websiteId query parameter is required.'
+        });
+    }
+
     // Verify ownership
     const website = await Website.findOne({
         _id: websiteId,
@@ -29,6 +36,8 @@ const getEvents = asyncHandler(async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
     query.timestamp = { $gte: startDate };
+
+    console.log('Event query:', query); // ADDED for debugging
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 

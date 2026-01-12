@@ -1,6 +1,7 @@
 // @/app/(dashboard)/fraud/page.tsx
 "use client"
 
+import * as React from "react";
 import {
   Card,
   CardContent,
@@ -26,13 +27,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { MoreHorizontal, ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react"
 import { Button } from "@/components/ui/button";
-import { useFraud, FraudEvent } from "@/hooks/useFraud";
+import { useAppStore } from "@/store";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FraudEvent } from "@/types";
 
 
 export default function FraudPage() {
-    const { fraudEvents, isLoading, error } = useFraud();
+    const { fraudEvents, loading, error, fetchFraudEvents } = useAppStore();
+
+    React.useEffect(() => {
+        fetchFraudEvents();
+    }, [fetchFraudEvents]);
 
     const getRiskIcon = (risk: string) => {
         switch (risk) {
@@ -68,27 +74,27 @@ export default function FraudPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                {isLoading ? (
-                     <div className="space-y-4">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <Skeleton key={i} className="h-10 w-full" />
-                        ))}
-                    </div>
-                ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Event ID</TableHead>
-                                <TableHead>Risk</TableHead>
-                                <TableHead>Risk Score</TableHead>
-                                <TableHead>Reason</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Timestamp</TableHead>
-                                <TableHead><span className="sr-only">Actions</span></TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {fraudEvents.map((event) => (
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Event ID</TableHead>
+                            <TableHead>Risk</TableHead>
+                            <TableHead>Risk Score</TableHead>
+                            <TableHead>Reason</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Timestamp</TableHead>
+                            <TableHead><span className="sr-only">Actions</span></TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {loading ? (
+                             <div className="space-y-4">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <Skeleton key={i} className="h-10 w-full" />
+                                ))}
+                            </div>
+                        ) : (
+                            fraudEvents.map((event: FraudEvent) => (
                                 <TableRow key={event.id}>
                                     <TableCell className="font-mono text-xs">{event.id}</TableCell>
                                     <TableCell>
@@ -127,10 +133,10 @@ export default function FraudPage() {
                                         </DropdownMenu>
                                     </TableCell>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                )}
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
             </CardContent>
         </Card>
     </div>

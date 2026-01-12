@@ -2,8 +2,7 @@ const mongoose = require('mongoose');
 
 const eventSchema = new mongoose.Schema({
     sessionId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Session',
+        type: String,
         required: true,
         index: true
     },
@@ -16,7 +15,7 @@ const eventSchema = new mongoose.Schema({
     eventType: {
         type: String,
         required: true,
-        enum: ['pageview', 'click', 'scroll', 'mousemove', 'hover', 'form_submit', 'exit', 'custom'],
+        enum: ['pageview', 'click', 'scroll', 'mouse_move', 'hover', 'form_submit', 'exit', 'custom', 'content_generated', 'cart_action'],
         index: true
     },
     eventData: {

@@ -1,6 +1,6 @@
-// @/app/(dashboard)/experiments/page.tsx
 "use client"
 
+import * as React from 'react';
 import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,13 +20,21 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useExperiments } from "@/hooks/useExperiments";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
+import { useAppStore } from "@/store";
+import { useEffect } from "react";
+import { Experiment } from "@/types";
 
 export default function ExperimentsPage() {
-    const { experiments, isLoading, error } = useExperiments();
+    const { experiments, loading: isLoading, error, fetchExperiments } = useAppStore();
+    const selectedWebsite = useAppStore((state) => state.website);
+
+    useEffect(() => {
+        if (selectedWebsite?._id) {
+            fetchExperiments(selectedWebsite._id);
+        }
+    }, [selectedWebsite?._id, fetchExperiments]);
 
     if (error) {
         return (
@@ -76,7 +84,7 @@ export default function ExperimentsPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {experiments.map((exp) => (
+                            {experiments.map((exp: Experiment) => (
                                 <TableRow key={exp._id}>
                                     <TableCell className="font-medium">{exp.name}</TableCell>
                                     <TableCell>
@@ -94,14 +102,14 @@ export default function ExperimentsPage() {
                                         const conversionLiftValue = exp.results?.improvement;
                                         const formattedConversionLift = conversionLiftValue !== undefined && conversionLiftValue !== null
                                             ? `${conversionLiftValue > 0 ? '+' : ''}${conversionLiftValue.toFixed(2)}%`
-                                            : exp.status === 'completed' ? 'N/A' : '-'; // Display '-' for active experiments with no result yet
+                                            : exp.status === 'completed' ? 'N/A' : '-';
 
                                         return (
                                             <TableCell 
                                                 className={
                                                     conversionLiftValue !== undefined && conversionLiftValue > 0 
                                                         ? 'text-green-600' 
-                                                        : (conversionLiftValue !== undefined && conversionLiftValue < 0 ? 'text-red-600' : 'text-muted-foreground') // Neutral color for 0 or N/A
+                                                        : (conversionLiftValue !== undefined && conversionLiftValue < 0 ? 'text-red-600' : 'text-muted-foreground')
                                                 }
                                             >
                                                 {formattedConversionLift}

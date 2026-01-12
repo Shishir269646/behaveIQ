@@ -6,6 +6,7 @@ const Experiment = require('../models/Experiment'); // New
 const Discount = require('../models/Discount');     // New
 const FraudScore = require('../models/FraudScore'); // New
 const Intervention = require('../models/Intervention'); // New
+const ClickEvent = require('../models/ClickEvent');
 const { asyncHandler } = require('../utils/helpers');
 const intentService = require('../services/intentService');
 
@@ -684,12 +685,17 @@ const getContentSummary = asyncHandler(async (req, res) => {
         return res.status(404).json({ success: false, message: 'Website not found' });
     }
 
-    // --- TEMPORARY / SIMULATED IMPLEMENTATION ---
-    // A proper implementation would require a dedicated ContentGenerationLog model
-    // or a specific eventType in the Event model to track content generations.
-    // For now, we return placeholder data.
-    const totalContentGenerated = 0; // Simulate 0 for now
-    const lastContentGenerated = null; // Simulate null for now
+    const totalContentGenerated = await Event.countDocuments({
+        websiteId,
+        eventType: 'content_generated'
+    });
+
+    const lastContentGeneratedEvent = await Event.findOne({
+        websiteId,
+        eventType: 'content_generated'
+    }).sort('-timestamp');
+
+    const lastContentGenerated = lastContentGeneratedEvent ? lastContentGeneratedEvent.timestamp : null;
 
     res.json({
         success: true,

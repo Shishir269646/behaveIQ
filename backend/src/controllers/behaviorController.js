@@ -1,19 +1,30 @@
 // src/controllers/behaviorController.js
 const Behavior = require('../models/Behavior');
 const Session = require('../models/Session');
+const Event = require('../models/Event'); // Import Event model
 const emotionService = require('../services/emotionService');
+const Website = require('../models/Website'); // Import Website model
 
 const trackEvent = async (req, res) => {
   try {
     // Ensure that a website context is available from the auth middleware
     if (!req.website) {
+      console.log('Behavior trackEvent - req.website is NOT present.'); // DEBUG LOG
       return res.status(403).json({
         success: false,
         error: 'Forbidden: A valid API key linked to a registered website is required.'
       });
     }
+    console.log('Behavior trackEvent - req.website._id:', req.website._id); // DEBUG LOG
 
     const { userId, sessionId, eventType, eventData } = req.body;
+
+
+
+
+
+
+
 
     // Create behavior event
     const behavior = await Behavior.create({
@@ -22,6 +33,30 @@ const trackEvent = async (req, res) => {
       sessionId,
       eventType,
       eventData,
+      timestamp: new Date()
+    });
+
+    // Verify website from API key
+
+    const websiteapiKey = req.headers['x-api-key'];
+
+    const website = await Website.findOne({ apiKey: websiteapiKey });
+
+    const websiteID = website._id;
+
+    if (!websiteID) {
+      return res
+        .status(401)
+        .json({ success: false, message: 'Mismatched website' });
+    }
+
+
+    // Also create a record in the general Event model for dashboard display
+    await Event.create({
+      sessionId,
+      websiteId: websiteID._id,
+      eventType,
+      eventData, // Assuming eventData schema is compatible or flexible enough
       timestamp: new Date()
     });
 

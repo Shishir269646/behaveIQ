@@ -12,23 +12,35 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox"
-import { useWebsites } from "@/hooks/useWebsites"; // Import useWebsites
-import { useAuth } from "@/hooks/useAuth"; // New import
+import { useAppStore } from "@/store";
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { User } from "@/types";
 
 const EMOTIONS = ['frustrated', 'confused', 'excited', 'neutral', 'considering'];
 const INTERVENTION_ACTIONS = ['show_help_chat', 'show_guide', 'show_social_proof', 'show_comparison', 'none'];
 
 export default function SettingsPage() {
-    const { selectedWebsite, updateWebsite, loading: websiteLoading, error: websiteError, success: websiteSuccess, clearSuccess: clearWebsiteSuccess } = useWebsites();
-    const { user, loading: authLoading, error: authError, success: authSuccess, updateAuthenticatedUser, clearSuccess: clearAuthSuccess } = useAuth(); // New
+    const {
+        website: selectedWebsite,
+        updateWebsite,
+        loading: websiteLoading,
+        error: websiteError,
+        success: websiteSuccess,
+        clearSuccess: clearWebsiteSuccess,
+        user,
+        loading: authLoading,
+        error: authError,
+        success: authSuccess,
+        updateAuthenticatedUser,
+        clearSuccess: clearAuthSuccess
+    } = useAppStore();
 
 
-    const [websiteFormState, setWebsiteFormState] = useState({ // Renamed from formState to websiteFormState
+    const [websiteFormState, setWebsiteFormState] = useState({
         name: selectedWebsite?.name || '',
         domain: selectedWebsite?.domain || '',
         settings: selectedWebsite?.settings || {
@@ -36,7 +48,7 @@ export default function SettingsPage() {
             autoPersonalization: false,
             experimentMode: false,
             emotionInterventions: [],
-            fraudDetectionSettings: { // Ensure fraudDetectionSettings are initialized
+            fraudDetectionSettings: {
                 sensitivity: 'medium',
                 riskBasedActions: {
                     requirePhoneVerification: false,
@@ -44,26 +56,16 @@ export default function SettingsPage() {
                     disableCOD: false,
                     showCaptcha: false,
                     manualReview: false,
-                    limitOrderValue: null,
+                    limitOrderValue: undefined,
                 }
             }
         },
     });
 
-    const [profileFormState, setProfileFormState] = useState<Partial<User>>({ // New
+    const [profileFormState, setProfileFormState] = useState<Partial<User>>({
         fullName: user?.fullName || '',
         email: user?.email || '',
-        settings: user?.settings || { // Initialize with user settings
-            twoFactorEnabled: false,
-            emailNotificationsEnabled: true,
-            pushNotificationsEnabled: false,
-        }
-    });
-
-    const [profileFormState, setProfileFormState] = useState<Partial<User>>({ // New
-        fullName: user?.fullName || '',
-        email: user?.email || '',
-        settings: user?.settings || { // Initialize with user settings
+        settings: user?.settings || {
             twoFactorEnabled: false,
             emailNotificationsEnabled: true,
             pushNotificationsEnabled: false,
@@ -80,7 +82,7 @@ export default function SettingsPage() {
         }
     }, [selectedWebsite]);
 
-    useEffect(() => { // For user profile state
+    useEffect(() => {
         if (user) {
             setProfileFormState({
                 fullName: user.fullName,
@@ -112,7 +114,7 @@ export default function SettingsPage() {
         }
     }, [websiteSuccess, websiteError, clearWebsiteSuccess, toast]);
 
-    useEffect(() => { // For auth success/error
+    useEffect(() => {
         if (authSuccess) {
             toast({
                 title: "Success",
@@ -131,13 +133,13 @@ export default function SettingsPage() {
     }, [authSuccess, authError, clearAuthSuccess, toast]);
 
     const handleFormChange = (field: string, value: any) => {
-        setFormState((prev) => ({
+        setWebsiteFormState((prev) => ({
             ...prev,
             [field]: value,
         }));
     };
 
-    const handleWebsiteSettingsChange = (field: string, value: any) => { // Renamed
+    const handleWebsiteSettingsChange = (field: string, value: any) => {
         setWebsiteFormState((prev: any) => ({
             ...prev,
             settings: {
@@ -147,14 +149,14 @@ export default function SettingsPage() {
         }));
     };
 
-    const handleProfileFormChange = (field: string, value: any) => { // New
+    const handleProfileFormChange = (field: string, value: any) => {
         setProfileFormState((prev) => ({
             ...prev,
             [field]: value,
         }));
     };
 
-    const handleProfileSettingsChange = (field: string, value: any) => { // New
+    const handleProfileSettingsChange = (field: string, value: any) => {
         setProfileFormState((prev) => ({
             ...prev,
             settings: {
@@ -165,9 +167,9 @@ export default function SettingsPage() {
     };
 
     const handleEmotionInterventionChange = (index: number, field: string, value: any) => {
-        const updatedInterventions = [...(formState.settings.emotionInterventions || [])];
+        const updatedInterventions = [...(websiteFormState.settings.emotionInterventions || [])];
         updatedInterventions[index] = { ...updatedInterventions[index], [field]: value };
-        setFormState((prev: any) => ({
+        setWebsiteFormState((prev: any) => ({
             ...prev,
             settings: {
                 ...prev.settings,
@@ -177,7 +179,7 @@ export default function SettingsPage() {
     };
 
     const handleAddEmotionIntervention = () => {
-        setFormState((prev: any) => ({
+        setWebsiteFormState((prev: any) => ({
             ...prev,
             settings: {
                 ...prev.settings,
@@ -190,7 +192,7 @@ export default function SettingsPage() {
     };
 
     const handleRemoveEmotionIntervention = (index: number) => {
-        setFormState((prev: any) => ({
+        setWebsiteFormState((prev: any) => ({
             ...prev,
             settings: {
                 ...prev.settings,
@@ -209,7 +211,6 @@ export default function SettingsPage() {
             return;
         }
 
-        // Basic frontend validation
         if (!websiteFormState.name.trim()) {
             toast({
                 title: "Validation Error",
@@ -235,7 +236,7 @@ export default function SettingsPage() {
         });
     };
 
-    const handleSaveProfile = async () => { // New function
+    const handleSaveProfile = async () => {
         if (!user?._id) {
             toast({
                 title: "Error",
@@ -244,7 +245,7 @@ export default function SettingsPage() {
             });
             return;
         }
-        if (!profileFormState.fullName?.trim()) { // Added optional chaining and trim
+        if (!profileFormState.fullName?.trim()) {
             toast({
                 title: "Validation Error",
                 description: "Full Name cannot be empty.",
@@ -252,10 +253,10 @@ export default function SettingsPage() {
             });
             return;
         }
-        await updateAuthenticatedUser({ fullName: profileFormState.fullName }); // Only update fullName
+        await updateAuthenticatedUser({ fullName: profileFormState.fullName });
     };
 
-    const handleSaveSecurity = async () => { // New function
+    const handleSaveSecurity = async () => {
         if (!user?._id) {
             toast({
                 title: "Error",
@@ -267,7 +268,7 @@ export default function SettingsPage() {
         await updateAuthenticatedUser({ settings: { twoFactorEnabled: profileFormState.settings?.twoFactorEnabled } });
     };
 
-    const handleSaveNotifications = async () => { // New function
+    const handleSaveNotifications = async () => {
         if (!user?._id) {
             toast({
                 title: "Error",
@@ -320,7 +321,7 @@ export default function SettingsPage() {
                                     id="email"
                                     type="email"
                                     value={profileFormState.email || ''}
-                                    disabled={true} // Email should generally not be editable directly from profile
+                                    disabled={true}
                                 />
                             </div>
                             <Button onClick={handleSaveProfile} disabled={authLoading}>Save changes</Button>
@@ -339,42 +340,24 @@ export default function SettingsPage() {
                         <CardContent className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="website-name">Website Name</Label>
-                                <Input
-                                    id="website-name"
-                                    value={formState.name}
-                                    onChange={(e) => handleFormChange('name', e.target.value)}
-                                />
+                                <Input id="website-name" value={websiteFormState.name} onChange={(e) => handleFormChange('name', e.target.value)} />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="website-domain">Website Domain</Label>
-                                <Input
-                                    id="website-domain"
-                                    type="url"
-                                    value={formState.domain}
-                                    onChange={(e) => handleFormChange('domain', e.target.value)}
-                                />
+                                <Input id="website-domain" type="url" value={websiteFormState.domain} onChange={(e) => handleFormChange('domain', e.target.value)} />
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="auto-personalization"
-                                    checked={formState.settings.autoPersonalization}
-                                    onCheckedChange={(checked: boolean) => handleSettingsChange('autoPersonalization', checked)}
-                                />
+                                <Checkbox id="auto-personalization" checked={websiteFormState.settings.autoPersonalization} onCheckedChange={(checked: boolean) => handleWebsiteSettingsChange('autoPersonalization', checked)} />
                                 <Label htmlFor="auto-personalization">Enable Auto-Personalization</Label>
                             </div>
                             <div className="flex items-center space-x-2">
-                                <Checkbox
-                                    id="experiment-mode"
-                                    checked={formState.settings.experimentMode}
-                                    onCheckedChange={(checked: boolean) => handleSettingsChange('experimentMode', checked)}
-                                />
+                                <Checkbox id="experiment-mode" checked={websiteFormState.settings.experimentMode} onCheckedChange={(checked: boolean) => handleWebsiteSettingsChange('experimentMode', checked)} />
                                 <Label htmlFor="experiment-mode">Enable Experiment Mode</Label>
                             </div>
-                            <Button onClick={handleSaveWebsiteSettings} disabled={loading}>Save changes</Button>
+                            <Button onClick={handleSaveWebsiteSettings} disabled={websiteLoading}>Save changes</Button>
                         </CardContent>
                     </Card>
 
-                    {/* Emotion-Based Personalization Settings */}
                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Emotion-Based Interventions</CardTitle>
@@ -383,7 +366,7 @@ export default function SettingsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {formState.settings.emotionInterventions && formState.settings.emotionInterventions.map((intervention: any, index: number) => (
+                            {websiteFormState.settings.emotionInterventions && websiteFormState.settings.emotionInterventions.map((intervention: any, index: number) => (
                                 <div key={index} className="border p-4 rounded-md space-y-3 relative">
                                     <Button
                                         variant="destructive"
@@ -440,7 +423,7 @@ export default function SettingsPage() {
                             <Button variant="outline" className="w-full" onClick={handleAddEmotionIntervention}>
                                 <Plus className="h-4 w-4 mr-2" /> Add Intervention Rule
                             </Button>
-                            <Button onClick={handleSaveWebsiteSettings} disabled={loading}>Save Emotion Settings</Button>
+                            <Button onClick={handleSaveWebsiteSettings} disabled={websiteLoading}>Save Emotion Settings</Button>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -461,7 +444,7 @@ export default function SettingsPage() {
                                 </div>
                                 <Checkbox
                                     id="2fa"
-                                    checked={profileFormState.settings?.twoFactorEnabled || false} // Use optional chaining
+                                    checked={profileFormState.settings?.twoFactorEnabled || false}
                                     onCheckedChange={(checked: boolean) => handleProfileSettingsChange('twoFactorEnabled', checked)}
                                     disabled={authLoading}
                                 />
@@ -470,7 +453,6 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Fraud Detection Settings */}
                     <Card className="mt-4">
                         <CardHeader>
                             <CardTitle>Fraud Detection Settings</CardTitle>
@@ -482,10 +464,13 @@ export default function SettingsPage() {
                             <div className="space-y-2">
                                 <Label htmlFor="fraud-sensitivity">Sensitivity Level</Label>
                                 <Select
-                                    value={formState.settings.fraudDetectionSettings?.sensitivity || 'medium'}
+                                    value={websiteFormState.settings.fraudDetectionSettings?.sensitivity || 'medium'}
                                     onValueChange={(value: 'low' | 'medium' | 'high') =>
-                                        handleSettingsChange('fraudDetectionSettings', {
-                                            ...formState.settings.fraudDetectionSettings,
+                                        handleWebsiteSettingsChange('fraudDetectionSettings', {
+                                            ...websiteFormState.settings.fraudDetectionSettings,
+                                            riskBasedActions: {
+                                                ...websiteFormState.settings.fraudDetectionSettings?.riskBasedActions,
+                                            },
                                             sensitivity: value,
                                         })
                                     }
@@ -507,12 +492,12 @@ export default function SettingsPage() {
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
                                         id="requirePhoneVerification"
-                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.requirePhoneVerification || false}
+                                        checked={websiteFormState.settings.fraudDetectionSettings?.riskBasedActions?.requirePhoneVerification || false}
                                         onCheckedChange={(checked: boolean) =>
-                                            handleSettingsChange('fraudDetectionSettings', {
-                                                ...formState.settings.fraudDetectionSettings,
+                                            handleWebsiteSettingsChange('fraudDetectionSettings', {
+                                                ...websiteFormState.settings.fraudDetectionSettings,
                                                 riskBasedActions: {
-                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    ...websiteFormState.settings.fraudDetectionSettings?.riskBasedActions,
                                                     requirePhoneVerification: checked,
                                                 },
                                             })
@@ -523,12 +508,12 @@ export default function SettingsPage() {
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
                                         id="requireEmailVerification"
-                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.requireEmailVerification || false}
+                                        checked={websiteFormState.settings.fraudDetectionSettings?.riskBasedActions?.requireEmailVerification || false}
                                         onCheckedChange={(checked: boolean) =>
-                                            handleSettingsChange('fraudDetectionSettings', {
-                                                ...formState.settings.fraudDetectionSettings,
+                                            handleWebsiteSettingsChange('fraudDetectionSettings', {
+                                                ...websiteFormState.settings.fraudDetectionSettings,
                                                 riskBasedActions: {
-                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    ...websiteFormState.settings.fraudDetectionSettings?.riskBasedActions,
                                                     requireEmailVerification: checked,
                                                 },
                                             })
@@ -539,12 +524,12 @@ export default function SettingsPage() {
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
                                         id="disableCOD"
-                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.disableCOD || false}
+                                        checked={websiteFormState.settings.fraudDetectionSettings?.riskBasedActions?.disableCOD || false}
                                         onCheckedChange={(checked: boolean) =>
-                                            handleSettingsChange('fraudDetectionSettings', {
-                                                ...formState.settings.fraudDetectionSettings,
+                                            handleWebsiteSettingsChange('fraudDetectionSettings', {
+                                                ...websiteFormState.settings.fraudDetectionSettings,
                                                 riskBasedActions: {
-                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    ...websiteFormState.settings.fraudDetectionSettings?.riskBasedActions,
                                                     disableCOD: checked,
                                                 },
                                             })
@@ -555,12 +540,12 @@ export default function SettingsPage() {
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
                                         id="showCaptcha"
-                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.showCaptcha || false}
+                                        checked={websiteFormState.settings.fraudDetectionSettings?.riskBasedActions?.showCaptcha || false}
                                         onCheckedChange={(checked: boolean) =>
-                                            handleSettingsChange('fraudDetectionSettings', {
-                                                ...formState.settings.fraudDetectionSettings,
+                                            handleWebsiteSettingsChange('fraudDetectionSettings', {
+                                                ...websiteFormState.settings.fraudDetectionSettings,
                                                 riskBasedActions: {
-                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    ...websiteFormState.settings.fraudDetectionSettings?.riskBasedActions,
                                                     showCaptcha: checked,
                                                 },
                                             })
@@ -571,12 +556,12 @@ export default function SettingsPage() {
                                 <div className="flex items-center space-x-2">
                                     <Checkbox
                                         id="manualReview"
-                                        checked={formState.settings.fraudDetectionSettings?.riskBasedActions?.manualReview || false}
+                                        checked={websiteFormState.settings.fraudDetectionSettings?.riskBasedActions?.manualReview || false}
                                         onCheckedChange={(checked: boolean) =>
-                                            handleSettingsChange('fraudDetectionSettings', {
-                                                ...formState.settings.fraudDetectionSettings,
+                                            handleWebsiteSettingsChange('fraudDetectionSettings', {
+                                                ...websiteFormState.settings.fraudDetectionSettings,
                                                 riskBasedActions: {
-                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    ...websiteFormState.settings.fraudDetectionSettings?.riskBasedActions,
                                                     manualReview: checked,
                                                 },
                                             })
@@ -589,12 +574,12 @@ export default function SettingsPage() {
                                     <Input
                                         id="limitOrderValue"
                                         type="number"
-                                        value={formState.settings.fraudDetectionSettings?.riskBasedActions?.limitOrderValue || ''}
+                                        value={websiteFormState.settings.fraudDetectionSettings?.riskBasedActions?.limitOrderValue || ''}
                                         onChange={(e) =>
-                                            handleSettingsChange('fraudDetectionSettings', {
-                                                ...formState.settings.fraudDetectionSettings,
+                                            handleWebsiteSettingsChange('fraudDetectionSettings', {
+                                                ...websiteFormState.settings.fraudDetectionSettings,
                                                 riskBasedActions: {
-                                                    ...formState.settings.fraudDetectionSettings?.riskBasedActions,
+                                                    ...websiteFormState.settings.fraudDetectionSettings?.riskBasedActions,
                                                     limitOrderValue: Number(e.target.value),
                                                 },
                                             })
@@ -603,7 +588,7 @@ export default function SettingsPage() {
                                     />
                                 </div>
                             </div>
-                        <Button onClick={handleSaveWebsiteSettings} disabled={loading}>Save Fraud Settings</Button>
+                        <Button onClick={handleSaveWebsiteSettings} disabled={websiteLoading}>Save Fraud Settings</Button>
                     </CardContent>
                 </Card>
                 </TabsContent>
@@ -624,7 +609,7 @@ export default function SettingsPage() {
                                 </div>
                                 <Checkbox
                                     id="emailNotifications"
-                                    checked={profileFormState.settings?.emailNotificationsEnabled || false} // Use optional chaining
+                                    checked={profileFormState.settings?.emailNotificationsEnabled || false}
                                     onCheckedChange={(checked: boolean) => handleProfileSettingsChange('emailNotificationsEnabled', checked)}
                                     disabled={authLoading}
                                 />
@@ -638,7 +623,7 @@ export default function SettingsPage() {
                                 </div>
                                 <Checkbox
                                     id="pushNotifications"
-                                    checked={profileFormState.settings?.pushNotificationsEnabled || false} // Use optional chaining
+                                    checked={profileFormState.settings?.pushNotificationsEnabled || false}
                                     onCheckedChange={(checked: boolean) => handleProfileSettingsChange('pushNotificationsEnabled', checked)}
                                     disabled={authLoading}
                                 />

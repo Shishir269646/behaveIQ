@@ -59,11 +59,10 @@ export const createPersonaSlice: StateCreator<PersonaSlice, [], [], PersonaSlice
             get().fetchPersonas(websiteId);
         }
     },
-    discoverPersonas: async (websiteId: string) => {
-        await handleRequest(set, () => api.post(`/websites/${websiteId}/personas/discover`), 'Persona discovery initiated!');
+      discoverPersonas: async (websiteId: string, sessionData: any) => {
+        await handleRequest(set, () => api.post(`/personas/discover`, { sessionData }), 'Persona discovery initiated!');
         get().fetchPersonas(websiteId);
-    },
-    clearSuccess: () => {
+      },    clearSuccess: () => {
         set({ success: null, error: null });
     },
 });

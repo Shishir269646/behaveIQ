@@ -40,15 +40,19 @@ const detectEmotion = async (req, res) => {
 
     // Ensure that a website context is available from the auth middleware
     if (!req.website) {
-        return res.status(403).json({
-            success: false,
-            error: 'Forbidden: A valid API key linked to a registered website is required.'
-        });
+      return res.status(403).json({
+        success: false,
+        error: 'Forbidden: A valid API key linked to a registered website is required.'
+      });
     }
+
+    const websiteapiKey = req.headers['x-api-key'];
+    const website = await Website.findOne({ apiKey: websiteapiKey });
+    const websiteID = website._id;
 
     // Get appropriate response
     const response = await emotionService.getEmotionResponse(
-      req.website._id, // Pass websiteId
+      websiteID,
       result.emotion
     );
 

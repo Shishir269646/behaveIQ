@@ -1,4 +1,4 @@
 {
-  "/(dashboard)/events/page": "app/(dashboard)/events/page.js",
+  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js"
 }

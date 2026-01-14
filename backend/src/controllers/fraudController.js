@@ -6,26 +6,31 @@ const { asyncHandler } = require('../utils/helpers'); // Assuming asyncHandler i
 // @desc    Get all fraud events for the current website
 // @route   GET /api/fraud
 const getFraudEvents = asyncHandler(async (req, res) => {
-  // Ensure that a website context is available from the auth middleware
-  if (!req.website) {
-    return res.status(403).json({
-      success: false,
-      error: 'Forbidden: A valid API key linked to a registered website is required.'
+
+    const websiteapiKey = req.headers['x-api-key'];
+    const website = await Website.findOne({ apiKey: websiteapiKey });
+    const websiteID = website._id;
+
+
+    if (!req.website) {
+        return res.status(403).json({
+            success: false,
+            error: 'Forbidden: A valid API key linked to a registered website is required.'
+        });
+    }
+
+    const { userId, riskLevel } = req.query;
+    const filter = { websiteId: websiteID }; // Filter by websiteId
+    if (userId) filter.userId = userId;
+    if (riskLevel) filter.riskLevel = riskLevel;
+
+    const fraudEvents = await FraudScore.find(filter).sort('-timestamp');
+
+    res.json({
+        success: true,
+        count: fraudEvents.length,
+        data: fraudEvents
     });
-  }
-
-  const { userId, riskLevel } = req.query;
-  const filter = { websiteId: req.website._id }; // Filter by websiteId
-  if (userId) filter.userId = userId;
-  if (riskLevel) filter.riskLevel = riskLevel;
-
-  const fraudEvents = await FraudScore.find(filter).sort('-timestamp');
-
-  res.json({
-    success: true,
-    count: fraudEvents.length,
-    data: fraudEvents
-  });
 });
 
 const checkFraud = async (req, res) => {
@@ -114,7 +119,7 @@ const checkFraud = async (req, res) => {
         // Save fraud score
         await FraudScore.create({
             userId,
-            websiteId: req.website._id,
+            websiteId: websiteID,
             sessionId: sessionData.sessionId,
             score: riskScore,
             riskLevel,
@@ -156,6 +161,6 @@ const checkFraud = async (req, res) => {
 
 
 module.exports = {
-  getFraudEvents,
-  checkFraud
+    getFraudEvents,
+    checkFraud
 };

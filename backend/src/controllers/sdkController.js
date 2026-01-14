@@ -9,6 +9,7 @@ const Event = require('../models/Event');
 
 const { asyncHandler } = require('../utils/helpers');
 const mlServiceClient = require('../services/mlServiceClient');
+const { identify } = require('./identityController');
 
 // =======================
 // @desc    Get dynamic SDK script
@@ -49,7 +50,7 @@ const getSdkScript = asyncHandler(async (req, res) => {
 
     const sdkBaseUrl =
         process.env.SDK_BASE_URL ||
-        'http://localhost:3000/behaveiq.min.js';
+        '../../../sdk/dist/behaveiq.min.js';
 
     const scriptContent = `
 (function() {
@@ -80,11 +81,7 @@ const getSdkScript = asyncHandler(async (req, res) => {
     res.send(scriptContent);
 });
 
-// =======================
-// @desc    Track SDK event
-// @route   POST /api/v1/sdk/event
-// =======================
-const trackEvent = asyncHandler(async (req, res) => {
+const track = asyncHandler(async (req, res) => {
     const { apiKey, sessionId, eventType, eventData } = req.body;
 
     const website = await Website.findOne({ apiKey });
@@ -97,6 +94,30 @@ const trackEvent = asyncHandler(async (req, res) => {
     const event = await Event.create({
         websiteId: website._id,
         sessionId,
+        eventType,
+        eventData
+    });
+
+    res.status(201).json({ success: true, data: event });
+});
+
+// =======================
+// @desc    Track SDK event
+// @route   POST /api/v1/sdk/event
+// =======================
+const trackEvent = asyncHandler(async (req, res) => {
+    const { apiKey, eventType, eventData } = req.body;
+
+    const website = await Website.findOne({ apiKey });
+    if (!website) {
+        return res
+            .status(401)
+            .json({ success: false, message: 'Invalid API Key' });
+    }
+
+    const event = await Event.create({
+        websiteId: website._id,
+        sessionId: req.session._id,
         eventType,
         eventData
     });

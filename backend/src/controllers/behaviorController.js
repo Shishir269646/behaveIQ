@@ -7,15 +7,23 @@ const Website = require('../models/Website'); // Import Website model
 
 const trackEvent = async (req, res) => {
   try {
-    // Ensure that a website context is available from the auth middleware
+
+    const websiteapiKey = req.headers['x-api-key'];
+
+    const website = await Website.findOne({ apiKey: websiteapiKey });
+
+    const websiteID = website._id;
+
+
+
     if (!req.website) {
-      console.log('Behavior trackEvent - req.website is NOT present.'); // DEBUG LOG
+      console.log('Behavior trackEvent - website is NOT present.'); // DEBUG LOG
       return res.status(403).json({
         success: false,
         error: 'Forbidden: A valid API key linked to a registered website is required.'
       });
     }
-    console.log('Behavior trackEvent - req.website._id:', req.website._id); // DEBUG LOG
+    console.log('Behavior trackEvent - websiteID:', websiteID); // DEBUG LOG
 
     const { userId, sessionId, eventType, eventData } = req.body;
 
@@ -29,7 +37,7 @@ const trackEvent = async (req, res) => {
     // Create behavior event
     const behavior = await Behavior.create({
       userId,
-      websiteId: req.website._id, // Associate behavior with the website
+      websiteId: websiteID, // Associate behavior with the website
       sessionId,
       eventType,
       eventData,
@@ -38,11 +46,7 @@ const trackEvent = async (req, res) => {
 
     // Verify website from API key
 
-    const websiteapiKey = req.headers['x-api-key'];
 
-    const website = await Website.findOne({ apiKey: websiteapiKey });
-
-    const websiteID = website._id;
 
     if (!websiteID) {
       return res
@@ -54,7 +58,7 @@ const trackEvent = async (req, res) => {
     // Also create a record in the general Event model for dashboard display
     await Event.create({
       sessionId,
-      websiteId: websiteID._id,
+      websiteId: websiteID,
       eventType,
       eventData, // Assuming eventData schema is compatible or flexible enough
       timestamp: new Date()
@@ -62,7 +66,7 @@ const trackEvent = async (req, res) => {
 
     // Update session - websiteId is already on session, no need to add here again
     await Session.findOneAndUpdate(
-      { sessionId, websiteId: req.website._id }, // Ensure we update session for the correct website
+      { sessionId, websiteId: websiteID }, // Ensure we update session for the correct website
       {
         $push: {
           [`behavior.${eventType}s`]: {
@@ -88,7 +92,7 @@ const trackEvent = async (req, res) => {
 
         // Get appropriate response
         const response = await emotionService.getEmotionResponse(
-          req.website._id, // Pass websiteId
+          websiteID, // Pass websiteId
           emotionResult.emotion
         );
 

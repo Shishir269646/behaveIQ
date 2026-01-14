@@ -73,7 +73,7 @@ app.use('/api/websites', auth, websitesRoutes); console.log('Routes mounted: /ap
 app.use('/api/dashboard', auth, dashboardRoutes); console.log('Routes mounted: /api/dashboard');
 app.use('/api/events', auth, eventsRoutes); console.log('Routes mounted: /api/events');
 app.use('/api/experiments', auth, experimentsRoutes); console.log('Routes mounted: /api/experiments'); // ADDED
-// app.use('/api/personas', auth, personasRoutes); console.log('Routes mounted: /api/personas'); // ADDED
+app.use('/api/personas', auth, personasRoutes); console.log('Routes mounted: /api/personas'); // ADDED
 app.use('/api/users', usersRoutes); console.log('Routes mounted: /api/users'); // ADDED
 app.use('/api/sdk', sdkRoutes); console.log('Routes mounted: /api/sdk'); // ADDED
 app.get('/api', (req, res) => {

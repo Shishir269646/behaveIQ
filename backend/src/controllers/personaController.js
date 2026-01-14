@@ -40,6 +40,8 @@ const getPersonas = asyncHandler(async (req, res) => {
 // @desc    Discover new personas using ML
 // @route   POST /api/v1/personas/discover
 const discoverPersonas = asyncHandler(async (req, res) => {
+    console.log('--- discoverPersonas called ---'); // ADDED for debugging
+
     // Ensure req.website is populated by the auth middleware
     if (!req.website || !req.website._id) {
         console.warn('discoverPersonas: No website context found for authenticated user.');
@@ -50,14 +52,18 @@ const discoverPersonas = asyncHandler(async (req, res) => {
     }
 
     const websiteId = req.website._id;
-    const { minSessions = 100 } = req.body;
+    const { minSessions = 10 } = req.body;
+
+    console.log("Request", req.website); // ADDED for debugging
+    console.log(`discoverPersonas - websiteId: ${websiteId}, minSessions: ${minSessions}`); // ADDED for debugging
 
     // The website ownership is now verified by the auth middleware populating req.website
     // No need for explicit Website.findOne here.
-    const website = req.website; 
+    const website = req.website;
 
     // Check if enough data
     const sessionCount = await Session.countDocuments({ websiteId });
+    console.log(`discoverPersonas - sessionCount: ${sessionCount}`); // ADDED for debugging
     if (sessionCount < minSessions) {
         return res.status(400).json({
             success: false,
@@ -70,6 +76,7 @@ const discoverPersonas = asyncHandler(async (req, res) => {
         .select('intentScore avgScrollDepth totalClicks pageViews totalTimeSpent pagesVisited device')
         .limit(1000)
         .lean();
+    console.log('discoverPersonas - sessions data:', JSON.stringify(sessions, null, 2)); // ADDED for debugging
 
     // Call ML service for clustering
     const mlResult = await callMLService('/clustering/discover-personas', {
@@ -78,6 +85,7 @@ const discoverPersonas = asyncHandler(async (req, res) => {
         minClusters: 3,
         maxClusters: 6
     });
+    console.log('discoverPersonas - mlResult:', JSON.stringify(mlResult, null, 2)); // ADDED for debugging
 
     // Save discovered personas
     const createdPersonas = [];
@@ -87,6 +95,7 @@ const discoverPersonas = asyncHandler(async (req, res) => {
             name: personaData.name,
             description: personaData.description,
             clusterData: personaData.clusterData,
+            sessionIds: personaData.sessionIds,
             isAutoDiscovered: true
         });
 
@@ -106,6 +115,7 @@ const discoverPersonas = asyncHandler(async (req, res) => {
         await persona.updateStats();
         createdPersonas.push(persona);
     }
+    console.log('discoverPersonas - createdPersonas:', JSON.stringify(createdPersonas, null, 2)); // ADDED for debugging
 
     // Update website persona count
     website.stats.totalPersonas = createdPersonas.length;

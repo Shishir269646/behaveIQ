@@ -1,10 +1,11 @@
 // src/controllers/identityController.js
 const fingerprintService = require('../services/fingerprintService');
 const Session = require('../models/Session');
+const Website = require('../models/Website');
 const { v4: uuidv4 } = require('uuid');
 
 const identify = async (req, res) => {
-  
+
   try {
     // Ensure that a website context is available from the auth middleware
     if (!req.website) {
@@ -14,12 +15,20 @@ const identify = async (req, res) => {
       });
     }
 
-    const { fingerprint, deviceInfo, fpComponents, location, websiteId } = req.body;
+    const { fingerprint, deviceInfo, fpComponents, location } = req.body;
 
-    if (websiteId && websiteId !== req.website._id.toString()) {
+
+    const websiteapiKey = req.headers['x-api-key'];
+
+    const website = await Website.findOne({ apiKey: websiteapiKey });
+
+    const websiteID = website._id;
+
+
+    if (websiteID.toString() !== req.website._id.toString()) {
       return res.status(400).json({
         success: false,
-        error: 'Bad Request: The websiteId in the request body does not match the API key.'
+        error: 'Bad Request: The websiteID in the request body does not match the API key.'
       });
     }
 
@@ -36,6 +45,8 @@ const identify = async (req, res) => {
     // Generate session ID
     const sessionId = uuidv4();
 
+
+
     // Identify or create user
     // The fingerprintService.identifyUser might internally create a guest user
     // but it needs the website context to tie that user/session to the correct website
@@ -43,13 +54,14 @@ const identify = async (req, res) => {
       sessionId,
       fpComponents,
       location,
-      websiteId: req.website._id // Pass websiteId to fingerprintService as well
+      websiteId: websiteID
     });
+
 
     // Create session
     const session = await Session.create({
       userId: user._id,
-      websiteId: req.website._id, // Associate session with the website
+      websiteId: websiteID,
       fingerprint,
       sessionId,
       device: deviceInfo,

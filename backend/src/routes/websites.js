@@ -10,13 +10,15 @@ const {
 } = require('../controllers/websiteController');
 const experimentController = require('../controllers/experimentController'); // New Import
 const personasRouter = require('./personas'); // Import personas router
+const sessionRoutes = require('./session.routes.js');
 // const { protect } = require('../middleware/auth'); // Removed from here
 const { websiteValidation, updateWebsiteValidation, validate } = require('../middleware/validation');
 
 // router.use(protect); // Moved to app.js mounting
 
 // Re-route to other resource routers
-router.use('/:id/personas', personasRouter);
+router.use('/:websiteId/personas', personasRouter);
+router.use('/:websiteId/sessions', sessionRoutes);
 
 router.route('/')
     .get(getWebsites)

@@ -18,7 +18,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { User } from "@/types";
+import { User, Session } from "@/types";
+import { api } from "@/lib/api";
 
 const EMOTIONS = ['frustrated', 'confused', 'excited', 'neutral', 'considering'];
 const INTERVENTION_ACTIONS = ['show_help_chat', 'show_guide', 'show_social_proof', 'show_comparison', 'none'];
@@ -36,8 +37,25 @@ export default function SettingsPage() {
         error: authError,
         success: authSuccess,
         updateAuthenticatedUser,
-        clearSuccess: clearAuthSuccess
+        clearSuccess: clearAuthSuccess,
+        discoverPersonas
     } = useAppStore();
+
+    const [sessions, setSessions] = useState<Session[]>([]);
+
+    useEffect(() => {
+        if (selectedWebsite?._id) {
+            const fetchSessions = async () => {
+                try {
+                    const response = await api.get(`/websites/${selectedWebsite._id}/sessions`);
+                    setSessions(response.data.data);
+                } catch (error) {
+                    console.error("Failed to fetch sessions:", error);
+                }
+            };
+            fetchSessions();
+        }
+    }, [selectedWebsite?._id]);
 
 
     const [websiteFormState, setWebsiteFormState] = useState({
@@ -355,6 +373,20 @@ export default function SettingsPage() {
                                 <Label htmlFor="experiment-mode">Enable Experiment Mode</Label>
                             </div>
                             <Button onClick={handleSaveWebsiteSettings} disabled={websiteLoading}>Save changes</Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="mt-4">
+                        <CardHeader>
+                            <CardTitle>Persona Discovery</CardTitle>
+                            <CardDescription>
+                                Manually trigger the persona discovery process. This will analyze the latest user data to identify new personas.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Button onClick={() => discoverPersonas(selectedWebsite?._id, sessions)} disabled={websiteLoading}>
+                                Discover Personas
+                            </Button>
                         </CardContent>
                     </Card>
 

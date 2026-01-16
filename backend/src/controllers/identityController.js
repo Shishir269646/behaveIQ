@@ -17,6 +17,8 @@ const identify = async (req, res) => {
 
     const { fingerprint, deviceInfo, fpComponents, location } = req.body;
 
+    console.log('--- identify called with fpComponents:', JSON.stringify(fpComponents, null, 2)); // ADDED for debugging
+
 
     const websiteapiKey = req.headers['x-api-key'];
 

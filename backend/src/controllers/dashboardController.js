@@ -52,7 +52,7 @@ const getOverview = asyncHandler(async (req, res) => {
                 $group: {
                     _id: null,
                     totalConversions: { $sum: { $cond: ['$converted', 1, 0] } },
-                    avgIntentScore: { $avg: '$intentScore' }
+                    avgIntentScore: { $avg: '$intentScore.final' } // Corrected field
                 }
             }
         ]);
@@ -92,7 +92,7 @@ const getOverview = asyncHandler(async (req, res) => {
         .sort('-createdAt')
         .limit(10)
         .populate('userId', 'name email')
-        .populate('personaId', 'name');
+        .populate('personaId', 'name', { strictPopulate: false });
 
     const sessions = recentSessions.map(s => ({
         id: s._id,
@@ -121,7 +121,7 @@ const getOverview = asyncHandler(async (req, res) => {
                     change: calculateChange(currentMetrics.conversions, prevMetrics.conversions)
                 },
                 avgIntentScore: {
-                    value: parseFloat(currentMetrics.avgIntentScore.toFixed(2)),
+                    value: currentMetrics.avgIntentScore, // No need for parseFloat and toFixed here
                     change: calculateChange(currentMetrics.avgIntentScore, prevMetrics.avgIntentScore)
                 },
             },

@@ -384,7 +384,14 @@ export default function SettingsPage() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <Button onClick={() => discoverPersonas(selectedWebsite?._id, sessions)} disabled={websiteLoading}>
+                            <Button
+                                onClick={() => {
+                                    if (selectedWebsite?._id) {
+                                        discoverPersonas(selectedWebsite._id, sessions);
+                                    }
+                                }}
+                                disabled={websiteLoading || !selectedWebsite}
+                            >
                                 Discover Personas
                             </Button>
                         </CardContent>

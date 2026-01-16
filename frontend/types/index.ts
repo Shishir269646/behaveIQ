@@ -289,7 +289,7 @@ export interface AbandonmentData {
 }
 
 export interface Session {
-  id: string;
+  _id: string;
   user: {
     id: string;
     name: string;
@@ -297,7 +297,21 @@ export interface Session {
   };
   persona: string;
   status: string;
-  intentScore: number;
+  intentScore: {
+    initial: number;
+    final: number;
+    peak: number;
+    changes: { score: number, timestamp: Date }[];
+  };
+  emotion: {
+    current: string;
+    changes: {
+      from: string;
+      to: string;
+      timestamp: Date;
+      trigger: string;
+    }[];
+  };
   events?: AppEvent[];
 }
 

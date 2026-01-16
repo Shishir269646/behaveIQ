@@ -71,7 +71,7 @@ export default function SessionDetailSheet({ session, isOpen, onOpenChange }: Se
                     <h4 className="text-sm font-medium">Properties</h4>
                     <div className="flex flex-wrap gap-2 mt-2">
                         <Badge variant="outline">Persona: {session.persona}</Badge>
-                        <Badge variant="outline">Intent: {session.intentScore}</Badge>
+                        <Badge variant="outline">Intent: {session.intentScore ? session.intentScore.final : 'N/A'}</Badge>
                         <Badge variant={session.status === 'Abandoned' ? 'destructive' : session.status === 'Converted' ? 'secondary' : 'default'}>
                             Status: {session.status}
                         </Badge>

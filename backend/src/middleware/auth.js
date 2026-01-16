@@ -21,13 +21,12 @@ exports.protect = async (req, res, next) => {
 
     if (apiKey === process.env.DEMO_API_KEY) {
         console.log('Auth middleware: DEMO_API_KEY recognized. Proceeding with demo context.');
-        req.website = {
-            _id: new mongoose.Types.ObjectId('60d5ec49e4d1a60015b6d4e1'), // A consistent dummy ID
-            name: 'BehaveIQ Demo Website',
-            domain: 'http://localhost:3000',
-            apiKey: process.env.DEMO_API_KEY,
-            userId: null // No specific owner for the demo website in this virtual context
-        };
+        const demoWebsite = await Website.findOne({ apiKey: process.env.DEMO_API_KEY });
+        if (!demoWebsite) {
+            console.error('Auth middleware: Demo Website not found for DEMO_API_KEY. Please ensure seeding is correct.');
+            return res.status(500).json({ success: false, message: 'Internal server error: Demo Website not set up.' });
+        }
+        req.website = demoWebsite;
         // Set req.user to the guest user for demo purposes
         req.user = await User.findOne({ email: 'guest@behaveiq.com' });
         if (!req.user) {

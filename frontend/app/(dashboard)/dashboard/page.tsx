@@ -175,8 +175,8 @@ export default function DashboardPage() {
                                     <Activity className="h-4 w-4 text-muted-foreground" />
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="text-2xl font-bold">{overview.avgIntentScore.value.toFixed(2)}</div>
-                                    <p className="text-xs text-muted-foreground">{formatChange(overview.avgIntentScore.change)} since last hour</p>
+                                    <div className="text-2xl font-bold">{overview.avgIntentScore && typeof overview.avgIntentScore.value === 'number' ? overview.avgIntentScore.value.toFixed(2) : '0.00'}</div>
+                                    <p className="text-xs text-muted-foreground">{overview.avgIntentScore && typeof overview.avgIntentScore.change === 'number' ? formatChange(overview.avgIntentScore.change) : '+0%'} since last hour</p>
                                 </CardContent>
                             </Card>
                         </>
@@ -398,14 +398,14 @@ export default function DashboardPage() {
                                     </TableHeader>
                                     <TableBody>
                                         {recentSessions.map(session => (
-                                            <TableRow key={session.id} onClick={() => setSelectedSession(session)} className="cursor-pointer">
+                                            <TableRow key={session._id} onClick={() => setSelectedSession(session)} className="cursor-pointer">
                                                 <TableCell>
                                                     <div className="font-medium">{session.user.name}</div>
                                                     <div className="hidden text-sm text-muted-foreground md:inline">{session.user.email}</div>
                                                 </TableCell>
                                                 <TableCell><Badge variant="outline">{session.persona}</Badge></TableCell>
                                                 <TableCell><Badge variant={session.status === 'Abandoned' ? 'destructive' : session.status === 'Converted' ? 'secondary' : 'outline'}>{session.status}</Badge></TableCell>
-                                                <TableCell className="text-right">{session.intentScore}</TableCell>
+                                                <TableCell className="text-right">{session.intentScore && typeof session.intentScore.final === 'number' ? session.intentScore.final.toFixed(2) : 'N/A'}</TableCell>
                                             </TableRow>
                                         ))}
                                     </TableBody>

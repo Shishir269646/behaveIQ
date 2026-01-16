@@ -46,7 +46,7 @@ export default function EventsPage() {
 
     if (!website) {
         return (
-            <Alert variant="info">
+            <Alert variant="default">
                 <AlertTitle>Select a Website</AlertTitle>
                 <AlertDescription>Please select a website from the navigation to view events.</AlertDescription>
             </Alert>

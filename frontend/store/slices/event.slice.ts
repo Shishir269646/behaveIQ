@@ -2,6 +2,7 @@
 import { StateCreator } from 'zustand';
 import { api } from '@/lib/api';
 import { AppEvent } from '@/types';
+import { WebsiteSlice } from './website.slice';
 
 export interface EventSlice {
   events: AppEvent[];
@@ -25,7 +26,7 @@ const handleRequest = async (set: any, request: () => Promise<any>) => {
     }
 };
 
-export const createEventSlice: StateCreator<EventSlice, [], [], EventSlice> = (set, get) => ({
+export const createEventSlice: StateCreator<EventSlice & WebsiteSlice, [], [], EventSlice> = (set, get) => ({
     events: [],
     loading: false,
     error: null,

@@ -12,7 +12,7 @@ export interface PersonaSlice {
   createPersona: (personaData: Partial<Persona>) => Promise<void>;
   updatePersona: (personaId: string, personaData: Partial<Persona>) => Promise<void>;
   deletePersona: (personaId: string) => Promise<void>;
-  discoverPersonas: (websiteId: string) => Promise<void>;
+  discoverPersonas: (websiteId: string, sessionData: any) => Promise<void>;
   clearSuccess: () => void;
 }
 

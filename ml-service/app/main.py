@@ -1,9 +1,17 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
+import logging
 
 from app.api.routes import router
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 # Load environment variables
 load_dotenv()
@@ -14,6 +22,27 @@ app = FastAPI(
     description="Machine Learning service for user behavior analysis and personalization",
     version="1.0.0"
 )
+
+@app.exception_handler(ValidationError)
+async def validation_exception_handler(request: Request, exc: ValidationError):
+    """
+    Custom exception handler for Pydantic ValidationErrors to log details.
+    """
+    error_details = exc.errors()
+    logger.error(f"Validation error for request to {request.url}:")
+    logger.error(error_details)
+    # Also log the request body if available
+    try:
+        body = await request.json()
+        logger.error(f"Request body: {body}")
+    except Exception as e:
+        logger.error(f"Could not log request body: {e}")
+
+    return JSONResponse(
+        status_code=422,
+        content={"detail": error_details},
+    )
+
 
 # CORS middleware
 app.add_middleware(

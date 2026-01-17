@@ -22,7 +22,7 @@ from app.models.persona_clustering import PersonaClustering as PersonaClusterer
 from app.models.fraud_model import FraudDetector
 
 from app.services.content_service import ContentService
-from app.services.data_processor import DataProcessor
+from app.utils.numpy_json_encoder import to_python_types
 
 router = APIRouter()
 
@@ -88,28 +88,29 @@ async def predict_fraud(request: FraudRequest):
 @router.post("/clustering/discover-personas")
 async def discover_personas(request: ClusteringRequest):
     """
-    Discover user personas using clustering algorithm
+    Discover user personas using a robust clustering algorithm.
+    Handles data quality issues and provides clear error messages.
     """
     try:
-        # Process session data
-        processor = DataProcessor()
-        processed_data = processor.process_sessions(
-            [s.dict() for s in request.sessionData]
-        )
-
-        # Perform clustering
+        # The UserClustering class now handles its own data processing.
         clustering = UserClustering(
             min_clusters=request.minClusters,
             max_clusters=request.maxClusters
         )
         
-        clusters = clustering.fit_predict(processed_data)
+        # fit_predict now performs validation, preprocessing, and clustering.
+        # It can raise ValueError for specific data quality issues.
+        clusters = clustering.fit_predict([s.dict() for s in request.sessionData])
 
         # Generate persona descriptions
         personas = []
         for cluster_id, cluster_info in clusters.items():
+            # Create a consistent ID for the persona
+            sanitized_name = "".join(filter(str.isalnum, cluster_info["name"])).lower()
+            persona_id = f"persona_{cluster_id}_{sanitized_name}"
+
             persona = {
-                "id": f"persona_{cluster_id}",
+                "id": persona_id,
                 "name": cluster_info["name"],
                 "description": cluster_info["description"],
                 "clusterData": {
@@ -128,14 +129,20 @@ async def discover_personas(request: ClusteringRequest):
             }
             personas.append(persona)
 
-        return {
+        final_response = {
             "success": True,
             "personas": personas,
             "totalClusters": len(personas)
         }
+        return to_python_types(final_response)
+    
+    except ValueError as e:
+        # Catches specific data validation errors from the clustering model
+        raise HTTPException(status_code=422, detail=str(e))
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Generic fallback for unexpected errors
+        raise HTTPException(status_code=500, detail=f"An unexpected internal error occurred: {e}")
 
 
 @router.post("/intent/predict")

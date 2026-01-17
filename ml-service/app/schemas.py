@@ -1,5 +1,5 @@
 # ml-service/app/schemas.py
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Dict, List, Optional, Any
 
 class EmotionRequest(BaseModel):
@@ -36,13 +36,14 @@ class FraudResponse(BaseModel):
     signals: Dict[str, bool]
 
 class SessionData(BaseModel):
-    intentScore: float
-    avgScrollDepth: float
-    totalClicks: int
-    pageViews: int
-    totalTimeSpent: int
-    pagesVisited: List[str]
-    device: Dict[str, Any]
+    id: str = Field(..., alias='_id')
+    intentScore: float = 0.0
+    avgScrollDepth: float = 0.0
+    totalClicks: int = 0
+    pageViews: int = 0
+    totalTimeSpent: int = 0
+    pagesVisited: List[str] = []
+    device: Optional[Dict[str, Any]] = None
 
 class ClusteringRequest(BaseModel):
     websiteId: str

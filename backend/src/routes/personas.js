@@ -17,4 +17,6 @@ router.get('/:id', getPersona);
 router.patch('/:id', updatePersona);
 router.post('/:id/personalization-rules', createPersonalizationRule);
 
+
+
 module.exports = router;

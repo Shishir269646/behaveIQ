@@ -15,6 +15,7 @@ class DataProcessor:
         for session in sessions:
             # Normalize and clean data
             processed_session = {
+                'id': session.get('id'),
                 'intentScore': self._normalize(session.get('intentScore', 0), 0, 1),
                 'avgScrollDepth': self._normalize(session.get('avgScrollDepth', 0), 0, 1),
                 'totalClicks': session.get('totalClicks', 0),

@@ -80,6 +80,7 @@ export interface Persona {
       priceConscious: boolean;
       featureFocused: boolean;
     };
+    confidence: number;
     characteristics: string[];
   };
   stats: {

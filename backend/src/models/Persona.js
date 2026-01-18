@@ -59,6 +59,11 @@ const personaSchema = new mongoose.Schema({
             featureFocused: { type: Boolean, default: false }
         },
 
+        confidence: {
+            type: Number,
+            default: 0
+        },
+
         characteristics: {
             type: [String],
             default: []

@@ -21,6 +21,8 @@ const getPersonas = asyncHandler(async (req, res) => {
 
     const personas = await Persona.find({ websiteId, isActive: true }).sort('-stats.sessionCount');
 
+    
+
     res.json({
         success: true,
         count: personas.length,

@@ -18,7 +18,7 @@ interface PersonaCardProps {
 
 export function PersonaCard({ persona }: PersonaCardProps) {
     const { name, description, clusterData, stats } = persona;
-    const confidence = 0; // Placeholder: confidence property does not exist in Persona.clusterData
+    const confidence = clusterData?.confidence || 0;
     const userCount = stats?.sessionCount || 0;
 
     return (

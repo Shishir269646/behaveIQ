@@ -8,6 +8,8 @@ exports.protect = async (req, res, next) => {
 
   console.log(`Auth middleware: Request to ${req.originalUrl}`);
 
+ 
+
   // Check for token in headers
   if (
     req.headers.authorization &&
@@ -17,31 +19,34 @@ exports.protect = async (req, res, next) => {
     console.log('Auth middleware: Bearer token found.');
   } else if (req.headers['x-api-key']) {
     const apiKey = req.headers['x-api-key'];
+
     console.log('Auth middleware: X-API-Key found.');
 
-    if (apiKey === process.env.DEMO_API_KEY) {
-        console.log('Auth middleware: DEMO_API_KEY recognized. Proceeding with demo context.');
-        const demoWebsite = await Website.findOne({ apiKey: process.env.DEMO_API_KEY });
-        if (!demoWebsite) {
-            console.error('Auth middleware: Demo Website not found for DEMO_API_KEY. Please ensure seeding is correct.');
-            return res.status(500).json({ success: false, message: 'Internal server error: Demo Website not set up.' });
-        }
-        req.website = demoWebsite;
-        // Set req.user to the guest user for demo purposes
-        req.user = await User.findOne({ email: 'guest@behaveiq.com' });
-        if (!req.user) {
-            console.error('Auth middleware: Guest user not found for DEMO_API_KEY. Please ensure seeding is correct.');
-            return res.status(500).json({ success: false, message: 'Internal server error: Guest user not set up.' });
-        }
-        return next(); // Allow request to proceed
-    }
     
+
+    if (apiKey === process.env.DEMO_API_KEY) {
+      console.log('Auth middleware: DEMO_API_KEY recognized. Proceeding with demo context.');
+      const demoWebsite = await Website.findOne({ apiKey: process.env.DEMO_API_KEY });
+      if (!demoWebsite) {
+        console.error('Auth middleware: Demo Website not found for DEMO_API_KEY. Please ensure seeding is correct.');
+        return res.status(500).json({ success: false, message: 'Internal server error: Demo Website not set up.' });
+      }
+      req.website = demoWebsite;
+      // Set req.user to the guest user for demo purposes
+      req.user = await User.findOne({ email: 'guest@behaveiq.com' });
+      if (!req.user) {
+        console.error('Auth middleware: Guest user not found for DEMO_API_KEY. Please ensure seeding is correct.');
+        return res.status(500).json({ success: false, message: 'Internal server error: Guest user not set up.' });
+      }
+      return next(); // Allow request to proceed
+    }
+
     try {
       const website = await Website.findOne({ apiKey });
       if (!website) {
         if (req.originalUrl.startsWith('/api/identity')) {
-            console.warn('Auth middleware: Invalid API Key provided for /api/identity. Website not found.');
-            return res.status(403).json({ success: false, message: 'Forbidden: Invalid API Key or Website not found.' });
+          console.warn('Auth middleware: Invalid API Key provided for /api/identity. Website not found.');
+          return res.status(403).json({ success: false, message: 'Forbidden: Invalid API Key or Website not found.' });
         }
         console.warn('Auth middleware: Invalid API Key - no website found. Allowing to proceed without specific website context.');
         req.website = null; // No website associated with this API key
@@ -68,22 +73,22 @@ exports.protect = async (req, res, next) => {
   // This logic is simplified to allow most SDK tracking to proceed anonymously
   if (!token && !req.headers['x-api-key']) {
     const isSdkTrackingPath = req.originalUrl.startsWith('/api/behavior') ||
-                              req.originalUrl.startsWith('/api/emotion') ||
-                              req.originalUrl.startsWith('/api/identity') ||
-                              req.originalUrl.startsWith('/api/sdk'); // Broad match for SDK endpoints
+      req.originalUrl.startsWith('/api/emotion') ||
+      req.originalUrl.startsWith('/api/identity') ||
+      req.originalUrl.startsWith('/api/sdk'); // Broad match for SDK endpoints
 
     if (isSdkTrackingPath) {
-        if (req.originalUrl.startsWith('/api/identity')) {
-            console.warn('Auth middleware: No API Key provided for /api/identity. Unauthorized.');
-            return res.status(401).json({ success: false, message: 'Unauthorized: API Key is required for identity operations.' });
-        }
-        console.warn('Auth middleware: No token or API key provided for SDK tracking path. Allowing to proceed as anonymous.');
-        req.website = null;
-        req.user = null;
-        return next(); // Allow request to proceed for guest/unidentified flow
+      if (req.originalUrl.startsWith('/api/identity')) {
+        console.warn('Auth middleware: No API Key provided for /api/identity. Unauthorized.');
+        return res.status(401).json({ success: false, message: 'Unauthorized: API Key is required for identity operations.' });
+      }
+      console.warn('Auth middleware: No token or API key provided for SDK tracking path. Allowing to proceed as anonymous.');
+      req.website = null;
+      req.user = null;
+      return next(); // Allow request to proceed for guest/unidentified flow
     } else {
-        console.warn('Auth middleware: No token or API key provided for non-SDK path. Unauthorized.');
-        return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
+      console.warn('Auth middleware: No token or API key provided for non-SDK path. Unauthorized.');
+      return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
     }
   }
 

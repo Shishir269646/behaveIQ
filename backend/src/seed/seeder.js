@@ -46,11 +46,13 @@ const importData = async () => {
         const adminUser = await User.findOne({ email: 'admin@example.com' });
         if (adminUser) {
             const websiteCount = await Website.countDocuments({ userId: adminUser._id });
+            let websiteId;
             if (websiteCount === 0) {
                 const sampleWebsites = websites.map(website => ({ ...website, userId: adminUser._id }));
                 const createdWebsites = await Website.create(sampleWebsites);
                 console.log('Sample websites seeded for admin user.');
                 if (createdWebsites.length > 0) {
+                    websiteId = createdWebsites[0]._id;
                     console.log('---');
                     console.log('🎉 Your API Key for the demo project is:');
                     console.log(createdWebsites[0].apiKey);
@@ -59,11 +61,74 @@ const importData = async () => {
             } else {
                 const existingWebsite = await Website.findOne({ userId: adminUser._id });
                 if (existingWebsite) {
+                    websiteId = existingWebsite._id;
                     console.log('---');
                     console.log('🔑 Your existing API Key for the demo project is:');
                     console.log(existingWebsite.apiKey);
                     console.log('---');
                 }
+            }
+            if (websiteId) {
+                const personas = [
+                  {
+                    "websiteId": websiteId,
+                    "name": "Budget Buyer",
+                    "description": "This persona is price sensitive and looks for deals.",
+                    "clusterData": {
+                      "clusterId": 1,
+                      "avgTimeSpent": 120,
+                      "avgScrollDepth": 0.6,
+                      "avgClickRate": 0.1,
+                      "avgPageViews": 3,
+                      "commonPages": ["/pricing", "/deals"],
+                      "commonDevices": ["mobile"],
+                      "behaviorPattern": {
+                        "exploreMore": false,
+                        "quickDecision": false,
+                        "priceConscious": true,
+                        "featureFocused": false
+                      },
+                      "confidence": 0.85,
+                      "characteristics": ["Price Sensitive", "Looks for Deals"]
+                    },
+                    "stats": {
+                      "sessionCount": 100,
+                      "totalConversions": 10,
+                      "conversionRate": 0.1,
+                      "avgIntentScore": 0.4
+                    }
+                  },
+                  {
+                    "websiteId": websiteId,
+                    "name": "Feature Explorer",
+                    "description": "This persona is interested in the product features.",
+                    "clusterData": {
+                      "clusterId": 2,
+                      "avgTimeSpent": 240,
+                      "avgScrollDepth": 0.8,
+                      "avgClickRate": 0.3,
+                      "avgPageViews": 5,
+                      "commonPages": ["/features", "/docs"],
+                      "commonDevices": ["desktop"],
+                      "behaviorPattern": {
+                        "exploreMore": true,
+                        "quickDecision": false,
+                        "priceConscious": false,
+                        "featureFocused": true
+                      },
+                      "confidence": 0.9,
+                      "characteristics": ["Feature Oriented", "Researches a lot"]
+                    },
+                    "stats": {
+                      "sessionCount": 50,
+                      "totalConversions": 15,
+                      "conversionRate": 0.3,
+                      "avgIntentScore": 0.7
+                    }
+                  }
+                ];
+                await Persona.create(personas);
+                console.log('Sample personas seeded for admin user.');
             }
         }
         

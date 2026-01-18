@@ -1,0 +1,163 @@
+[
+  {
+    "websiteId": {
+      "$oid": "696ccb4ea003306d111cdcc6"
+    },
+    "name": "Enterprise Evaluators",
+    "description": "Business users comparing plans and requesting demos.",
+    "clusterData": {
+      "clusterId": 7,
+      "avgTimeSpent": 420,
+      "avgScrollDepth": 88,
+      "avgClickRate": 3.9,
+      "avgPageViews": 11,
+      "commonPages": [
+        "/enterprise",
+        "/pricing",
+        "/contact"
+      ],
+      "commonDevices": [
+        "desktop"
+      ],
+      "behaviorPattern": {
+        "exploreMore": true,
+        "quickDecision": false,
+        "priceConscious": false,
+        "featureFocused": true
+      },
+      "confidence": 0.89,
+      "characteristics": [
+        "Decision makers",
+        "Multi-session research"
+      ]
+    },
+    "stats": {
+      "sessionCount": 76,
+      "totalConversions": 14,
+      "conversionRate": 18.4,
+      "avgIntentScore": 74.6
+    },
+    "personalizationRules": [
+      {
+        "selector": "#demo-cta",
+        "content": "Schedule a personalized demo",
+        "variation": "demo_focus",
+        "priority": 1,
+        "performance": {
+          "impressions": 128,
+          "conversions": 21,
+          "conversionRate": 16.4
+        }
+      }
+    ],
+    "isActive": true,
+    "isAutoDiscovered": false
+  },
+  {
+    "websiteId": {
+      "$oid": "696ccb4ea003306d111cdcc6"
+    },
+    "name": "Returning Customers",
+    "description": "Previous buyers returning for upgrades or renewals.",
+    "clusterData": {
+      "clusterId": 8,
+      "avgTimeSpent": 165,
+      "avgScrollDepth": 69,
+      "avgClickRate": 6.8,
+      "avgPageViews": 3.5,
+      "commonPages": [
+        "/account",
+        "/upgrade"
+      ],
+      "commonDevices": [
+        "desktop",
+        "mobile"
+      ],
+      "behaviorPattern": {
+        "exploreMore": false,
+        "quickDecision": true,
+        "priceConscious": false,
+        "featureFocused": false
+      },
+      "confidence": 0.96,
+      "characteristics": [
+        "Loyal users",
+        "Low friction"
+      ]
+    },
+    "stats": {
+      "sessionCount": 140,
+      "totalConversions": 62,
+      "conversionRate": 44.3,
+      "avgIntentScore": 88.1
+    },
+    "personalizationRules": [
+      {
+        "selector": ".account-banner",
+        "content": "Welcome back — upgrade in one click",
+        "variation": "returning_user",
+        "priority": 1,
+        "performance": {
+          "impressions": 220,
+          "conversions": 79,
+          "conversionRate": 35.9
+        }
+      }
+    ],
+    "isActive": true,
+    "isAutoDiscovered": false
+  },
+  {
+    "websiteId": {
+      "$oid": "696ccb4ea003306d111cdcc6"
+    },
+    "name": "Discount Hunters",
+    "description": "Users waiting for deals and promotional pricing.",
+    "clusterData": {
+      "clusterId": 9,
+      "avgTimeSpent": 255,
+      "avgScrollDepth": 82,
+      "avgClickRate": 5.2,
+      "avgPageViews": 7.6,
+      "commonPages": [
+        "/pricing",
+        "/deals"
+      ],
+      "commonDevices": [
+        "mobile"
+      ],
+      "behaviorPattern": {
+        "exploreMore": true,
+        "quickDecision": false,
+        "priceConscious": true,
+        "featureFocused": false
+      },
+      "confidence": 0.83,
+      "characteristics": [
+        "Promo-driven",
+        "High revisit rate"
+      ]
+    },
+    "stats": {
+      "sessionCount": 204,
+      "totalConversions": 27,
+      "conversionRate": 13.2,
+      "avgIntentScore": 59.4
+    },
+    "personalizationRules": [
+      {
+        "selector": ".promo-strip",
+        "content": "Flash Sale — 24 hours only!",
+        "variation": "flash_sale",
+        "priority": 1,
+        "performance": {
+          "impressions": 510,
+          "conversions": 68,
+          "conversionRate": 13.3
+        }
+      }
+    ],
+    "isActive": true,
+    "isAutoDiscovered": true
+  }
+]

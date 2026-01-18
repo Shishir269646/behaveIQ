@@ -21,7 +21,7 @@ const handleRequest = async (set: any, request: () => Promise<any>, successMessa
     try {
       const response = await request();
       set({ loading: false, success: successMessage || null });
-      return response.data.data;
+      return response.data;
     } catch (error: any) {
       const message = error.response?.data?.message || error.message;
       set({ error: message, loading: false });
@@ -35,8 +35,8 @@ export const createPersonaSlice: StateCreator<PersonaSlice, [], [], PersonaSlice
     error: null,
     success: null,
     fetchPersonas: async (websiteId: string) => {
-        const personas = await handleRequest(set, () => api.get(`/websites/${websiteId}/personas`));
-        set({ personas });
+        const responseData = await handleRequest(set, () => api.get(`/websites/${websiteId}/personas`));
+        set({ personas: responseData.data.personas || [] });
     },
     createPersona: async (personaData: Partial<Persona>) => {
         await handleRequest(set, () => api.post(`/personas`, personaData), 'Persona created successfully!');

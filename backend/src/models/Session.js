@@ -50,7 +50,7 @@ const sessionSchema = new mongoose.Schema({
       _id: false, // Prevent Mongoose from adding a default _id for click subdocuments
       element: String,
       elementId: String, // Changed from 'id' to 'elementId' to match SDK
-      class: String, // Also capture 'class' from eventData
+      className: String, // Also capture 'class' from eventData
       x: Number,
       y: Number,
       timestamp: Date

@@ -1,10 +1,9 @@
-const ClickEvent = require('../models/ClickEvent');
 const Website = require('../models/Website');
 const Event = require('../models/Event'); // New Import
 const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get heatmap data for a specific page
-// @route   GET /api/v1/heatmap?websiteId=...&pageUrl=...
+
 const getHeatmapData = asyncHandler(async (req, res) => {
     const { websiteId, pageUrl } = req.query;
 
@@ -25,10 +24,12 @@ const getHeatmapData = asyncHandler(async (req, res) => {
     }
 
     // 1. Fetch click events
-    const clicks = await ClickEvent.find({
+    const clicks = await Event.find({
         websiteId,
-        pageUrl
+        'eventData.pageUrl': pageUrl
     }).select('x y -_id');
+
+
 
     const clickData = clicks.map(click => ({
         x: click.x,
@@ -66,8 +67,8 @@ const getHeatmapData = asyncHandler(async (req, res) => {
         eventType: 'hover',
         'eventData.pageUrl': pageUrl
     })
-    .select('eventData.element eventData.timeSpent')
-    .lean();
+        .select('eventData.element eventData.timeSpent')
+        .lean();
 
     const confusionZonesMap = {};
     hoverEvents.forEach(event => {

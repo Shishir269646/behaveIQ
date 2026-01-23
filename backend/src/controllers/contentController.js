@@ -32,6 +32,8 @@ const generateContent = async (req, res, next) => {
             },
         });
 
+        
+
         res.json(content);
     } catch (error) {
         next(error);

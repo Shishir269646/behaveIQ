@@ -234,10 +234,55 @@ const declareWinner = asyncHandler(async (req, res) => {
 });
 
 
+// @desc    Update experiment
+// @route   PUT /api/v1/experiments/:id
+const updateExperiment = asyncHandler(async (req, res) => {
+    let experiment = await Experiment.findById(req.params.id);
+
+    if (!experiment) {
+        return res.status(404).json({ success: false, message: 'Experiment not found' });
+    }
+
+    // Verify ownership
+    const website = await Website.findOne({ _id: experiment.websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    experiment = await Experiment.findByIdAndUpdate(req.params.id, req.body, {
+        new: true,
+        runValidators: true
+    });
+
+    res.json({ success: true, data: { experiment } });
+});
+
+// @desc    Delete experiment
+// @route   DELETE /api/v1/experiments/:id
+const deleteExperiment = asyncHandler(async (req, res) => {
+    const experiment = await Experiment.findById(req.params.id);
+
+    if (!experiment) {
+        return res.status(404).json({ success: false, message: 'Experiment not found' });
+    }
+
+    // Verify ownership
+    const website = await Website.findOne({ _id: experiment.websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+
+    await experiment.remove();
+
+    res.json({ success: true, data: {} });
+});
+
 module.exports = {
     getExperiments,
     createExperiment,
     getExperiment,
+    updateExperiment,
+    deleteExperiment,
     updateExperimentStatus,
     declareWinner
 };

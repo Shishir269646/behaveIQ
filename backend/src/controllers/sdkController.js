@@ -1,6 +1,3 @@
-// =======================
-// Imports (ONLY ONCE)
-// =======================
 const Website = require('../models/Website');
 const Session = require('../models/Session');
 const Persona = require('../models/Persona');
@@ -98,6 +95,8 @@ const track = asyncHandler(async (req, res) => {
         eventData
     });
 
+    
+
     res.status(201).json({ success: true, data: event });
 });
 
@@ -121,6 +120,8 @@ const trackEvent = asyncHandler(async (req, res) => {
         eventType,
         eventData
     });
+
+
 
     res.status(201).json({ success: true, data: event });
 });

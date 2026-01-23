@@ -4,6 +4,8 @@ const {
     getExperiments,
     createExperiment,
     getExperiment,
+    updateExperiment,
+    deleteExperiment,
     updateExperimentStatus,
     declareWinner
 } = require('../controllers/experimentController');
@@ -15,7 +17,11 @@ router.route('/')
     .get(getExperiments)
     .post(createExperiment);
 
-router.get('/:id', getExperiment);
+router.route('/:id')
+    .get(getExperiment)
+    .put(updateExperiment)
+    .delete(deleteExperiment);
+
 router.patch('/:id/status', updateExperimentStatus);
 router.post('/:id/declare-winner', declareWinner);
 

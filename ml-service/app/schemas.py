@@ -4,6 +4,7 @@ from typing import Dict, List, Optional, Any
 
 class EmotionRequest(BaseModel):
     features: Dict
+    page_url: Optional[str] = None
 
 class EmotionResponse(BaseModel):
     emotion: str

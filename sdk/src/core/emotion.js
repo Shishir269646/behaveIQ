@@ -22,7 +22,7 @@ class EmotionTracker {
         currentPage: window.location.href
       };
 
-              const response = await this.sdk.request('/emotions/detect', {
+              const response = await this.sdk.request('/emotion/detect', {
                 method: 'POST',
                 body: {
                   userId: this.sdk.userId,

@@ -59,7 +59,8 @@ class BehaviorTracker {
         // Send every 5 seconds
         if (now - lastTime > 5000) {
           this.sendBehaviorData('mouse_move', {
-            movements: this.mouseData.slice()
+            movements: this.mouseData.slice(),
+            pageUrl: window.location.href
           });
           lastTime = now;
         }
@@ -81,7 +82,8 @@ class BehaviorTracker {
         // Send every 3 seconds
         if (now - lastScrollTime > 3000) {
           this.sendBehaviorData('scroll', {
-            scrollData: this.scrollData.slice()
+            scrollData: this.scrollData.slice(),
+            pageUrl: window.location.href
           });
           lastScrollTime = now;
         }
@@ -92,14 +94,16 @@ class BehaviorTracker {
       document.addEventListener('click', (e) => {
         const clickData = {
           element: e.target.tagName,
-          elementId: e.target.id, // Renamed from 'id'
+          elementId: e.target.id,
           class: e.target.className,
           x: e.clientX,
           y: e.clientY,
+          pageUrl: window.location.href, // ADDED: pageUrl
           timestamp: Date.now()
         };
 
         this.clickData.push(clickData);
+        if (this.sdk.debug) console.log('BqSdk BehaviorTracker: Click event:', clickData); // ADDED: Debug log
 
         this.sendBehaviorData('click', clickData);
       });
@@ -183,6 +187,7 @@ class BehaviorTracker {
         if (this.sdk.debug) console.warn(`BqSdk BehaviorTracker: userId or sessionId not available, skipping ${eventType} tracking.`);
         return;
       }
+      if (this.sdk.debug) console.log('BqSdk BehaviorTracker: Sending behavior data:', { eventType, eventData }); // ADDED: Debug log
       this.sdk.request('/behavior/track', {
         method: 'POST',
         body: {

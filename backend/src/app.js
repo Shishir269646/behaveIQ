@@ -57,25 +57,25 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes (with auth middleware)
-app.use('/api/auth', authRoutes); console.log('Routes mounted: /api/auth');
-app.use('/api/identity', auth, identityRoutes); console.log('Routes mounted: /api/identity');
-app.use('/api/behavior', auth, behaviorRoutes); console.log('Routes mounted: /api/behavior');
-app.use('/api/emotions', auth, emotionRoutes); console.log('Routes mounted: /api/emotions');
-app.use('/api/abandonment', auth, abandonmentRoutes); console.log('Routes mounted: /api/abandonment');
-app.use('/api/device', auth, deviceRoutes); console.log('Routes mounted: /api/device');
-app.use('/api/discount', auth, discountRoutes); console.log('Routes mounted: /api/discount');
-app.use('/api/fraud', auth, fraudRoutes); console.log('Routes mounted: /api/fraud');
-app.use('/api/voice', auth, voiceRoutes); console.log('Routes mounted: /api/voice');
-app.use('/api/content', auth, contentRoutes); console.log('Routes mounted: /api/content');
-app.use('/api/dashboard/heatmap', auth, heatmapRoutes); console.log('Routes mounted: /api/dashboard/heatmap');
-app.use('/api/websites', auth, websitesRoutes); console.log('Routes mounted: /api/websites');
-app.use('/api/dashboard', auth, dashboardRoutes); console.log('Routes mounted: /api/dashboard');
-app.use('/api/events', auth, eventsRoutes); console.log('Routes mounted: /api/events');
-app.use('/api/experiments', auth, experimentsRoutes); console.log('Routes mounted: /api/experiments'); // ADDED
-app.use('/api/personas', auth, personasRoutes); console.log('Routes mounted: /api/personas'); // ADDED
-app.use('/api/users', usersRoutes); console.log('Routes mounted: /api/users'); // ADDED
-app.use('/api/sdk', sdkRoutes); console.log('Routes mounted: /api/sdk'); // ADDED
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/identity', auth, identityRoutes);
+app.use('/api/behavior', auth, behaviorRoutes);
+app.use('/api/emotion', auth, emotionRoutes);
+app.use('/api/abandonment', auth, abandonmentRoutes);
+app.use('/api/device', auth, deviceRoutes);
+app.use('/api/discount', auth, discountRoutes);
+app.use('/api/fraud', auth, fraudRoutes);
+app.use('/api/voice', auth, voiceRoutes);
+app.use('/api/content', auth, contentRoutes);
+app.use('/api/heatmaps', auth, heatmapRoutes);
+app.use('/api/websites', auth, websitesRoutes);
+app.use('/api/dashboard', auth, dashboardRoutes);
+app.use('/api/events', auth, eventsRoutes);
+app.use('/api/experiments', auth, experimentsRoutes);
+app.use('/api/personas', auth, personasRoutes);
+app.use('/api/users', auth, usersRoutes);
+app.use('/api/sdk', sdkRoutes);
 app.get('/api', (req, res) => {
   res.json({
     success: true,

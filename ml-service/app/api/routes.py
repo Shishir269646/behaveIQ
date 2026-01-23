@@ -36,12 +36,24 @@ fraud_detector = FraudDetector()
 # New Endpoints
 # ═══════════════════════════════════════════════════════════════════════════
 
+import logging
+
+# ... (other imports)
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# ... (rest of the file)
+
 @router.post("/predict/emotion", response_model=EmotionResponse)
 async def predict_emotion(request: EmotionRequest):
     """
     Predict user emotion from behavioral features
     """
     try:
+        if request.page_url:
+            logger.info(f"Received emotion prediction request for URL: {request.page_url}")
         result = emotion_predictor.predict(request.features)
         return EmotionResponse(**result)
     except Exception as e:

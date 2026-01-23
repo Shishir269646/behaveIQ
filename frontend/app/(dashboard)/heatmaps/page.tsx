@@ -1,16 +1,26 @@
-// @/app/(dashboard)/heatmaps/page.tsx
+"use client";
+
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import HeatMapGrid from "@/components/ui/heatmap"; // Assuming a custom heatmap component exists
+import Heatmap from "@/components/ui/heatmap";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useHeatmap } from '@/hooks/useHeatmap';
+import { useAppStore } from '@/store';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export default function HeatmapsPage() {
-    // Placeholder data for heatmap
-    const xLabels = new Array(24).fill(0).map((_, i) => `${i}`);
-    const yLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    const data = new Array(yLabels.length)
-      .fill(0)
-      .map(() => new Array(xLabels.length).fill(0).map(() => Math.floor(Math.random() * 100)));
+    const [selectedPage, setSelectedPage] = useState('/home');
+    const [mapType, setMapType] = useState('click');
+    const { data: heatmapData, loading, error, fetchHeatmapData } = useHeatmap();
+    const selectedWebsite = useAppStore((state) => state.website);
+
+    useEffect(() => {
+        if (selectedWebsite?._id && selectedPage) {
+            fetchHeatmapData(selectedWebsite._id, selectedPage);
+        }
+    }, [selectedWebsite, selectedPage, fetchHeatmapData]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -29,7 +39,7 @@ export default function HeatmapsPage() {
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <Label htmlFor="heatmap-type">Map Type</Label>
-                        <Select defaultValue="click">
+                        <Select value={mapType} onValueChange={setMapType}>
                             <SelectTrigger id="heatmap-type" className="w-[120px]">
                                 <SelectValue placeholder="Select type" />
                             </SelectTrigger>
@@ -42,7 +52,7 @@ export default function HeatmapsPage() {
                     </div>
                      <div className="flex items-center gap-2">
                         <Label htmlFor="heatmap-page">Page</Label>
-                        <Select defaultValue="/home">
+                        <Select value={selectedPage} onValueChange={setSelectedPage}>
                             <SelectTrigger id="heatmap-page" className="w-[120px]">
                                 <SelectValue placeholder="Select page" />
                             </SelectTrigger>
@@ -57,10 +67,45 @@ export default function HeatmapsPage() {
               </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* This is a placeholder for the actual heatmap visualization */}
-            <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
-                 <p className="text-muted-foreground">Heatmap visualization would be rendered here.</p>
-            </div>
+            {loading && (
+                <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
+                    <Skeleton className="w-full h-full" />
+                </div>
+            )}
+            {error && (
+                 <div className="w-full h-[400px] bg-muted rounded-lg flex items-center justify-center">
+                    <Alert variant="destructive">
+                        <AlertTitle>Error</AlertTitle>
+                        <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                </div>
+            )}
+            {heatmapData && !loading && !error && (
+                 <div className="w-full h-[400px] rounded-lg">
+                    {mapType === 'click' && <Heatmap data={heatmapData.clicks} width={800} height={400} />}
+                    {mapType === 'scroll' && (
+                        <div className="p-4">
+                            <h3 className="font-bold text-lg">Scroll Depth</h3>
+                            <p>Average Scroll Depth: {heatmapData.scrollDepth.avgScrollDepth}%</p>
+                            <p>Max Scroll Depth: {heatmapData.scrollDepth.maxScrollDepth}%</p>
+                        </div>
+                    )}
+                    {mapType === 'attention' && (
+                        <div className="p-4">
+                            <h3 className="font-bold text-lg">Attention Zones (Top 10)</h3>
+                            <ul>
+                                {heatmapData.confusionZones.map((zone, index) => (
+                                    <li key={index} className="border-b py-2">
+                                        <p><strong>Element:</strong> {zone.element}</p>
+                                        <p>Average Hover Time: {zone.avgHoverTime}s</p>
+                                        <p>Confusion Score: {zone.confusionScore}</p>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </div>
+            )}
           </CardContent>
       </Card>
     </div>

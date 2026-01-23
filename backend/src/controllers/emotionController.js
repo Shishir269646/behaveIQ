@@ -1,10 +1,10 @@
+const { asyncHandler } = require("../utils/helpers");
 const emotionService = require('../services/emotionService');
 const Session = require('../models/Session');
 const User = require('../models/User');
 const Website = require('../models/Website');
 
-const detectEmotion = async (req, res) => {
-  try {
+const detectEmotion = asyncHandler(async (req, res) => {
     const { userId, sessionId, behaviorData } = req.body;
 
     // Detect emotion
@@ -12,38 +12,38 @@ const detectEmotion = async (req, res) => {
 
     // Update session
     await Session.findOneAndUpdate(
-      { sessionId },
-      {
-        $set: { 'emotion.current': result.emotion },
-        $push: {
-          'emotion.changes': {
-            to: result.emotion,
-            timestamp: new Date()
-          }
+        { sessionId },
+        {
+            $set: { 'emotion.current': result.emotion },
+            $push: {
+                'emotion.changes': {
+                    to: result.emotion,
+                    timestamp: new Date()
+                }
+            }
         }
-      }
     );
 
     // Update user profile
     await User.findByIdAndUpdate(userId, {
-      $set: {
-        'emotionalProfile.dominantEmotion': result.emotion
-      },
-      $push: {
-        'emotionalProfile.history': {
-          emotion: result.emotion,
-          timestamp: new Date(),
-          page: behaviorData.currentPage
+        $set: {
+            'emotionalProfile.dominantEmotion': result.emotion
+        },
+        $push: {
+            'emotionalProfile.history': {
+                emotion: result.emotion,
+                timestamp: new Date(),
+                page: behaviorData.currentPage
+            }
         }
-      }
     });
 
     // Ensure that a website context is available from the auth middleware
     if (!req.website) {
-      return res.status(403).json({
-        success: false,
-        error: 'Forbidden: A valid API key linked to a registered website is required.'
-      });
+        return res.status(403).json({
+            success: false,
+            error: 'Forbidden: A valid API key linked to a registered website is required.'
+        });
     }
 
     const websiteapiKey = req.headers['x-api-key'];
@@ -52,35 +52,27 @@ const detectEmotion = async (req, res) => {
 
     // Get appropriate response
     const response = await emotionService.getEmotionResponse(
-      websiteID,
-      result.emotion
+        websiteID,
+        result.emotion
     );
 
     res.json({
-      success: true,
-      data: {
-        emotion: result.emotion,
-        confidence: result.confidence,
-        response
-      }
+        success: true,
+        data: {
+            emotion: result.emotion,
+            confidence: result.confidence,
+            response
+        }
     });
-  } catch (error) {
-    console.error('Emotion detection error:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-};
+});
 
-const getEmotionTrends = async (req, res) => {
-  console.log('--- getEmotionTrends called ---'); // ADDED for debugging
-  try {
+const getEmotionTrends = asyncHandler(async (req, res) => {
+    console.log('--- getEmotionTrends called ---'); // ADDED for debugging
     const { websiteId, timeRange = '7d' } = req.query;
 
     const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
     if (!website) {
-      return res.status(404).json({ success: false, message: 'Website not found' });
+        return res.status(404).json({ success: false, message: 'Website not found' });
     }
 
     const days = parseInt(timeRange) || 7;
@@ -88,69 +80,62 @@ const getEmotionTrends = async (req, res) => {
     startDate.setDate(startDate.getDate() - days);
 
     const emotionTrends = await Session.aggregate([
-      {
-        $match: {
-          websiteId: website._id,
-          createdAt: { $gte: startDate },
-          'emotion.current': { $ne: null }
-        }
-      },
-      {
-        $unwind: '$emotion.changes'
-      },
-      {
-        $group: {
-          _id: {
-            date: { $dateToString: { format: '%Y-%m-%d', date: '$emotion.changes.timestamp' } },
-            emotion: '$emotion.changes.to'
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $group: {
-          _id: '$_id.date',
-          emotions: {
-            $push: {
-              emotion: '$_id.emotion',
-              count: '$count'
+        {
+            $match: {
+                websiteId: website._id,
+                createdAt: { $gte: startDate },
+                'emotion.current': { $ne: null }
             }
-          }
+        },
+        {
+            $unwind: '$emotion.changes'
+        },
+        {
+            $group: {
+                _id: {
+                    date: { $dateToString: { format: '%Y-%m-%d', date: '$emotion.changes.timestamp' } },
+                    emotion: '$emotion.changes.to'
+                },
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $group: {
+                _id: '$_id.date',
+                emotions: {
+                    $push: {
+                        emotion: '$_id.emotion',
+                        count: '$count'
+                    }
+                }
+            }
+        },
+        {
+            $sort: { _id: 1 }
         }
-      },
-      {
-        $sort: { _id: 1 }
-      }
     ]);
 
     const formattedTrends = emotionTrends.map(trend => {
-      const emotions = trend.emotions.reduce((acc, e) => {
-        acc[e.emotion] = e.count;
-        return acc;
-      }, {});
-      return {
-        date: trend._id,
-        ...emotions
-      };
+        const emotions = trend.emotions.reduce((acc, e) => {
+            acc[e.emotion] = e.count;
+            return acc;
+        }, {});
+        return {
+            date: trend._id,
+            ...emotions
+        };
     });
 
     res.json({
-      success: true,
-      data: {
-        trends: formattedTrends
-      }
+        success: true,
+        data: {
+            trends: formattedTrends
+        }
     });
-  } catch (error) {
-    console.error('Error getting emotion trends:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Server error'
-    });
-  }
-};
+});
 
 
 module.exports = {
-  detectEmotion,
-  getEmotionTrends
+    detectEmotion,
+    getEmotionTrends
 };

@@ -27,7 +27,7 @@ import { useEffect } from "react";
 import { Experiment } from "@/types";
 
 export default function ExperimentsPage() {
-    const { experiments, loading: isLoading, error, fetchExperiments } = useAppStore();
+    const { experiments, loading: isLoading, error, fetchExperiments, createExperiment } = useAppStore();
     const selectedWebsite = useAppStore((state) => state.website);
 
     useEffect(() => {
@@ -35,6 +35,19 @@ export default function ExperimentsPage() {
             fetchExperiments(selectedWebsite._id);
         }
     }, [selectedWebsite?._id, fetchExperiments]);
+
+    const handleCreateExperiment = () => {
+        if (!selectedWebsite?._id) return;
+        const newExperiment = {
+            name: `New Experiment ${new Date().toLocaleTimeString()}`,
+            websiteId: selectedWebsite._id,
+            variations: [
+                { name: 'Control', isControl: true, trafficPercentage: 50 },
+                { name: 'Variation A', trafficPercentage: 50 }
+            ]
+        };
+        createExperiment(newExperiment);
+    };
 
     if (error) {
         return (
@@ -49,7 +62,7 @@ export default function ExperimentsPage() {
     <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold">Auto-Pilot A/B Testing</h1>
-            <Button>
+            <Button onClick={handleCreateExperiment}>
                 <PlusCircle className="h-4 w-4 mr-2" />
                 New Experiment
             </Button>

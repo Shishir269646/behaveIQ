@@ -8,14 +8,16 @@ class EmotionService {
   }
 
   // Analyze behavior and detect emotion
-  async detectEmotion(userId, behaviorData) {
+  async detectEmotion(userId, behaviorData, pageUrl) {
+    console.log('--- emotionService.detectEmotion received pageUrl ---', pageUrl);
     try {
       // Extract features from behavior
       const features = this.extractFeatures(behaviorData);
 
       // Call ML service
       const response = await axios.post(`${this.ML_SERVICE_URL}/ml/v1/predict/emotion`, {
-        features
+        features,
+        page_url: pageUrl
       });
 
       const emotion = response.data.emotion;

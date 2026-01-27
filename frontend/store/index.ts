@@ -16,9 +16,28 @@ import { PersonaSlice, createPersonaSlice } from './slices/persona.slice';
 // Combine all slices into one store
 type StoreState = AuthSlice & DashboardSlice & WebsiteSlice & UserSlice & AbandonmentSlice & EventSlice & FraudSlice & UserDeviceSlice & DiscountSlice & ExperimentSlice & PersonaSlice; // Add other slices here with an &
 
-export const useAppStore = create<StoreState>()(
-  devtools(
-    (...a) => ({
+// Conditionally apply devtools middleware
+const createStore = process.env.NODE_ENV !== 'production' && typeof window !== 'undefined'
+  ? create<StoreState>()(
+      devtools(
+        (...a) => ({
+          ...createAuthSlice(...a),
+          ...createDashboardSlice(...a),
+          ...createWebsiteSlice(...a),
+          ...createUserSlice(...a),
+          ...createAbandonmentSlice(...a),
+          ...createEventSlice(...a),
+          ...createFraudSlice(...a),
+          ...createUserDeviceSlice(...a),
+          ...createDiscountSlice(...a),
+          ...createExperimentSlice(...a),
+          ...createPersonaSlice(...a),
+          // ...add other slice creators here
+        }),
+        { name: 'BehaveIQ-Store' }
+      ),
+    )
+  : create<StoreState>()((...a) => ({
       ...createAuthSlice(...a),
       ...createDashboardSlice(...a),
       ...createWebsiteSlice(...a),
@@ -31,7 +50,6 @@ export const useAppStore = create<StoreState>()(
       ...createExperimentSlice(...a),
       ...createPersonaSlice(...a),
       // ...add other slice creators here
-    }),
-    { name: 'BehaveIQ-Store' }
-  ),
-);
+    }));
+
+export const useAppStore = createStore;

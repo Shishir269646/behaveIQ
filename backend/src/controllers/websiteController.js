@@ -1,4 +1,5 @@
 const Website = require('../models/Website');
+const Event = require('../models/Event');
 const { asyncHandler } = require('../utils/helpers');
 
 // @desc    Get all websites for user
@@ -205,6 +206,30 @@ const getSDKScript = asyncHandler(async (req, res) => {
 });
 
 
+// @desc    Get all unique page URLs for a given website
+// @route   GET /api/v1/websites/:websiteId/pages
+const getWebsitePages = asyncHandler(async (req, res) => {
+    const { websiteId } = req.params;
+
+    // Verify user owns the website
+    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    if (!website) {
+        return res.status(403).json({
+            success: false,
+            message: 'You are not authorized to view pages for this website.'
+        });
+    }
+
+    const pages = await Event.distinct('eventData.pageUrl', { websiteId });
+
+    res.json({
+        success: true,
+        count: pages.length,
+        data: { pages }
+    });
+});
+
+
 
 module.exports = {
     getWebsites,
@@ -212,5 +237,6 @@ module.exports = {
     getWebsite,
     updateWebsite,
     deleteWebsite,
-    getSDKScript
+    getSDKScript,
+    getWebsitePages // Export the new function
 };

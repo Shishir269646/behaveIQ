@@ -11,7 +11,7 @@ const eventSchema = new mongoose.Schema({
         ref: 'Website',
         required: true,
         index: true
-    },
+    }, 
     eventType: {
         type: String,
         required: true,

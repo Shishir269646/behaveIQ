@@ -8,7 +8,7 @@ const ClickEvent = require('../models/ClickEvent');
 
 const processClickEvent = async (websiteId, sessionId, eventType, eventData) => {
   try {
-    if (eventType === 'click' && eventData.x === 'number' && typeof eventData.y === 'number') {
+    if (eventType === 'click' && typeof eventData.x === 'number' && typeof eventData.y === 'number') {
       await ClickEvent.create({
         websiteId,
         pageUrl: eventData.pageUrl,
@@ -32,18 +32,16 @@ const trackEvent = async (req, res) => {
   console.log('--- trackEvent req.body ---', req.body);
   try {
     const websiteapiKey = req.headers['x-api-key'];
-
     const website = await Website.findOne({ apiKey: websiteapiKey });
 
-    const websiteID = website._id;
-
-    if (!req.website) {
-      console.log('Behavior trackEvent - website is NOT present.'); // DEBUG LOG
-      return res.status(403).json({
-        success: false,
-        error: 'Forbidden: A valid API key linked to a registered website is required.'
-      });
+    if (!website) {
+        return res.status(403).json({
+            success: false,
+            error: 'Forbidden: A valid API key is required.'
+        });
     }
+
+    const websiteID = website._id;
     console.log('Behavior trackEvent - websiteID:', websiteID); // DEBUG LOG
 
     const { userId, sessionId, eventType, eventData } = req.body;

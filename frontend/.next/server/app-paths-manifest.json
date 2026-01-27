@@ -1,10 +1,6 @@
 {
-  "/page": "app/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/personas/page": "app/(dashboard)/personas/page.js",
-  "/(dashboard)/events/page": "app/(dashboard)/events/page.js",
   "/(dashboard)/experiments/page": "app/(dashboard)/experiments/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/(dashboard)/fraud/page": "app/(dashboard)/fraud/page.js"
+  "/(dashboard)/heatmaps/page": "app/(dashboard)/heatmaps/page.js",
+  "/(dashboard)/experiments/[id]/page": "app/(dashboard)/experiments/[id]/page.js"
 }

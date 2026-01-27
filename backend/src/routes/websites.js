@@ -6,7 +6,8 @@ const {
     getWebsite,
     updateWebsite,
     deleteWebsite,
-    getSDKScript
+    getSDKScript,
+    getWebsitePages // Add this
 } = require('../controllers/websiteController');
 const experimentController = require('../controllers/experimentController'); // New Import
 const personasRouter = require('./personas'); // Import personas router
@@ -32,6 +33,9 @@ router.route('/:id')
     .delete(deleteWebsite);
 
 router.get('/:id/sdk-script', getSDKScript);
+
+// New route to get all unique page URLs for a website
+router.get('/:websiteId/pages', getWebsitePages);
 
 // New route for experiments specific to a website
 router.get('/:id/experiments', experimentController.getExperiments);

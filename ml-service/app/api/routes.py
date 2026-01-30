@@ -219,13 +219,17 @@ async def generate_llm_content(request: ContentGenerationRequest):
             persona=request.persona,
             content_type=request.content_type
         )
-        if not generated_text:
-            raise HTTPException(status_code=500, detail="Failed to generate content.")
 
         return ContentGenerationResponse(generated_content=generated_text)
 
+    except ValueError as e: # Catch specific ValueErrors from ContentService
+        if "quota exceeded" in str(e).lower():
+            raise HTTPException(status_code=429, detail=str(e))
+        else:
+            # For other value errors like content generation blocks
+            raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {str(e)}")
 
 
 @router.post("/analysis/confusion-detection")

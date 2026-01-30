@@ -60,12 +60,17 @@ exports.callMLService = async (endpoint, payload, method = 'POST') => {
             console.error('Payload:', JSON.stringify(payload, null, 2));
 
             let message = 'ML Service error';
-            if (Array.isArray(data?.detail)) {
-                message = data.detail.map(err => `${err.loc?.join(' -> ')} : ${err.msg}`).join(' | ');
-            } else if (typeof data?.detail === 'string') {
+            // Prioritize specific error message from ML service
+            if (typeof data?.detail === 'string' && data.detail.length > 0) {
                 message = data.detail;
+            } else if (Array.isArray(data?.detail)) {
+                message = data.detail.map(err => `${err.loc?.join(' -> ')} : ${err.msg}`).join(' | ');
             } else if (data?.message) {
                 message = data.message;
+            }
+            // Fallback to generic message if nothing specific was found
+            if (message === 'ML Service error' && status >= 500) {
+                 message = `Internal ML Service Error (Status: ${status}). Check ML Service logs for details.`;
             }
 
             throw new Error(message);
@@ -82,15 +87,15 @@ exports.callMLService = async (endpoint, payload, method = 'POST') => {
 
 /**
  * Generate content from ML Service (LLM)
- * @param {object} persona - Persona object
+ * @param {string} personaDescription - Persona description string
  * @param {string} contentType - Content type (e.g., "email", "blog", etc.)
  */
-exports.generateContent = async (persona, contentType) => {
+exports.generateContent = async (personaDescription, contentType) => {
     try {
         return await exports.callMLService(
             '/llm/content-generation',
             {
-                persona,
+                persona: personaDescription, // Pass personaDescription here
                 content_type: contentType
             },
             'POST'

@@ -32,7 +32,7 @@ interface ContentTypeOption {
 }
 
 export default function ContentPage() {
-    const selectedWebsite = useAppStore((state) => state.website); // Get selected website
+    const [selectedWebsite, setSelectedWebsite] = useAppStore((state) => [state.website, state.setSelectedWebsite]); // Get selected website and setter
     const [selectedPersona, setSelectedPersona] = useState<string>(""); // Initialize with empty string
     const [selectedContentType, setSelectedContentType] = useState<string>(""); // Initialize with empty string
     const [generatedContent, setGeneratedContent] = useState<string>("");
@@ -45,6 +45,21 @@ export default function ContentPage() {
     const [availableContentTypes, setAvailableContentTypes] = useState<ContentTypeOption[]>([]);
     const [isLoadingOptions, setIsLoadingOptions] = useState<boolean>(true);
     const [optionsError, setOptionsError] = useState<string | null>(null);
+
+    // State for Session ID
+    const [sessionId, setSessionId] = useState<string | null>(null);
+
+    // Initialize Session ID
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            let currentSessionId = localStorage.getItem('behaveiq_sessionId');
+            if (!currentSessionId) {
+                currentSessionId = crypto.randomUUID(); // Generate a unique ID
+                localStorage.setItem('behaveiq_sessionId', currentSessionId);
+            }
+            setSessionId(currentSessionId);
+        }
+    }, []);
 
     // Fetch dynamic options
     useEffect(() => {
@@ -99,18 +114,32 @@ export default function ContentPage() {
             });
             return;
         }
+        if (!sessionId) {
+            toast({
+                title: "Error",
+                description: "Session ID is not available. Please try again or refresh the page.",
+                variant: "destructive",
+            });
+            return;
+        }
 
         setIsLoading(true);
         setError(null);
         setGeneratedContent("");
         try {
-            // Use api for the /content/generate route
+            const selectedPersonaObject = availablePersonas.find(p => p.id === selectedPersona);
+            if (!selectedPersonaObject) {
+                throw new Error("Selected persona not found.");
+            }
+
+            const personaDescription = selectedPersonaObject.name; // Use name as description (guaranteed string)
+
             const response = await api.post('/content/generate', {
-                websiteId: selectedWebsite._id, // Pass websiteId if needed by ML service
-                persona: selectedPersona, // Pass persona ID
-                contentType: selectedContentType
+                websiteId: selectedWebsite._id,
+                personaDescription: personaDescription, // Pass descriptive persona
+                contentType: selectedContentType,
+                sessionId: sessionId,
             });
-            // Expected response structure: { generated_content: string }
             setGeneratedContent(response.data.generated_content);
 
             toast({

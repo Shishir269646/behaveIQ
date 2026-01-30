@@ -6,10 +6,10 @@ const { asyncHandler } = require('../utils/helpers'); // New Import
 
 const generateContent = async (req, res, next) => {
     try {
-        const { persona, contentType, websiteId } = req.body; // Added websiteId
+        const { personaDescription, contentType, websiteId, sessionId } = req.body; // Added websiteId, sessionId, and personaDescription
         console.log('Content generateContent received websiteId:', websiteId); // DEBUG LOG
-        if (!persona || !contentType || !websiteId) {
-            return res.status(400).json({ message: 'Persona, contentType, and websiteId are required.' });
+        if (!personaDescription || !contentType || !websiteId || !sessionId) {
+            return res.status(400).json({ message: 'Persona Description, ContentType, WebsiteId, and SessionId are required.' });
         }
 
         const website = await Website.findById(websiteId); // Verify website ownership or existence
@@ -18,14 +18,14 @@ const generateContent = async (req, res, next) => {
             return res.status(404).json({ success: false, message: 'Website not found or not authorized.' });
         }
 
-        const content = await mlServiceClient.generateContent(persona, contentType); // Pass websiteId to the ML service if needed
+        const content = await mlServiceClient.generateContent(personaDescription, contentType); // Pass personaDescription to the ML service
         
         await Event.create({
             websiteId: website._id,
-            sessionId: req.body.sessionId || null, // Optional, depending on context
+            sessionId: sessionId,
             eventType: 'content_generated',
             eventData: {
-                personaId: persona,
+                personaDescription: personaDescription, // Store personaDescription
                 contentType: contentType,
                 generatedContentSnippet: content.generated_content ? content.generated_content.substring(0, 200) + '...' : '', // Store snippet
                 // Full content might be too large; consider storing a reference or summary

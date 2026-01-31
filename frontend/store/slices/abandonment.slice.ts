@@ -25,13 +25,19 @@ const handleRequest = async (set: any, request: () => Promise<any>) => {
     }
 };
 
-export const createAbandonmentSlice: StateCreator<AbandonmentSlice, [], [], AbandonmentSlice> = (set) => ({
+export const createAbandonmentSlice: StateCreator<AbandonmentSlice & WebsiteSlice, [], [], AbandonmentSlice> = (set, get) => ({
     data: null,
     loading: false,
     error: null,
     success: null,
     fetchData: async (timeRange: string) => {
-        const data = await handleRequest(set, () => api.get(`/abandonment/stats?timeRange=${timeRange}`));
+        const websiteId = get().website?._id; // Access selectedWebsite from the combined store
+        if (!websiteId) {
+            set({ error: "No website selected to fetch abandonment data.", loading: false });
+            return;
+        }
+
+        const data = await handleRequest(set, () => api.get(`/abandonment/stats?websiteId=${websiteId}&timeRange=${timeRange}`));
         set({ data });
     },
     clearSuccess: () => {

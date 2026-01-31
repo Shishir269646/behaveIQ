@@ -1,5 +1,6 @@
 const Website = require('../models/Website');
 const Intervention = require('../models/Intervention');
+const Session = require('../models/Session'); // Added missing import
 const { asyncHandler } = require('../utils/helpers');
 const abandonmentService = require('../services/abandonmentService');
 

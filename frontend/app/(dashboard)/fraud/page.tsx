@@ -127,8 +127,8 @@ export default function FraudPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                                            <DropdownMenuItem>Mark as Safe</DropdownMenuItem>
+                                            <DropdownMenuItem disabled>View Details</DropdownMenuItem>
+                                            <DropdownMenuItem disabled>Mark as Safe</DropdownMenuItem>
                                         </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>

@@ -72,7 +72,7 @@ export default function DashboardPage() {
     } = useAppStore();
 
     const [selectedSession, setSelectedSession] = React.useState<Session | null>(null);
-    
+
     React.useEffect(() => {
         if (selectedWebsite) {
             fetchDashboardData(selectedWebsite._id, timeRange);
@@ -149,7 +149,7 @@ export default function DashboardPage() {
                                     <p className="text-xs text-muted-foreground">{formatChange(overview.totalVisitors.change)} from last month</p>
                                 </CardContent>
                             </Card>
-                             <Card>
+                            <Card>
                                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                                     <CardTitle className="text-sm font-medium">Total Sessions</CardTitle>
                                     <Activity className="h-4 w-4 text-muted-foreground" />
@@ -208,7 +208,7 @@ export default function DashboardPage() {
                                     <p className="text-xs text-muted-foreground">
                                         {/* This data is not directly available from selectedWebsite.stats in this format */}
                                         {/* For accurate data, would need a dedicated API endpoint for persona summary */}
-                                        No new personas (placeholder)
+                                        Discover personas to generate insights.
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/personas">View Personas</Link>
@@ -248,7 +248,7 @@ export default function DashboardPage() {
                                         Not available (placeholder)
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        No data collected (placeholder)
+                                        No heatmap data collected yet for this website.
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/heatmaps">View Heatmaps</Link>
@@ -265,10 +265,10 @@ export default function DashboardPage() {
                                 <CardContent>
                                     <div className="text-2xl font-bold">
                                         {/* This data is not directly available from selectedWebsite.stats in this format */}
-                                        0 Active (placeholder)
+                                        No active experiments running
                                     </div>
                                     <p className="text-xs text-muted-foreground">
-                                        0 total (placeholder)
+                                        No experiments created yet.
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/experiments">Manage Experiments</Link>
@@ -285,7 +285,7 @@ export default function DashboardPage() {
                                 <CardContent>
                                     <div className="text-2xl font-bold">0</div>
                                     <p className="text-xs text-muted-foreground">
-                                        No content generated (placeholder)
+                                        No content generated yet for this website.
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/content">View Content</Link>
@@ -302,7 +302,7 @@ export default function DashboardPage() {
                                 <CardContent>
                                     <div className="text-2xl font-bold">0.00%</div>
                                     <p className="text-xs text-muted-foreground">
-                                        0 interventions last 30 days (placeholder)
+                                        No interventions recorded yet.
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/abandonment">Analyze Abandonment</Link>
@@ -319,7 +319,7 @@ export default function DashboardPage() {
                                 <CardContent>
                                     <div className="text-2xl font-bold">0 Offered</div>
                                     <p className="text-xs text-muted-foreground">
-                                        Avg. Value: $0.00 (placeholder)
+                                        No discounts offered yet.
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/discounts">Manage Discounts</Link>
@@ -336,7 +336,7 @@ export default function DashboardPage() {
                                 <CardContent>
                                     <div className="text-2xl font-bold">0 Incidents</div>
                                     <p className="text-xs text-muted-foreground">
-                                        0 scores last 30 days (placeholder)
+                                        No fraud incidents detected recently.
                                     </p>
                                     <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
                                         <Link href="/settings">Configure Fraud</Link>
@@ -346,7 +346,7 @@ export default function DashboardPage() {
                         </>
                     )}
                 </div>
-                
+
                 <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
                     {isLoading || !trendData ? (
                         <Skeleton className="h-96" />
@@ -364,7 +364,7 @@ export default function DashboardPage() {
                         <IntentScoreDistributionChart data={(selectedWebsite.stats as any).intentDistribution} />
                     )}
                 </div>
-                 <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
+                <div className="grid gap-4 md:gap-8 lg:grid-cols-1">
                     <Card className="xl:col-span-2">
                         <CardHeader className="flex flex-row items-center">
                             <div className="grid gap-2">
@@ -411,11 +411,11 @@ export default function DashboardPage() {
                                     </TableBody>
                                 </Table>
                             ) : (
-                                                                 <EmptyState
-                                                                     icon={Activity}
-                                                                     title="No recent sessions"
-                                                                     description="There have been no user sessions in the selected time range."
-                                                                 />
+                                <EmptyState
+                                    icon={Activity}
+                                    title="No recent sessions"
+                                    description="There have been no user sessions in the selected time range."
+                                />
                             )}
                         </CardContent>
                     </Card>

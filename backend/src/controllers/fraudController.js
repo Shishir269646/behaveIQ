@@ -1,26 +1,21 @@
 // src/controllers/fraudController.js
 const FraudScore = require('../models/FraudScore');
 const User = require('../models/User');
+const Website = require('../models/Website');
 const { asyncHandler } = require('../utils/helpers'); // Assuming asyncHandler is available
 
-// @desc    Get all fraud events for the current website
-// @route   GET /api/fraud
+// Get all fraud events for the current website
+// 
 const getFraudEvents = asyncHandler(async (req, res) => {
 
-    const websiteapiKey = req.headers['x-api-key'];
-    const website = await Website.findOne({ apiKey: websiteapiKey });
-    const websiteID = website._id;
-
-
-    if (!req.website) {
-        return res.status(403).json({
-            success: false,
-            error: 'Forbidden: A valid API key linked to a registered website is required.'
-        });
+    if (!req.website || !req.website._id) {
+        return res.status(403).json({ success: false, error: 'Forbidden: Website context not provided by authentication.' });
     }
 
+    const websiteID = req.website._id;
+
     const { userId, riskLevel } = req.query;
-    const filter = { websiteId: websiteID }; // Filter by websiteId
+    const filter = { websiteId: websiteID };
     if (userId) filter.userId = userId;
     if (riskLevel) filter.riskLevel = riskLevel;
 
@@ -43,13 +38,17 @@ const checkFraud = async (req, res) => {
         }
 
         const { userId, sessionData } = req.body;
+
+
+
+
         const fraudSettings = req.website.settings.fraudDetectionSettings;
 
         let riskScore = 0;
         const flags = [];
         const signals = {};
 
-        // Define base risk values and adjust based on sensitivity
+
         let baseRisk = {
             tooFastCheckout: 20,
             suspiciousEmail: 15,
@@ -65,7 +64,7 @@ const checkFraud = async (req, res) => {
 
 
         // Check 1: Too fast checkout
-        if (sessionData.checkoutTime < 10) { // Assuming 10 seconds is a threshold
+        if (sessionData.checkoutTime < 10) {
             riskScore += baseRisk.tooFastCheckout;
             flags.push({ type: 'too_fast_checkout', severity: 3, description: 'User completed checkout unusually fast.' });
             signals.tooFastCheckout = true;

@@ -1,37 +1,44 @@
 // @/hooks/useTopPages.ts
-import { useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api';
-import { useAppStore } from '@/store'; // ADDED
+import { useState, useEffect, useCallback } from 'react'
+import { api } from '@/lib/api'
+import { useAppStore } from '@/store' // ADDED
 
-import { PageView, TopPagesData } from '@/types';
+import { PageView, TopPagesData } from '@/types'
 
 export const useTopPages = (timeRange: string = '7d') => {
-    const [data, setData] = useState<TopPagesData | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-    const selectedWebsite = useAppStore((state) => state.website); // ADDED
+  const [data, setData] = useState<TopPagesData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const selectedWebsite = useAppStore((state) => state.website) // ADDED
 
-    const fetchData = useCallback(async () => {
-        if (!selectedWebsite?._id) { // ADDED
-            setIsLoading(false);
-            return;
-        }
+  const fetchData = useCallback(async () => {
+    if (!selectedWebsite?._id) {
+      // ADDED
+      setIsLoading(false)
+      return
+    }
 
-        setIsLoading(true);
-        setError(null);
-        try {
-            const response = await api.get(`/dashboard/top-pages?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`); // MODIFIED
-            setData(response.data.data);
-        } catch (err: any) {
-            setError(err.response?.data?.message || err.message || "Failed to fetch top pages data.");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [timeRange, selectedWebsite?._id]); // MODIFIED
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await api.get(
+        `/dashboard/top-pages?websiteId=${selectedWebsite._id}&timeRange=${timeRange}`
+      ) // MODIFIED
+      setData(response.data.data)
+    } catch (err: any) {
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          'Failed to fetch top pages data.'
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [timeRange, selectedWebsite?._id]) // MODIFIED
 
-    useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
-    return { data, isLoading, error, refetch: fetchData };
-};
+  return { data, isLoading, error, refetch: fetchData }
+}

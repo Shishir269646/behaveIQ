@@ -3,7 +3,7 @@
 > Don't just track your visitors, understand their intent and talk to them personally—automatically.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D16.0.0-brightgreen)](https://nodejs.org/)
 [![Python Version](https://img.shields.io/badge/python-%3E%3D3.11-blue)](https://www.python.org/)
 
 ---
@@ -46,10 +46,10 @@ BEHAVEIQ is a real-time website personalization platform that uses AI to transfo
 
 ### Tech Stack
 
-- **Backend**: Node.js 18+, Express, MongoDB 7.0+, Redis 7+
+- **Backend**: Node.js 16+, Express, MongoDB 7.0+, Redis 7+
 - **Frontend**: Next.js 14, TypeScript, Tailwind CSS, shadcn/ui
 - **SDK**: Vanilla JavaScript (zero dependencies)
-- **ML Service**: Python 3.11+, FastAPI, scikit-learn, OpenAI GPT-4
+- **ML Service**: Python 3.11+, FastAPI, scikit-learn, OpenAI GPT-4, Google Gemini
 - **Infrastructure**: Docker, Docker Compose, Nginx (optional)
 
 ---
@@ -116,7 +116,7 @@ System runs experiments automatically and declares winners based on statistical 
 - Persona-specific testing
 
 ### 💬 6. LLM Content Generation
-Uses OpenAI GPT-4 to generate persona-specific headlines and copy.
+Uses OpenAI GPT-4 (and potentially Google Gemini) to generate persona-specific headlines and copy.
 
 **Capabilities:**
 - Dynamic headline generation
@@ -282,29 +282,29 @@ Modern voice-powered product search.
                      │
                      │ REST API (JWT Auth)
                      ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   Backend API (Node.js + Express)                │
-│                                                                   │
+┌───────────────────────────────────────────────────────────────┐
+│                   Backend API (Node.js + Express)             │
+│                                                               │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
 │  │   Auth   │  │ Websites │  │ Personas │  │Dashboard │       │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘       │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
 │  │ Identity │  │ Emotion  │  │Abandonment│ │ Discount │       │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────┘       │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐                      │
-│  │  Device  │  │  Fraud   │  │  Voice   │                      │
-│  └──────────┘  └──────────┘  └──────────┘                      │
-└───────┬─────────────────────────────────────┬──────────────────┘
-        │                                      │
-        │                                      │ ML Predictions
-        ▼                                      ▼
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                     │
+│  │  Device  │  │  Fraud   │  │  Voice   │                     │
+│  └──────────┘  └──────────┘  └──────────┘                     │
+└───────┬─────────────────────────────────────┬─────────────────┘
+        │                                     │
+        │                                     │ ML Predictions
+        ▼                                     ▼
 ┌──────────────────┐                  ┌──────────────────┐
 │  MongoDB 7.0+    │                  │  ML Service      │
 │  + Redis 7+      │                  │  (Python)        │
 │                  │                  │                  │
 │  - Users         │                  │  - Emotion Model │
 │  - Sessions      │                  │  - Abandonment   │
-│  - Behaviors     │                  │  - Clustering    │
+│  - Behaviting    │                  │  - Clustering    │
 │  - Personas      │                  │  - Fraud Model   │
 │  - Interventions │                  │                  │
 └──────────────────┘                  └──────────────────┘
@@ -313,13 +313,13 @@ Modern voice-powered product search.
         │ SDK Events
         │
 ┌───────┴──────────────────────────────────────────────────┐
-│              SDK (Vanilla JavaScript)                     │
-│         Embedded in Client Websites                       │
-│                                                            │
-│  - Fingerprint Generation    - Emotion Tracking           │
-│  - Behavior Tracking          - Voice Search              │
-│  - Real-time Personalization  - Cart Monitoring           │
-└────────────────────────────────────────────────────────────┘
+│              SDK (Vanilla JavaScript)                    │
+│         Embedded in Client Websites                      │
+│                                                          │
+│  - Fingerprint Generation    - Emotion Tracking          │
+│  - Behavior Tracking          - Voice Search             │
+│  - Real-time Personalization  - Cart Monitoring          │
+└──────────────────────────────────────────────────────────┘
 ```
 
 ### Data Flow
@@ -350,7 +350,7 @@ Logs everything for dashboard analytics
 
 ### Prerequisites
 
-- Node.js 18+ ([Download](https://nodejs.org/))
+- Node.js 16+ ([Download](https://nodejs.org/))
 - Python 3.11+ ([Download](https://www.python.org/))
 - MongoDB 7.0+ ([Download](https://www.mongodb.com/try/download/community))
 - Redis 7+ ([Download](https://redis.io/download))
@@ -602,14 +602,18 @@ behaveiq/
 ├── backend/                    # Node.js Backend API
 │   ├── src/
 │   │   ├── models/            # MongoDB Models
-│   │   │   ├── User.js
-│   │   │   ├── Session.js
 │   │   │   ├── Behavior.js
-│   │   │   ├── Persona.js
-│   │   │   ├── Intervention.js
+│   │   │   ├── ClickEvent.js
 │   │   │   ├── Device.js
 │   │   │   ├── Discount.js
-│   │   │   └── FraudScore.js
+│   │   │   ├── Event.js
+│   │   │   ├── Experiment.js
+│   │   │   ├── FraudScore.js
+│   │   │   ├── Intervention.js
+│   │   │   ├── Persona.js
+│   │   │   ├── Session.js
+│   │   │   ├── User.js
+│   │   │   └── Website.js
 │   │   │
 │   │   ├── controllers/       # Request Handlers
 │   │   │   ├── authController.js
@@ -623,42 +627,52 @@ behaveiq/
 │   │   │   ├── deviceController.js
 │   │   │   ├── discountController.js
 │   │   │   ├── fraudController.js
+│   │   │   ├── sdkController.js
+│   │   │   ├── sessionController.js
+│   │   │   ├── userController.js
 │   │   │   └── voiceController.js
 │   │   │
 │   │   ├── services/          # Business Logic
-│   │   │   ├── fingerprintService.js
-│   │   │   ├── sessionService.js
-│   │   │   ├── emotionService.js
-│   │   │   ├── intentService.js
-│   │   │   ├── personaService.js
 │   │   │   ├── abandonmentService.js
+│   │   │   ├── analyticsService.js
+│   │   │   ├── cacheService.js
 │   │   │   ├── deviceStitchingService.js
 │   │   │   ├── discountService.js
-│   │   │   └── fraudService.js
+│   │   │   ├── emotionService.js
+│   │   │   ├── fingerprintService.js
+│   │   │   ├── intentService.js
+│   │   │   ├── jobService.js
+│   │   │   ├── mlServiceClient.js
+│   │   │   ├── personalizationService.js
+│   │   │   └── productService.js
 │   │   │
 │   │   ├── routes/            # API Routes
-│   │   │   ├── auth.js
-│   │   │   ├── websites.js
-│   │   │   ├── events.js
-│   │   │   ├── personas.js
-│   │   │   ├── dashboard.js
-│   │   │   ├── experiments.js
 │   │   │   ├── abandonment.routes.js
+│   │   │   ├── auth.js
+│   │   │   ├── behavior.routes.js
+│   │   │   ├── content.routes.js
+│   │   │   ├── dashboard.js
 │   │   │   ├── device.routes.js
 │   │   │   ├── discount.routes.js
 │   │   │   ├── emotion.routes.js
+│   │   │   ├── events.js
+│   │   │   ├── experiments.js
 │   │   │   ├── fraud.routes.js
 │   │   │   ├── heatmap.js
 │   │   │   ├── identity.routes.js
+│   │   │   ├── personas.js
 │   │   │   ├── sdk.js
+│   │   │   ├── session.routes.js
+│   │   │   ├── users.js
 │   │   │   ├── voice.routes.js
-│   │   │   └── behavior.routes.js
+│   │   │   └── websites.js
 │   │   │
 │   │   ├── middleware/        # Express Middleware
 │   │   │   ├── auth.js
+│   │   │   ├── errorHandler.js
 │   │   │   ├── rateLimiter.js
-│   │   │   ├── validation.js
-│   │   │   └── errorHandler.js
+│   │   │   ├── session.js
+│   │   │   └── validation.js
 │   │   │
 │   │   ├── utils/             # Utilities
 │   │   │   ├── logger.js
@@ -673,79 +687,61 @@ behaveiq/
 │
 ├── frontend/                   # Next.js Frontend
 │   ├── app/
-│   │   ├── dashboard/
-│   │   │   ├── page.tsx       # Dashboard Overview
-│   │   │   ├── layout.tsx
-│   │   │   └── loading.tsx
-│   │   ├── personas/
-│   │   │   └── page.tsx       # Persona Management
-│   │   ├── experiments/
-│   │   │   └── page.tsx       # A/B Testing
-│   │   ├── heatmaps/
-│   │   │   └── page.tsx       # Heatmap Visualization
-│   │   ├── websites/
-│   │   │   └── page.tsx       # Website Management
-│   │   └── abandonment/
-│   │       └── page.tsx       # Cart Abandonment
+│   │   ├── (auth)/
+│   │   ├── (dashboard)/
+│   │   ├── favicon.ico
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
 │   │
 │   ├── components/
-│   │   ├── ui/                # shadcn/ui Components
-│   │   │   ├── Heatmap.tsx
-│   │   │   └── IntentScoreDistributionChart.tsx
-│   │   │
-│   │   ├── RevenueTrendChart.tsx
-│   │   ├── PersonaDistributionChart.tsx
+│   │   ├── AbandonmentRiskChart.tsx
 │   │   ├── ConversionFunnelChart.tsx
-│   │   ├── RealtimeVisitors.tsx
+│   │   ├── CreateExperimentModal.tsx
+│   │   ├── CreateWebsiteModal.tsx
 │   │   ├── EmotionTrendChart.tsx
-│   │   ├── TopPagesList.tsx
-│   │   ├── SessionDetailSheet.tsx
-│   │   ├── Header.tsx
-│   │   ├── Sidebar.tsx
-│   │   ├── WebsiteSwitcher.tsx
-│   │   ├── PersonaCard.tsx
 │   │   ├── EmptyState.tsx
 │   │   ├── ErrorBoundary.tsx
-│   │   └── InsightsList.tsx
+│   │   ├── Header.tsx
+│   │   ├── InsightsList.tsx
+│   │   ├── IntentScoreDistributionChart.tsx
+│   │   ├── PersonaCard.tsx
+│   │   ├── PersonaDistributionChart.tsx
+│   │   ├── RealtimeVisitors.tsx
+│   │   ├── RevenueTrendChart.tsx
+│   │   ├── SessionDetailSheet.tsx
+│   │   ├── Sidebar.tsx
+│   │   ├── StatCard.tsx
+│   │   ├── SubMenu.tsx
+│   │   ├── TopPagesList.tsx
+│   │   ├── WebsiteSwitcher.tsx
+│   │   └── ui/
 │   │
 │   ├── lib/
 │   │   ├── api.ts             # API Client
-│   │   ├── utils.ts           # Utilities
+│   │   └── utils.ts           # Utilities
 │   │
 │   ├── hooks/
+│   │   ├── use-has-mounted.ts
 │   │   ├── use-toast.ts
-│   │   ├── useAuth.ts
 │   │   ├── useConversionFunnel.ts
-│   │   ├── useDashboard.ts
-│   │   ├── useDiscounts.ts
 │   │   ├── useEmotionTrends.ts
-│   │   ├── useEvents.ts
-│   │   ├── useExperiments.ts
-│   │   ├── useFraud.ts
 │   │   ├── useHeatmap.ts
-│   │   ├── usePersonas.ts
 │   │   ├── useRealtime.ts
 │   │   ├── useTopPages.ts
 │   │   ├── useVoiceSearch.ts
-│   │   ├── useWebsites.ts
-│   │   └── useUserDevices.ts
+│   │   └── useWebsitePages.ts
 │   │
 │   ├── store/
 │   │   ├── index.ts
 │   │   ├── provider.tsx
-│   │   ├── slices/
-│   │   │   ├── auth.slice.ts
-│   │   │   ├── dashboard.slice.ts
-│   │   │   ├── event.slice.ts
-│   │   │   ├── experiment.slice.ts
-│   │   │   ├── persona.slice.ts
-│   │   │   └── website.slice.ts
+│   │   └── slices/
 │   │
 │   ├── types/
 │   │   └── index.ts           # TypeScript Types
 │   │
 │   ├── package.json
-│   ├── tailwind.config.js
+│   ├── tailwind.config.ts
 │   └── tsconfig.json
 │
 ├── sdk/                        # JavaScript SDK
@@ -773,8 +769,6 @@ behaveiq/
 │   │   ├── main.py            # FastAPI App
 │   │   ├── schemas.py
 │   │   ├── api/
-│   │   │   └── routes.py      # FastAPI routes
-│   │   │
 │   │   ├── models/            # ML Models
 │   │   │   ├── abandonment_model.py
 │   │   │   ├── clustering.py  # User clustering
@@ -785,10 +779,6 @@ behaveiq/
 │   │   │   └── recommendation.py
 │   │   │
 │   │   └── services/          # ML Services
-│   │       ├── content_service.py
-│   │       ├── data_processor.py
-│   │       ├── feature_engineer.py
-│   │       └── llm_service.py
 │   │
 │   ├── trained_models/        # Saved Models
 │   ├── requirements.txt
@@ -805,9 +795,9 @@ behaveiq/
 # Backend
 cd backend
 npm run dev         # Start with nodemon (auto-reload)
-npm test           # Run tests
-npm run lint       # Run ESLint
-npm run format     # Format with Prettier
+npm test            # Run tests
+npm run seed        # Seed database with initial data
+npm run seed:destroy # Destroy seeded data
 
 # Frontend
 cd frontend
@@ -815,19 +805,20 @@ npm run dev         # Start dev server
 npm run build      # Build for production
 npm run start      # Start production server
 npm run lint       # Run linting
-npm run type-check # TypeScript check
+npm run format     # Format with Prettier
 
 # ML Service
 cd ml-service
+python -m venv venv  # Create virtual environment
+source venv/bin/activate  # Activate virtual environment (Windows: venv\Scripts\activate)
+pip install -r requirements.txt # Install dependencies
 python -m app.main  # Start service
 pytest             # Run tests
-python -m app.train # Train models
 
 # SDK
 cd sdk
 npm run dev        # Watch mode
 npm run build      # Production build
-npm run test       # Run tests
 ```
 
 ### Git Workflow
@@ -902,29 +893,23 @@ Add to your website's `<head>`:
 
 ```html
 <!-- BEHAVEIQ SDK -->
-<script src="https://cdn.behaveiq.com/sdk/v1/behaveiq.min.js"></script>
+<script src="https://cdn.sdk.com/sdk/v1/behaveiq.min.js"></script>
 <script>
-  BEHAVEIQ.init('your-api-key-here', {
-    // Required
-    apiUrl: 'https://api.behaveiq.com',
-    
-    // Tracking options
-    trackMouse: true,
-    trackScroll: true,
-    trackClicks: true,
-    trackForms: true,
-    
-    // Features
-    autoPersonalize: true,
-    enableEmotionDetection: true,
-    enableCartAbandonment: true,
-    enableVoiceSearch: true,
-    
-    // Advanced
-    debug: false,
-    fps: 10, // Mouse tracking frame rate
-  });
-</script>
+        console.log('Type of BEHAVEIQ:', typeof BEHAVEIQ);
+        if (typeof BEHAVEIQ === 'function') {
+            new BEHAVEIQ({
+                apiKey: 'biq_471f44c757b035f2b5e7ef4fbb629ec71fc3a3abda01ba9a76f676cb94975567',
+                apiUrl: 'http://backend.com/api',
+                trackMouse: true,
+                trackScroll: true,
+                trackClicks: true,
+                autoPersonalize: true,
+                debug: true
+            });
+        } else {
+            console.error('BEHAVEIQ SDK is not loaded correctly or is not a constructor.');
+        }
+    </script>
 ```
 
 ### Custom Events
@@ -1242,14 +1227,11 @@ cd backend
 # Unit tests
 npm test
 
-# Integration tests
-npm run test:integration
+# Seed database with initial data
+npm run seed
 
-# Coverage report
-npm run test:coverage
-
-# Watch mode
-npm run test:watch
+# Destroy seeded data
+npm run seed:destroy
 ```
 
 ### Frontend Tests
@@ -1257,14 +1239,20 @@ npm run test:watch
 ```bash
 cd frontend
 
-# Unit tests
-npm test
+# Start dev server
+npm run dev
 
-# E2E tests
-npm run test:e2e
+# Build for production
+npm run build
 
-# Component tests
-npm run test:components
+# Start production server
+npm run start
+
+# Run linting
+npm run lint
+
+# Format with Prettier
+npm run format
 ```
 
 ### ML Service Tests
@@ -1276,35 +1264,28 @@ cd ml-service
 python -m venv venv
 
 # Activate virtual environment
-source venv/bin/activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
 
+# Run ML service
+python -m app.main
+
 # Run tests
 pytest
-
-# Coverage
-pytest --cov=app --cov-report=html
-
-# Specific test
-pytest tests/test_emotion_model.py -v
 ```
 
-### Integration Tests
+### SDK Tests
 
 ```bash
-# Test full flow
-curl http://localhost:5000/health
-curl http://localhost:8000/health
-curl http://localhost:3000
-
-# Test SDK integration
 cd sdk
-npm run test:integration
 
-# Load testing
-npm run test:load
+# Watch mode
+npm run dev
+
+# Production build
+npm run build
 ```
 
 ---
@@ -1345,7 +1326,7 @@ pm2 logs behaveiq-ml
 
 # Tail specific log file
 tail -f backend/logs/combined.log
-tail -f backend/logs/error.log
+tail -f -n 50 backend/logs/error.log
 ```
 
 ### Metrics to Monitor

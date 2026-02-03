@@ -104,10 +104,15 @@ const Header = () => {
         </SheetTrigger>
         <SheetContent side='left' className='flex flex-col p-6'>
           <Sidebar />
+          <div className='mt-4'>
+            <WebsiteSwitcher />
+          </div>
         </SheetContent>
       </Sheet>
 
-      <WebsiteSwitcher />
+      <div className='hidden md:block'>
+        <WebsiteSwitcher />
+      </div>
 
       <div className='w-full flex-1'>
         <form onSubmit={handleSearchSubmit}>
@@ -123,7 +128,7 @@ const Header = () => {
                 setSearchValue(e.target.value)
               }}
               onFocus={() => setShowSearchResults(searchResults.length > 0)}
-              className='w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3'
+              className='w-full appearance-none bg-background pl-8 shadow-none md:w-auto'
             />
             {isSupported && (
               <Button
@@ -140,7 +145,7 @@ const Header = () => {
               </Button>
             )}
             {showSearchResults && searchResults.length > 0 && (
-              <div className='absolute z-10 w-[calc(100vw-2rem)] max-w-lg md:w-2/3 lg:w-1/3 bg-popover border rounded-md shadow-lg mt-1'>
+              <div className='absolute z-10 w-[calc(100vw-2rem)] max-w-lg md:w-auto bg-popover border rounded-md shadow-lg mt-1'>
                 <Command>
                   <CommandList>
                     <CommandEmpty>No results found.</CommandEmpty>

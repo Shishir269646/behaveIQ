@@ -1,48 +1,38 @@
-import { Card, CardContent } from '@/components/ui/card'
-import { LucideIcon } from 'lucide-react'
+// @/components/StatCard.tsx
+'use client'
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 
 interface StatCardProps {
   title: string
-  value: string | number
-  change?: string
-  icon: LucideIcon
-  iconColor?: string
-  trend?: 'up' | 'down'
+  value: string
+  description?: string
+  icon?: React.ReactNode
+  className?: string
 }
 
-export function StatCard({
+const StatCard = ({
   title,
   value,
-  change,
-  icon: Icon,
-  iconColor = 'text-blue-600',
-  trend,
-}: StatCardProps) {
+  description,
+  icon,
+  className,
+}: StatCardProps) => {
   return (
-    <Card>
-      <CardContent className='p-6'>
-        <div className='flex items-start justify-between'>
-          <div className='space-y-2'>
-            <p className='text-sm font-medium text-gray-600'>{title}</p>
-            <p className='text-3xl font-bold text-gray-900'>{value}</p>
-            {change && (
-              <p
-                className={cn(
-                  'text-sm font-medium',
-                  trend === 'up' ? 'text-green-600' : 'text-red-600'
-                )}
-              >
-                {change}
-              </p>
-            )}
-          </div>
-
-          <div className={cn('p-3 rounded-lg bg-gray-50', iconColor)}>
-            <Icon className='w-6 h-6' />
-          </div>
-        </div>
+    <Card className={cn(className)}>
+      <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+        <CardTitle className='text-sm font-medium'>{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className='text-2xl font-bold'>{value}</div>
+        {description && (
+          <p className='text-xs text-muted-foreground'>{description}</p>
+        )}
       </CardContent>
     </Card>
   )
 }
+
+export default StatCard

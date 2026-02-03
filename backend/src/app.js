@@ -95,6 +95,14 @@ app.use('*', (req, res) => {
   });
 });
 
+app.use('/health', (req, res) => {
+  res.status(404).json({
+    success: true,
+    message: 'BEHAVEIQ API is running',
+    timestamp: new Date(),
+  });
+});
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

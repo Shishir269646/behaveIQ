@@ -5,15 +5,7 @@
       "src": "app/main.py",
       "use": "@vercel/python",
       "config": {
-        "runtime": "python3.10"
+        "runtime": "python3.10",
+        "installCommand": "pip install -r requirements.txt"
       }
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "app/main.py"
-    }
-  ],
-  "installCommand": "uv pip install -r requirements.txt"
 }

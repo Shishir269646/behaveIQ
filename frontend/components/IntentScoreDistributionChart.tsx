@@ -24,7 +24,7 @@ interface IntentScoreDistributionChartProps {
   data: IntentDistribution | null
 }
 
-const COLORS = ['#FF6B6B', '#FFD93D', '#6BCB77'] // Low, Medium, High
+const COLORS = ['#FF6B6B', '#FFD93D', '#6BCB77']
 
 export default function IntentScoreDistributionChart({
   data,
@@ -53,7 +53,7 @@ export default function IntentScoreDistributionChart({
     { name: 'Low Intent', value: data.low },
     { name: 'Medium Intent', value: data.medium },
     { name: 'High Intent', value: data.high },
-  ].filter((item) => item.value > 0) // Filter out zero values
+  ].filter((item) => item.value > 0)
 
   if (chartData.length === 0) {
     return (

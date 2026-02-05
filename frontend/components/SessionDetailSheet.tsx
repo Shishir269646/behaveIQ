@@ -1,4 +1,3 @@
-// @/components/SessionDetailSheet.tsx
 'use client'
 
 import * as React from 'react'
@@ -40,7 +39,7 @@ const eventIcons: { [key: string]: React.ReactNode } = {
   click: <MousePointerClick className='h-4 w-4' />,
   session_start: <CircleUser className='h-4 w-4' />,
   add_to_cart: <ShoppingCart className='h-4 w-4' />,
-  // Add other event types as needed
+  
 }
 
 const deviceIcons: { [key: string]: React.ReactNode } = {

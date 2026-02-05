@@ -1,4 +1,3 @@
-// src/services/fingerprintService.js
 const crypto = require('crypto');
 const Device = require('../models/Device');
 const User = require('../models/User');

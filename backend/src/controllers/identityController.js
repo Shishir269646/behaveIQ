@@ -1,4 +1,3 @@
-// src/controllers/identityController.js
 const fingerprintService = require('../services/fingerprintService');
 const Session = require('../models/Session');
 const Website = require('../models/Website');

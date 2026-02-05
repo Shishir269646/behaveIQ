@@ -1,4 +1,3 @@
-// @/components/PersonaCard.tsx
 import {
   Card,
   CardContent,
@@ -14,7 +13,7 @@ import {
   ScrollText,
   MousePointerClick,
 } from 'lucide-react'
-import { Persona } from '@/types' // Import the full Persona interface
+import { Persona } from '@/types'
 import { formatPercentage, formatNumber } from '@/lib/utils'
 import { Separator } from './ui/separator'
 

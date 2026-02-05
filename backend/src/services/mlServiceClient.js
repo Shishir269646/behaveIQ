@@ -2,12 +2,7 @@ const axios = require('axios');
 
 const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
 
-/**
- * Call ML Service API
- * @param {string} endpoint - ML endpoint (e.g., '/llm/content-generation')
- * @param {object} payload - Data to send
- * @param {string} method - HTTP method (default: 'POST')
- */
+
 exports.callMLService = async (endpoint, payload, method = 'POST') => {
     const url = `${ML_SERVICE_URL}/ml/v1${endpoint}`;
 
@@ -77,7 +72,7 @@ exports.callMLService = async (endpoint, payload, method = 'POST') => {
         }
 
         if (error.request) {
-            // No response (timeout or connection issue)
+            
             throw new Error('ML Service not responding or timeout');
         }
 
@@ -85,17 +80,13 @@ exports.callMLService = async (endpoint, payload, method = 'POST') => {
     }
 };
 
-/**
- * Generate content from ML Service (LLM)
- * @param {string} personaDescription - Persona description string
- * @param {string} contentType - Content type (e.g., "email", "blog", etc.)
- */
+
 exports.generateContent = async (personaDescription, contentType) => {
     try {
         return await exports.callMLService(
             '/llm/content-generation',
             {
-                persona: personaDescription, // Pass personaDescription here
+                persona: personaDescription,
                 content_type: contentType
             },
             'POST'

@@ -30,14 +30,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { CreateWebsiteModal } from './CreateWebsiteModal' // Import the CreateWebsiteModal
+import { CreateWebsiteModal } from './CreateWebsiteModal'
 
 const variationSchema = z.object({
   name: z.string().min(1, 'Variation name is required'),
   trafficPercentage: z.coerce
     .number()
     .min(0)
-    .max(100, 'Traffic percentage cannot exceed 100%'), // Min 0 here, total sum validated later
+    .max(100, 'Traffic percentage cannot exceed 100%'),
   isControl: z.boolean().default(false),
 })
 
@@ -101,19 +101,17 @@ export function CreateExperimentModal({
 
   React.useEffect(() => {
     if (isOpen) {
-      // Fetch websites only when modal is open
       fetchWebsites()
     }
   }, [isOpen, fetchWebsites])
 
-  // Set initial selected website in the dropdown if global selectedWebsite changes
   React.useEffect(() => {
     if (website?._id && websites.some((w) => w._id === website._id)) {
       setSelectedExperimentWebsiteId(website._id)
     } else if (websites.length > 0 && !selectedExperimentWebsiteId) {
-      setSelectedExperimentWebsiteId(websites[0]._id) // Auto-select first if none globally selected
+      setSelectedExperimentWebsiteId(websites[0]._id)
     } else if (websites.length === 0) {
-      setSelectedExperimentWebsiteId(undefined) // Clear selection if no websites
+      setSelectedExperimentWebsiteId(undefined)
     }
   }, [website, websites, selectedExperimentWebsiteId])
 
@@ -121,8 +119,7 @@ export function CreateExperimentModal({
     const subscription = form.watch((value, { name }) => {
       if (name?.startsWith('variations')) {
         if (value.variations) {
-          // Defensive check
-          const typedVariations = value.variations as FormOutput['variations'] // Explicit cast
+          const typedVariations = value.variations as FormOutput['variations']
           const total =
             typedVariations.reduce(
               (sum, v) =>
@@ -137,8 +134,7 @@ export function CreateExperimentModal({
       }
       if (name === 'variations') {
         if (value.variations && value.variations.length > 0) {
-          // Defensive check
-          const typedVariations = value.variations as FormOutput['variations'] // Explicit cast
+          const typedVariations = value.variations as FormOutput['variations']
           const controlCount = typedVariations.filter((v) => v.isControl).length
           if (controlCount === 0) {
             form.setValue(`variations.${0}.isControl`, true)
@@ -171,8 +167,8 @@ export function CreateExperimentModal({
 
   const handleWebsiteCreated = (newWebsiteId: string) => {
     setIsCreateWebsiteModalOpen(false)
-    setSelectedExperimentWebsiteId(newWebsiteId) // Select the newly created website
-    fetchWebsites() // Re-fetch to update the list
+    setSelectedExperimentWebsiteId(newWebsiteId)
+    fetchWebsites()
   }
 
   const onSubmit = async (values: FormInput) => {
@@ -194,24 +190,23 @@ export function CreateExperimentModal({
       await createExperiment({
         name: values.name,
         description: values.description,
-        websiteId: selectedExperimentWebsiteId, // Use the selected ID
+        websiteId: selectedExperimentWebsiteId,
         variations: values.variations.map((v) => ({
           name: v.name,
-          trafficPercentage: Number(v.trafficPercentage), // Explicitly cast to number
-          isControl: v.isControl ?? false, // Ensure it's always boolean
+          trafficPercentage: Number(v.trafficPercentage),
+          isControl: v.isControl ?? false,
           visitors: 0,
           conversions: 0,
           conversionRate: 0,
-          contentType: 'html', // Default content type
+          contentType: 'html',
         })),
         settings: {
           minSampleSize: Number(values.minSampleSize) || 0,
-          minConfidence: 0.95, // Default to 95%
-          maxDuration: 30, // Default to 30 days
+          minConfidence: 0.95,
+          maxDuration: 30,
         },
       })
     } catch (e) {
-      // Error handling is managed by zustand store
     }
   }
 

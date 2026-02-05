@@ -1,17 +1,9 @@
-// src/services/analyticsService.js
+
 const Session = require('../models/Session');
 const Event = require('../models/Event');
-const Website = require('../models/Website'); // Required for website details
+const Website = require('../models/Website');
 
-/**
- * @file This service is intended for advanced analytics and data aggregation
- * beyond basic model queries. It is currently implemented with basic summary
- * functions but can be expanded for more complex analytics features.
- */
 
-/**
- * Get a basic analytics summary for a website over a given time range.
- */
 exports.getWebsiteAnalyticsSummary = async (websiteId, timeRange = '7d') => {
     try {
         const website = await Website.findById(websiteId);
@@ -36,12 +28,7 @@ exports.getWebsiteAnalyticsSummary = async (websiteId, timeRange = '7d') => {
         const totalPageViews = await Event.countDocuments({ ...eventQuery, eventType: 'pageview' });
         const totalUniqueVisitors = await Session.distinct('fingerprint', sessionQuery).then(arr => arr.length);
 
-        // This is a basic example. More advanced analytics might involve:
-        // - Conversion rate calculation
-        // - Funnel analysis
-        // - Cohort analysis
-        // - Performance metrics (e.g., average time on page)
-
+  
         return {
             totalSessions,
             totalPageViews,

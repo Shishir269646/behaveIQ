@@ -1,4 +1,3 @@
-// @/app/(dashboard)/events/page.tsx
 'use client'
 
 import * as React from 'react'
@@ -27,7 +26,7 @@ import {
   LogOut,
   Waves,
 } from 'lucide-react'
-import WebsiteSwitcher from '@/components/WebsiteSwitcher' // Import WebsiteSwitcher
+import WebsiteSwitcher from '@/components/WebsiteSwitcher'
 import { useAppStore } from '@/store'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'

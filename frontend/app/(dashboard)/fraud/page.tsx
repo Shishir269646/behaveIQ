@@ -1,4 +1,3 @@
-// @/app/(dashboard)/fraud/page.tsx
 'use client'
 
 import * as React from 'react'

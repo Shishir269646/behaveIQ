@@ -2,17 +2,16 @@ const Website = require('../models/Website');
 const Event = require('../models/Event');
 const { asyncHandler } = require('../utils/helpers');
 
-// @desc    Get all websites for user
-// @route   GET /api/v1/websites
-// Helper function
-function generateSDKScript(website) { // Changed signature
+// Get all websites for user
+
+function generateSDKScript(website) {
     const cdnUrl = process.env.SDK_CDN_URL || 'http://localhost:3000/sdk/dist/behaveiq.min.js'; // Use SDK_CDN_URL from env or a sensible default
     
-    // Default tracking settings (assuming defaults if settings are not explicitly defined)
+   
     const trackMouse = website.settings?.trackMouse ?? true;
     const trackScroll = website.settings?.trackScroll ?? true;
     const trackClicks = website.settings?.trackClicks ?? true;
-    const autoPersonalize = website.settings?.autoPersonalization ?? false; // Assuming this is part of settings
+    const autoPersonalize = website.settings?.autoPersonalization ?? false;
 
     return `<script src="${cdnUrl}"></script>
 <script>
@@ -25,8 +24,8 @@ function generateSDKScript(website) { // Changed signature
 </script>`;
 }
 
-// @desc    Get all websites for user
-// @route   GET /api/v1/websites
+//  Get all websites for user
+
 const getWebsites = asyncHandler(async (req, res) => {
     const websites = await Website.find({ userId: req.user._id })
         .sort('-createdAt')
@@ -44,8 +43,8 @@ const getWebsites = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Create new website
-// @route   POST /api/v1/websites
+//  Create new website
+
 const createWebsite = asyncHandler(async (req, res) => {
     const { name, domain, industry } = req.body;
 
@@ -72,8 +71,8 @@ const createWebsite = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get single website
-// @route   GET /api/v1/websites/:id
+// Get single website
+
 const getWebsite = asyncHandler(async (req, res) => {
     const website = await Website.findOne({
         _id: req.params.id,
@@ -101,8 +100,8 @@ const getWebsite = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Update website
-// @route   PATCH /api/v1/websites/:id
+//  Update website
+
 const updateWebsite = asyncHandler(async (req, res) => {
     const { name, settings, status, domain } = req.body; // Added domain as it's a top-level field
 
@@ -161,8 +160,8 @@ const updateWebsite = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Delete website
-// @route   DELETE /api/v1/websites/:id
+//  Delete website
+
 const deleteWebsite = asyncHandler(async (req, res) => {
     const website = await Website.findOneAndDelete({
         _id: req.params.id,
@@ -182,8 +181,8 @@ const deleteWebsite = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get SDK script
-// @route   GET /api/v1/websites/:id/sdk-script
+//   Get SDK script
+
 const getSDKScript = asyncHandler(async (req, res) => {
     const website = await Website.findOne({
         _id: req.params.id,

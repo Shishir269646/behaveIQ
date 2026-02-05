@@ -1,4 +1,3 @@
-// @/components/WebsiteSwitcher.tsx
 'use client'
 
 import * as React from 'react'

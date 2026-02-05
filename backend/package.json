@@ -11,6 +11,7 @@
     "seed:destroy": "node src/seed/seeder.js -d"
   },
   "dependencies": {
+    "@upstash/redis": "^1.36.2",
     "axios": "^1.5.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
@@ -34,7 +35,4 @@
   "engines": {
     "node": ">=16.0.0"
   }
-  
 }
-
-

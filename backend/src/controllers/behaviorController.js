@@ -1,9 +1,8 @@
-// src/controllers/behaviorController.js
 const Behavior = require('../models/Behavior');
 const Session = require('../models/Session');
-const Event = require('../models/Event'); // Import Event model
+const Event = require('../models/Event');
 const emotionService = require('../services/emotionService');
-const Website = require('../models/Website'); // Import Website model
+const Website = require('../models/Website');
 const ClickEvent = require('../models/ClickEvent');
 
 const processClickEvent = async (websiteId, sessionId, eventType, eventData) => {
@@ -16,15 +15,13 @@ const processClickEvent = async (websiteId, sessionId, eventType, eventData) => 
         y: eventData.y,
         timestamp: new Date()
       });
-      console.log('ClickEvent created successfully.'); // Debug log
+      console.log('ClickEvent created successfully.');
     } else {
-      console.log('Not a valid click event or missing data:', { eventType, eventData }); // Debug log
+      console.log('Not a valid click event or missing data:', { eventType, eventData });
     }
   } catch (error) {
     console.error('Error processing click event:', error);
-    // Decide how to handle the error. For now, we'll just log it.
-    // In a real-world application, you might want to throw the error
-    // or handle it in a more sophisticated way.
+  
   }
 };
 
@@ -42,14 +39,14 @@ const trackEvent = async (req, res) => {
     }
 
     const websiteID = website._id;
-    console.log('Behavior trackEvent - websiteID:', websiteID); // DEBUG LOG
+    console.log('Behavior trackEvent - websiteID:', websiteID);
 
     const { userId, sessionId, eventType, eventData } = req.body;
 
     // Create behavior event
     const behavior = await Behavior.create({
       userId,
-      websiteId: websiteID, // Associate behavior with the website
+      websiteId: websiteID,
       sessionId,
       eventType,
       eventData,
@@ -63,37 +60,36 @@ const trackEvent = async (req, res) => {
         .json({ success: false, message: 'Mismatched website' });
     }
 
-    // Also create a record in the general Event model for dashboard display
+    
     await Event.create({
       sessionId,
       websiteId: websiteID,
       eventType,
-      eventData: { ...eventData }, // Create a shallow copy
+      eventData: { ...eventData }, 
       timestamp: new Date()
     });
 
-    // Delegate click event processing to the new controller
+    
     if (eventType === 'click') {
       console.log('--- before processClickEvent ---', { eventData });
       await processClickEvent(websiteID, sessionId, eventType, eventData);
     }
 
-    // Update session - websiteId is already on session, no need to add here again
+    
     await Session.findOneAndUpdate(
-      { sessionId, websiteId: websiteID }, // Ensure we update session for the correct website
+      { sessionId, websiteId: websiteID },
       {
         $push: {
           [`behavior.${eventType}s`]: {
             ...eventData,
             timestamp: new Date()
-            // Add websiteId to individual events within session behavior if needed for finer filtering,
-            // but for now, it's on the Session itself.
+            
           }
         }
       }
     );
 
-    // Analyze emotion if enough data
+
     if (eventType === 'mouse_move' || eventType === 'scroll') {
       console.log('--- Inside scroll/mouse_move block, req.body ---', req.body);
       const session = await Session.findOne({ sessionId });

@@ -1,4 +1,3 @@
-// @/app/(auth)/login/page.tsx
 'use client'
 
 import { Button } from '@/components/ui/button'
@@ -47,7 +46,7 @@ export default function LoginPage() {
   async function onSubmit(values: LoginFormInputs) {
     setLoading(true)
     try {
-      await login(values) // Call the login action from the store
+await login(values)
 
       toast({
         title: 'Login Successful',

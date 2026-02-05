@@ -31,7 +31,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { Button } from '@/components/ui/button' // Ensure Button is imported
+import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -39,7 +39,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ChevronDown } from 'lucide-react'
-import { useState } from 'react' // Import useState
+import { useState } from 'react'
 
 export default function ExperimentDetailPage() {
   const params = useParams()
@@ -60,13 +60,13 @@ export default function ExperimentDetailPage() {
       fetchExperiment(experimentId)
     }
     return () => {
-      clearSelectedExperiment() // Clear experiment data on unmount
+      clearSelectedExperiment()
     }
   }, [experimentId, fetchExperiment, clearSelectedExperiment])
 
   useEffect(() => {
     if (selectedExperiment && selectedExperiment.variations.length > 0) {
-      setWinningVariation(selectedExperiment.variations[0].name) // Default to first variation
+      setWinningVariation(selectedExperiment.variations[0].name)
     }
   }, [selectedExperiment])
 

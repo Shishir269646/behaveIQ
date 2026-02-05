@@ -1,4 +1,3 @@
-// @/app/(auth)/register/page.tsx
 'use client'
 
 import { Button } from '@/components/ui/button'
@@ -55,7 +54,7 @@ export default function RegisterPage() {
         name: `${values.firstName} ${values.lastName}`,
         email: values.email,
         password: values.password,
-      }) // Call the register action from the store
+      })
 
       toast({
         title: 'Registration Successful',

@@ -1,4 +1,3 @@
-// @/components/RealtimeVisitors.tsx
 'use client'
 
 import * as React from 'react'

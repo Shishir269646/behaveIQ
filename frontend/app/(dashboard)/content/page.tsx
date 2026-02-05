@@ -1,4 +1,3 @@
-// @/app/(dashboard)/content/page.tsx
 'use client'
 
 import { Button } from '@/components/ui/button'
@@ -18,17 +17,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { useState, useEffect } from 'react' // Added useEffect
-import { api } from '@/lib/api' // Changed from mlApi to api since content/options is a backend route
+import { useState, useEffect } from 'react'
+import { api } from '@/lib/api'
 import { useToast } from '@/hooks/use-toast'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { useAppStore } from '@/store' // New import
+import { useAppStore } from '@/store'
 
 interface PersonaOption {
   id: string
   name: string
-  // Add other relevant fields if needed, e.g., behaviorPattern
+  
 }
 
 interface ContentTypeOption {
@@ -41,14 +40,14 @@ export default function ContentPage() {
     website: state.website,
     selectWebsite: state.selectWebsite,
   }))
-  const [selectedPersona, setSelectedPersona] = useState<string>('') // Initialize with empty string
-  const [selectedContentType, setSelectedContentType] = useState<string>('') // Initialize with empty string
+  const [selectedPersona, setSelectedPersona] = useState<string>('')
+  const [selectedContentType, setSelectedContentType] = useState<string>('')
   const [generatedContent, setGeneratedContent] = useState<string>('')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
 
-  // State for dynamic options
+  
   const [availablePersonas, setAvailablePersonas] = useState<PersonaOption[]>(
     []
   )
@@ -58,22 +57,22 @@ export default function ContentPage() {
   const [isLoadingOptions, setIsLoadingOptions] = useState<boolean>(true)
   const [optionsError, setOptionsError] = useState<string | null>(null)
 
-  // State for Session ID
+  
   const [sessionId, setSessionId] = useState<string | null>(null)
 
-  // Initialize Session ID
+  
   useEffect(() => {
     if (typeof window !== 'undefined') {
       let currentSessionId = localStorage.getItem('behaveiq_sessionId')
       if (!currentSessionId) {
-        currentSessionId = crypto.randomUUID() // Generate a unique ID
+        currentSessionId = crypto.randomUUID()
         localStorage.setItem('behaveiq_sessionId', currentSessionId)
       }
       setSessionId(currentSessionId)
     }
   }, [])
 
-  // Fetch dynamic options
+  
   useEffect(() => {
     const fetchOptions = async () => {
       if (!selectedWebsite?._id) {
@@ -89,9 +88,9 @@ export default function ContentPage() {
         )
         setAvailablePersonas(response.data.data.personas)
         setAvailableContentTypes(response.data.data.contentTypes)
-        // Set default selected values if options are available
+        
         if (response.data.data.personas.length > 0) {
-          setSelectedPersona(response.data.data.personas[0].id) // Use ID for value
+          setSelectedPersona(response.data.data.personas[0].id)
         }
         if (response.data.data.contentTypes.length > 0) {
           setSelectedContentType(response.data.data.contentTypes[0].key)
@@ -156,11 +155,10 @@ export default function ContentPage() {
         throw new Error('Selected persona not found.')
       }
 
-      const personaDescription = selectedPersonaObject.name // Use name as description (guaranteed string)
-
+      const personaDescription = selectedPersonaObject.name
       const response = await api.post('/content/generate', {
         websiteId: selectedWebsite._id,
-        personaDescription: personaDescription, // Pass descriptive persona
+        personaDescription: personaDescription,
         contentType: selectedContentType,
         sessionId: sessionId,
       })

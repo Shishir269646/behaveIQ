@@ -8,10 +8,9 @@ const { asyncHandler } = require('../utils/helpers');
 const mlServiceClient = require('../services/mlServiceClient');
 const { identify } = require('./identityController');
 
-// =======================
-// @desc    Get dynamic SDK script
-// @route   GET /api/v1/sdk/init.js?apiKey=...
-// =======================
+
+//  Get dynamic SDK script
+
 const getSdkScript = asyncHandler(async (req, res) => {
     const { apiKey } = req.query;
 
@@ -100,10 +99,9 @@ const track = asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, data: event });
 });
 
-// =======================
-// @desc    Track SDK event
-// @route   POST /api/v1/sdk/event
-// =======================
+
+// Track SDK event
+
 const trackEvent = asyncHandler(async (req, res) => {
     const { apiKey, eventType, eventData } = req.body;
 
@@ -126,10 +124,9 @@ const trackEvent = asyncHandler(async (req, res) => {
     res.status(201).json({ success: true, data: event });
 });
 
-// =======================
-// @desc    Get personalization rules
-// @route   GET /api/v1/sdk/personalization/:apiKey/:sessionId
-// =======================
+
+// Get personalization rules
+
 const getPersonalization = asyncHandler(async (req, res) => {
     const { apiKey, sessionId } = req.params;
 
@@ -195,10 +192,9 @@ const getPersonalization = asyncHandler(async (req, res) => {
     });
 });
 
-// =======================
-// @desc    Calculate intent score
-// @route   POST /api/v1/sdk/intent
-// =======================
+
+// Calculate intent score
+
 const calculateIntent = asyncHandler(async (req, res) => {
     const { apiKey, sessionId, sessionData } = req.body;
 
@@ -253,9 +249,9 @@ const calculateIntent = asyncHandler(async (req, res) => {
     });
 });
 
-// =======================
+
 // Exports
-// =======================
+
 module.exports = {
     getSdkScript,
     trackEvent,

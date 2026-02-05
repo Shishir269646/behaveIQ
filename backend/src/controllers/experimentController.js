@@ -3,10 +3,10 @@ const Website = require('../models/Website');
 const Session = require('../models/Session');
 const { asyncHandler } = require('../utils/helpers');
 
-// @desc    Get all experiments
-// @route   GET /api/v1/experiments?websiteId=xxx&status=active
+//  Get all experiments
+
 const getExperiments = asyncHandler(async (req, res) => {
-    // Determine websiteId from either req.query (for /experiments) or req.params.id (for /websites/:id/experiments)
+    
     const websiteId = req.query.websiteId || req.params.id;
     const { status } = req.query;
 
@@ -41,8 +41,8 @@ const getExperiments = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Create new experiment
-// @route   POST /api/v1/experiments
+//   Create new experiment
+
 const createExperiment = asyncHandler(async (req, res) => {
     const {
         websiteId,
@@ -94,8 +94,8 @@ const createExperiment = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get single experiment with results
-// @route   GET /api/v1/experiments/:id
+//  Get single experiment with results
+
 const getExperiment = asyncHandler(async (req, res) => {
     const experiment = await Experiment.findById(req.params.id);
 
@@ -153,8 +153,8 @@ const getExperiment = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Update experiment status
-// @route   PATCH /api/v1/experiments/:id/status
+//  Update experiment status
+
 const updateExperimentStatus = asyncHandler(async (req, res) => {
     const { status } = req.body;
 
@@ -186,8 +186,8 @@ const updateExperimentStatus = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Declare winner manually
-// @route   POST /api/v1/experiments/:id/declare-winner
+//  Declare winner manually
+
 const declareWinner = asyncHandler(async (req, res) => {
     const { winningVariation } = req.body;
 
@@ -234,8 +234,8 @@ const declareWinner = asyncHandler(async (req, res) => {
 });
 
 
-// @desc    Update experiment
-// @route   PUT /api/v1/experiments/:id
+//    Update experiment
+
 const updateExperiment = asyncHandler(async (req, res) => {
     let experiment = await Experiment.findById(req.params.id);
 
@@ -257,8 +257,8 @@ const updateExperiment = asyncHandler(async (req, res) => {
     res.json({ success: true, data: { experiment } });
 });
 
-// @desc    Delete experiment
-// @route   DELETE /api/v1/experiments/:id
+//  Delete experiment
+
 const deleteExperiment = asyncHandler(async (req, res) => {
     const experiment = await Experiment.findById(req.params.id);
 
@@ -266,7 +266,7 @@ const deleteExperiment = asyncHandler(async (req, res) => {
         return res.status(404).json({ success: false, message: 'Experiment not found' });
     }
 
-    // Verify ownership
+    
     const website = await Website.findOne({ _id: experiment.websiteId, userId: req.user._id });
     if (!website) {
         return res.status(403).json({ success: false, message: 'Not authorized' });

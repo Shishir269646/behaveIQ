@@ -1,3 +1,8 @@
+/**
+ * @fileoverview Database configuration.
+ * This file handles the connection to the MongoDB database.
+ */
+
 const mongoose = require('mongoose');
 
 const connectDB = async () => {

@@ -28,7 +28,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { useEffect, useState } from 'react'
-import { useAppStore } from '@/store' // Import useAppStore
+import { useAppStore } from '@/store'
 import { SubMenu } from './SubMenu'
 
 const Sidebar = () => {
@@ -38,17 +38,15 @@ const Sidebar = () => {
     loading: isLoadingExperiments,
     fetchExperiments,
     website: selectedWebsite,
-  } = useAppStore() // Get experiments data and actions from store
+  } = useAppStore()
   const [activeExperimentCount, setActiveExperimentCount] = useState(0)
 
-  // Fetch experiments when selectedWebsite changes
   useEffect(() => {
     if (selectedWebsite?._id) {
       fetchExperiments(selectedWebsite._id)
     }
   }, [selectedWebsite?._id, fetchExperiments])
 
-  // Update active experiment count whenever experiments data changes
   useEffect(() => {
     if (experiments) {
       const activeCount = experiments.filter(

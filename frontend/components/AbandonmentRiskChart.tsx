@@ -1,4 +1,3 @@
-// frontend/components/AbandonmentRiskChart.tsx
 import React from 'react'
 import {
   LineChart,
@@ -19,7 +18,6 @@ interface AbandonmentRiskChartProps {
 const AbandonmentRiskChart: React.FC<AbandonmentRiskChartProps> = ({
   data,
 }) => {
-  // Sort data by date to ensure correct trend display
   const sortedData = [...data].sort(
     (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   )

@@ -31,8 +31,8 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip' // Import tooltip components
-import { Experiment } from '@/types' // Import Experiment interface
+} from '@/components/ui/tooltip'
+import { Experiment } from '@/types'
 
 export default function ExperimentsPage() {
   const {

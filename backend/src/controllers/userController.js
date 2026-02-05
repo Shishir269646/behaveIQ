@@ -1,11 +1,13 @@
+
+
 const User = require('../models/User');
 const { asyncHandler } = require('../utils/helpers');
 
-// @desc    Get all users
-// @route   GET /api/v1/users
-// @access  Private/Admin
+// Get all users
+
+
 const getUsers = asyncHandler(async (req, res) => {
-    const users = await User.find().select('-password'); // Exclude password from results
+    const users = await User.find().select('-password');
     res.json({
         success: true,
         count: users.length,
@@ -13,9 +15,8 @@ const getUsers = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get single user
-// @route   GET /api/v1/users/:id
-// @access  Private/Admin
+// Get single user
+
 const getUser = asyncHandler(async (req, res, next) => {
     const user = await User.findById(req.params.id).select('-password');
 
@@ -33,12 +34,11 @@ const getUser = asyncHandler(async (req, res, next) => {
 });
 
 // @desc    Update user
-// @route   PUT /api/v1/users/:id
-// @access  Private/Admin
-const updateUser = asyncHandler(async (req, res, next) => {
-    const { email, fullName, companyName, plan, role, settings } = req.body; // Added settings
 
-    let user = await User.findById(req.params.id).select('+password'); // Fetch user to merge settings
+const updateUser = asyncHandler(async (req, res, next) => {
+    const { email, fullName, companyName, plan, role, settings } = req.body;
+
+    let user = await User.findById(req.params.id).select('+password');
 
     if (!user) {
         return res.status(404).json({
@@ -57,12 +57,12 @@ const updateUser = asyncHandler(async (req, res, next) => {
     // Merge settings if provided
     if (settings && typeof settings === 'object') {
         user.settings = {
-            ...user.settings, // Preserve existing settings
-            ...settings       // Merge new settings
+            ...user.settings,
+            ...settings
         };
     }
 
-    await user.save(); // Save the updated user
+    await user.save();
 
     // Exclude password before sending response
     const updatedUser = await User.findById(user._id).select('-password');
@@ -73,9 +73,8 @@ const updateUser = asyncHandler(async (req, res, next) => {
     });
 });
 
-// @desc    Delete user
-// @route   DELETE /api/v1/users/:id
-// @access  Private/Admin
+//   Delete user
+
 const deleteUser = asyncHandler(async (req, res, next) => {
     const user = await User.findById(req.params.id);
 
@@ -86,8 +85,7 @@ const deleteUser = asyncHandler(async (req, res, next) => {
         });
     }
 
-    await user.deleteOne(); // Use deleteOne() to trigger middleware if any
-
+    await user.deleteOne();
     res.json({
         success: true,
         data: {}

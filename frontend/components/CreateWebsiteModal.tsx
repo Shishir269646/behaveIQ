@@ -30,7 +30,7 @@ type FormValues = z.infer<typeof formSchema>
 interface CreateWebsiteModalProps {
   isOpen: boolean
   onClose: () => void
-  onWebsiteCreated?: (websiteId: string) => void // Optional callback
+  onWebsiteCreated?: (websiteId: string) => void
 }
 
 export function CreateWebsiteModal({
@@ -55,13 +55,11 @@ export function CreateWebsiteModal({
       form.reset()
       clearSuccess()
       onClose()
-      // Call callback with the ID of the newly created website
       if (onWebsiteCreated) {
         onWebsiteCreated(websites[websites.length - 1]._id)
       }
     }
     if (error) {
-      // Handle error display if needed
       console.error('Error creating website:', error)
     }
   }, [success, error, onClose, form, clearSuccess, websites, onWebsiteCreated])
@@ -74,7 +72,6 @@ export function CreateWebsiteModal({
         industry: values.industry,
       })
     } catch (e) {
-      // Error handling is managed by zustand store
     }
   }
 

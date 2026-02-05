@@ -1,4 +1,3 @@
-// @/components/RevenueTrendChart.tsx
 'use client'
 
 import * as React from 'react'

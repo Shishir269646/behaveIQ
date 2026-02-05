@@ -1,3 +1,4 @@
+
 // src/controllers/fraudController.js
 const FraudScore = require('../models/FraudScore');
 const User = require('../models/User');

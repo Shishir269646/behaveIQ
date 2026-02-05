@@ -1,6 +1,6 @@
 const Website = require('../models/Website');
 const Intervention = require('../models/Intervention');
-const Session = require('../models/Session'); // Added missing import
+const Session = require('../models/Session');
 const { asyncHandler } = require('../utils/helpers');
 const abandonmentService = require('../services/abandonmentService');
 
@@ -39,8 +39,8 @@ const trackInterventionResponse = async (req, res) => {
   }
 };
 
-// @desc    Get abandonment statistics for a website
-// @route   GET /api/v1/abandonment/stats?websiteId=xxx&timeRange=7d
+// Get abandonment statistics for a website
+
 const getAbandonmentStats = asyncHandler(async (req, res) => {
     const { websiteId, timeRange = '7d' } = req.query;
 

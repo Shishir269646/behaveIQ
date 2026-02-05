@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Main application entry point.
+ * This file sets up the Express application, configures middleware,
+ * connects to the database, and defines the main routes.
+ */
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -22,11 +28,11 @@ const heatmapRoutes = require('./routes/heatmap');
 const websitesRoutes = require('./routes/websites');
 const dashboardRoutes = require('./routes/dashboard');
 const eventsRoutes = require('./routes/events');
-const experimentsRoutes = require('./routes/experiments'); // ADDED: Import experiments routes
+const experimentsRoutes = require('./routes/experiments');
 
-const personasRoutes = require('./routes/personas'); // ADDED: Import personas routes
-const usersRoutes = require('./routes/users'); // ADDED: Import user routes
-const sdkRoutes = require('./routes/sdk'); // ADDED: Import SDK routes
+const personasRoutes = require('./routes/personas');
+const usersRoutes = require('./routes/users');
+const sdkRoutes = require('./routes/sdk');
 
 // Import middleware
 const { protect: auth } = require('./middleware/auth');
@@ -95,13 +101,7 @@ app.use('*', (req, res) => {
   });
 });
 
-app.use('/health', (req, res) => {
-  res.status(404).json({
-    success: true,
-    message: 'BEHAVEIQ API is running',
-    timestamp: new Date(),
-  });
-});
+
 
 const PORT = process.env.PORT || 5000;
 

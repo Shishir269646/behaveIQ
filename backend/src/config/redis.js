@@ -1,31 +1,28 @@
-const Redis = require('ioredis');
+/**
+ * @fileoverview Redis configuration.
+ * This file handles the connection and configuration for Redis.
+ */
 
-let redisErrorLogged = false; // Add this flag
+const { Redis } = require("@upstash/redis");
+
+let redisErrorLogged = false;
 
 const redis = new Redis({
-  host: process.env.REDIS_HOST || 'localhost',
-  port: process.env.REDIS_PORT || 6379,
-  password: process.env.REDIS_PASSWORD || undefined,
-  maxRetriesPerRequest: null, // Allow indefinite retries for commands
-  retryStrategy: (times) => {
-    const delay = Math.min(times * 50, 2000);
-    return delay;
-  }
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-redis.on('connect', () => {
-  console.log('✅ Redis Connected');
-  redisErrorLogged = false; // Reset flag on successful connection
-});
-
-redis.on('error', (err) => {
-  if (err.code === 'ECONNREFUSED' && !redisErrorLogged) {
-    console.error('❌ Redis Connection Error: Could not connect to Redis server. Please ensure Redis is running.');
-    redisErrorLogged = true; // Set flag after logging the specific error once
-  } else if (err.code !== 'ECONNREFUSED') {
-    // Log other types of Redis errors normally
-    console.error('❌ Redis Error:', err);
+(async () => {
+  try {
+    await redis.ping();
+    console.log("✅ Upstash Redis Connected");
+    redisErrorLogged = false;
+  } catch (err) {
+    if (!redisErrorLogged) {
+      console.error("❌ Upstash Redis Connection Error:", err.message);
+      redisErrorLogged = true;
+    }
   }
-});
+})();
 
 module.exports = redis;

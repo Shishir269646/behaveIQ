@@ -291,7 +291,6 @@ export default function SettingsPage() {
       toast({
         title: 'Validation Error',
         description: 'Full Name cannot be empty.',
-        variant: 'destructive',
       })
       return
     }

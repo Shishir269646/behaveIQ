@@ -1,15 +1,14 @@
-// src/controllers/discountController.js
 const discountService = require('../services/discountService');
 const Discount = require('../models/Discount');
-const { asyncHandler } = require('../utils/helpers'); // Assuming asyncHandler is available
+const { asyncHandler } = require('../utils/helpers');
 
-// @desc    Get all active discounts
-// @route   GET /api/discounts
+//  Get all active discounts
+
 const getDiscounts = asyncHandler(async (req, res) => {
-  console.log('--- getDiscounts called ---'); // ADDED for debugging
-  console.log(`userId: ${req.user._id}`); // ADDED for debugging
+  console.log('--- getDiscounts called ---');
+  console.log(`userId: ${req.user._id}`);
   const discounts = await Discount.find({
-    userId: req.user._id, // Filter by user
+    userId: req.user._id,
     status: 'active',
     $or: [{ expiresAt: { $gt: new Date() } }, { expiresAt: null }]
   });
@@ -21,8 +20,8 @@ const getDiscounts = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Create new discount
-// @route   POST /api/discounts
+//   Create new discount
+
 const createDiscount = asyncHandler(async (req, res) => {
     const { websiteId, code, type, value, reasons, applicableTo, expiresAt } = req.body;
 
@@ -43,8 +42,8 @@ const createDiscount = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Update discount
-// @route   PATCH /api/discounts/:id
+//   Update discount
+
 const updateDiscount = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { code, type, value, reasons, applicableTo, expiresAt, status } = req.body;
@@ -65,8 +64,8 @@ const updateDiscount = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Delete discount
-// @route   DELETE /api/discounts/:id
+//   Delete discount
+
 const deleteDiscount = asyncHandler(async (req, res) => {
     const { id } = req.params;
 

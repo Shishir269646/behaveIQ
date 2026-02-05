@@ -1,11 +1,13 @@
+
+
 const Persona = require('../models/Persona');
 const Website = require('../models/Website');
 const Session = require('../models/Session');
 const { callMLService } = require('../services/mlServiceClient');
 const { asyncHandler } = require('../utils/helpers');
 
-// @desc    Get all personas for a specific website
-// @route   GET /api/v1/websites/:id/personas
+// Get all personas for a specific website
+
 const getPersonas = asyncHandler(async (req, res) => {
     console.log('--- getPersonas called ---');
     const websiteId = req.params.websiteId;

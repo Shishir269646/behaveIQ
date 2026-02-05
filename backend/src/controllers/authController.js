@@ -1,8 +1,8 @@
 const User = require('../models/User');
 const { asyncHandler } = require('../utils/helpers');
 
-// @desc    Register user
-// @route   POST /api/v1/auth/register
+// Register user
+
 const register = asyncHandler(async (req, res) => {
     const { email, password, fullName, companyName } = req.body;
 
@@ -36,15 +36,15 @@ const register = asyncHandler(async (req, res) => {
                 companyName: user.companyName,
                 plan: user.plan,
                 role: user.role,
-                settings: user.settings // New
+                settings: user.settings 
             },
             token
         }
     });
 });
 
-// @desc    Login user
-// @route   POST /api/v1/auth/login
+//  Login user
+
 const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
 
@@ -103,8 +103,8 @@ const login = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get current user
-// @route   GET /api/v1/auth/me
+//  Get current user
+
 const getMe = asyncHandler(async (req, res) => {
     res.json({
         success: true,
@@ -114,8 +114,8 @@ const getMe = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Logout
-// @route   POST /api/v1/auth/logout
+//  Logout
+
 const logout = asyncHandler(async (req, res) => {
     res.json({
         success: true,

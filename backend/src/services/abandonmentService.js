@@ -1,7 +1,7 @@
 const mlServiceClient = require('./mlServiceClient');
 const Session = require('../models/Session');
 const Intervention = require('../models/Intervention');
-const Website = require('../models/Website'); // Needed to get website settings for interventions
+const Website = require('../models/Website');
 
 const predictAbandonmentRisk = async (sessionId, websiteId, userId) => {
     try {
@@ -70,9 +70,9 @@ const trackInterventionResponse = async (interventionId, responseStatus, session
             // Assuming we might also get revenue data
             // intervention.outcome.revenue = someRevenueValue;
         } else if (responseStatus === 'clicked') {
-            intervention.response.effectiveness = 0.5; // Partial effectiveness
+            intervention.response.effectiveness = 0.5;
         } else {
-            intervention.response.effectiveness = 0; // Not effective
+            intervention.response.effectiveness = 0; 
         }
 
         await intervention.save();

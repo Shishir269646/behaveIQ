@@ -1,4 +1,3 @@
-// src/controllers/deviceController.js
 const deviceStitchingService = require('../services/deviceStitchingService');
 const Device = require('../models/Device');
 

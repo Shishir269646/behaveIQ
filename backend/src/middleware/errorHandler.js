@@ -6,7 +6,7 @@ const errorHandler = (err, req, res, next) => {
   let errors = [];
 
   // Handle express-validator errors
-  if (err.array) { // Check if it's an express-validator error object
+  if (err.array) {
     statusCode = 400; // Bad Request
     message = 'Validation Failed';
     errors = err.array().map(error => ({ field: error.param, message: error.msg }));

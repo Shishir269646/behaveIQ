@@ -1,34 +1,34 @@
 const mlServiceClient = require('../services/mlServiceClient');
-const Persona = require('../models/Persona'); // New Import
-const Website = require('../models/Website'); // New Import
-const Event = require('../models/Event'); // New Import
-const { asyncHandler } = require('../utils/helpers'); // New Import
+const Persona = require('../models/Persona');
+const Website = require('../models/Website');
+const Event = require('../models/Event');
+const { asyncHandler } = require('../utils/helpers');
 
 const generateContent = async (req, res, next) => {
     try {
-        const { personaDescription, contentType, websiteId, sessionId } = req.body; // Added websiteId, sessionId, and personaDescription
-        console.log('Content generateContent received websiteId:', websiteId); // DEBUG LOG
+        const { personaDescription, contentType, websiteId, sessionId } = req.body;
+        console.log('Content generateContent received websiteId:', websiteId);
         if (!personaDescription || !contentType || !websiteId || !sessionId) {
             return res.status(400).json({ message: 'Persona Description, ContentType, WebsiteId, and SessionId are required.' });
         }
 
-        const website = await Website.findById(websiteId); // Verify website ownership or existence
-        console.log('Website found by ID:', website ? website._id : 'No website found'); // DEBUG LOG
+        const website = await Website.findById(websiteId);
+        console.log('Website found by ID:', website ? website._id : 'No website found');
         if (!website || website.userId.toString() !== req.user.id) {
             return res.status(404).json({ success: false, message: 'Website not found or not authorized.' });
         }
 
-        const content = await mlServiceClient.generateContent(personaDescription, contentType); // Pass personaDescription to the ML service
+        const content = await mlServiceClient.generateContent(personaDescription, contentType);
         
         await Event.create({
             websiteId: website._id,
             sessionId: sessionId,
             eventType: 'content_generated',
             eventData: {
-                personaDescription: personaDescription, // Store personaDescription
+                personaDescription: personaDescription,
                 contentType: contentType,
                 generatedContentSnippet: content.generated_content ? content.generated_content.substring(0, 200) + '...' : '', // Store snippet
-                // Full content might be too large; consider storing a reference or summary
+                
             },
         });
 
@@ -41,7 +41,7 @@ const generateContent = async (req, res, next) => {
 };
 
 const getContentOptions = asyncHandler(async (req, res) => {
-    const { websiteId } = req.query; // Assuming websiteId is passed as a query parameter
+    const { websiteId } = req.query;
 
     const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
     if (!website) {
@@ -77,5 +77,5 @@ const getContentOptions = asyncHandler(async (req, res) => {
 
 module.exports = {
     generateContent,
-    getContentOptions, // Export the new function
+    getContentOptions,
 };

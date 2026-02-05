@@ -1,4 +1,3 @@
-// @/components/ErrorBoundary.tsx
 'use client'
 
 import * as React from 'react'

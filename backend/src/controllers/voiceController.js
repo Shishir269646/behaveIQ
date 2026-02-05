@@ -1,5 +1,5 @@
-// src/controllers/voiceController.js
-const productService = require('../services/productService'); // New Import
+
+const productService = require('../services/productService');
 
 const searchByVoice = async (req, res) => {
   try {

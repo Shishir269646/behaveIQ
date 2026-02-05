@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { useHeatmap } from '@/hooks/useHeatmap'
-import { useWebsitePages } from '@/hooks/useWebsitePages' // New import
+import { useWebsitePages } from '@/hooks/useWebsitePages'
 import { useAppStore } from '@/store'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -26,28 +26,25 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 export default function HeatmapsPage() {
   const [selectedPage, setSelectedPage] = useState<string | undefined>(
     undefined
-  ) // Change initial state
+  )
   const [mapType, setMapType] = useState('click')
   const { data: heatmapData, loading, error, fetchHeatmapData } = useHeatmap()
   const { pages, loadingPages, errorPages, fetchWebsitePages } =
-    useWebsitePages() // New hook usage
+    useWebsitePages()
   const selectedWebsite = useAppStore((state) => state.website)
 
-  // Fetch heatmap data
   useEffect(() => {
     if (selectedWebsite?._id && selectedPage) {
       fetchHeatmapData(selectedWebsite._id, selectedPage)
     }
   }, [selectedWebsite, selectedPage, fetchHeatmapData])
 
-  // Fetch website pages
   useEffect(() => {
     if (selectedWebsite?._id) {
       fetchWebsitePages(selectedWebsite._id)
     }
   }, [selectedWebsite, fetchWebsitePages])
 
-  // Set initial selectedPage once pages are loaded
   useEffect(() => {
     if (!selectedPage && pages.length > 0) {
       setSelectedPage(pages[0])
@@ -83,8 +80,7 @@ export default function HeatmapsPage() {
                     <SelectItem value='scroll'>Scroll Map</SelectItem>
                     <SelectItem value='confusion'>
                       Confusion Map
-                    </SelectItem>{' '}
-                    {/* Renamed */}
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -112,7 +108,7 @@ export default function HeatmapsPage() {
                       <SelectItem value='__no_pages_found__' disabled>
                         No pages found
                       </SelectItem>
-                    )}{' '}
+                    )}
                     {pages.map((page) => (
                       <SelectItem key={page} value={page}>
                         {page}
@@ -125,17 +121,16 @@ export default function HeatmapsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {(loading || loadingPages) && ( // Added loadingPages
+          {(loading || loadingPages) && (
             <div className='w-full h-[400px] bg-muted rounded-lg flex items-center justify-center'>
               <Skeleton className='w-full h-full' />
             </div>
           )}
-          {(error || errorPages) && ( // Added errorPages
+          {(error || errorPages) && (
             <div className='w-full h-[400px] bg-muted rounded-lg flex items-center justify-center'>
               <Alert variant='destructive'>
                 <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error || errorPages}</AlertDescription>{' '}
-                {/* Display both errors */}
+                <AlertDescription>{error || errorPages}</AlertDescription>
               </Alert>
             </div>
           )}
@@ -158,8 +153,7 @@ export default function HeatmapsPage() {
                 <div className='p-4'>
                   <h3 className='font-bold text-lg'>
                     Confusion Zones (Top 10)
-                  </h3>{' '}
-                  {/* Consistent naming */}
+                  </h3>
                   <ul>
                     {heatmapData.confusionZones.map((zone, index) => (
                       <li key={index} className='border-b py-2'>

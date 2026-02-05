@@ -2,11 +2,11 @@ const Event = require('../models/Event');
 const Website = require('../models/Website');
 const { asyncHandler } = require('../utils/helpers');
 
-// @desc    Get events
-// @route   GET /api/v1/events?websiteId=xxx&eventType=click&limit=100
+//   Get events
+
 const getEvents = asyncHandler(async (req, res) => {
-    console.log('--- getEvents called ---'); // ADDED for debugging
-    const { websiteId, eventType, limit = 10, page = 1, timeRange = '7d' } = req.query; // Added page, timeRange
+    console.log('--- getEvents called ---');
+    const { websiteId, eventType, limit = 10, page = 1, timeRange = '7d' } = req.query;
 
     if (!websiteId) {
         return res.status(400).json({
@@ -37,7 +37,7 @@ const getEvents = asyncHandler(async (req, res) => {
     startDate.setDate(startDate.getDate() - days);
     query.timestamp = { $gte: startDate };
 
-    console.log('Event query:', query); // ADDED for debugging
+    console.log('Event query:', query);
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -47,7 +47,7 @@ const getEvents = asyncHandler(async (req, res) => {
         .limit(parseInt(limit))
         .select('eventType eventData timestamp');
 
-    const totalEvents = await Event.countDocuments(query); // Get total count for pagination
+    const totalEvents = await Event.countDocuments(query);
 
     res.json({
         success: true,
@@ -59,8 +59,8 @@ const getEvents = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get event statistics
-// @route   GET /api/v1/events/stats?websiteId=xxx
+//  Get event statistics
+
 const getEventStats = asyncHandler(async (req, res) => {
     const { websiteId } = req.query;
 

@@ -2,18 +2,18 @@ const Session = require('../models/Session');
 const Event = require('../models/Event');
 const Website = require('../models/Website');
 const Persona = require('../models/Persona');
-const Experiment = require('../models/Experiment'); // New
-const Discount = require('../models/Discount');     // New
-const FraudScore = require('../models/FraudScore'); // New
-const Intervention = require('../models/Intervention'); // New
+const Experiment = require('../models/Experiment'); 
+const Discount = require('../models/Discount');    
+const FraudScore = require('../models/FraudScore');
+const Intervention = require('../models/Intervention');
 const ClickEvent = require('../models/ClickEvent');
 const { asyncHandler } = require('../utils/helpers');
 const intentService = require('../services/intentService');
 
-// @desc    Get dashboard overview
-// @route   GET /api/v1/dashboard/overview?websiteId=xxx&timeRange=7d
+//  Get dashboard overview
+
 const getOverview = asyncHandler(async (req, res) => {
-    console.log('--- getOverview called ---'); // ADDED for debugging
+    console.log('--- getOverview called ---');
     const { websiteId, timeRange = '7d' } = req.query;
 
     // Verify ownership
@@ -133,8 +133,8 @@ const getOverview = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get real-time visitors
-// @route   GET /api/v1/dashboard/realtime?websiteId=xxx
+//  Get real-time visitors
+
 const getRealtimeVisitors = asyncHandler(async (req, res) => {
     console.log('--- getRealtimeVisitors called ---'); // ADDED for debugging
     const { websiteId } = req.query;
@@ -195,11 +195,11 @@ const getRealtimeVisitors = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get heatmap data
-// @route   GET /api/v1/dashboard/heatmap?websiteId=xxx&pageUrl=/pricing
+//  Get heatmap data
+
 const getHeatmap = asyncHandler(async (req, res) => {
-    console.log('--- getHeatmap called ---'); // ADDED for debugging
-    const { websiteId, pageUrl = '/' } = req.query; // Default to '/' if not provided
+    console.log('--- getHeatmap called ---');
+    const { websiteId, pageUrl = '/' } = req.query;
 
     // Verify ownership
     const website = await Website.findOne({
@@ -289,10 +289,10 @@ const getHeatmap = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get AI insights
-// @route   GET /api/v1/dashboard/insights?websiteId=xxx
+//  Get AI insights
+
 const getInsights = asyncHandler(async (req, res) => {
-    console.log('--- getInsights called ---'); // ADDED for debugging
+    console.log('--- getInsights called ---');
     const { websiteId } = req.query;
 
     // Verify ownership
@@ -394,10 +394,10 @@ const getInsights = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get conversion funnel
-// @route   GET /api/v1/dashboard/conversion-funnel?websiteId=xxx
+// Get conversion funnel
+
 const getConversionFunnel = asyncHandler(async (req, res) => {
-    console.log('--- getConversionFunnel called ---'); // ADDED for debugging
+    console.log('--- getConversionFunnel called ---');
     const { websiteId } = req.query;
 
     // Verify ownership
@@ -461,10 +461,10 @@ const getConversionFunnel = asyncHandler(async (req, res) => {
     });
 });
 
-// @desc    Get top pages
-// @route   GET /api/v1/dashboard/top-pages?websiteId=xxx&timeRange=7d
+// Get top pages
+
 const getTopPages = asyncHandler(async (req, res) => {
-    console.log('--- getTopPages called ---'); // ADDED for debugging
+    console.log('--- getTopPages called ---');
     const { websiteId, timeRange = '7d' } = req.query;
 
     const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
@@ -514,10 +514,10 @@ const getTopPages = asyncHandler(async (req, res) => {
 });
 
 
-// @desc    Get intent distribution
-// @route   GET /api/v1/dashboard/intent-distribution?websiteId=xxx
+//  Get intent distribution
+
 const getIntentDistribution = asyncHandler(async (req, res) => {
-    console.log('--- getIntentDistribution called ---'); // ADDED for debugging
+    console.log('--- getIntentDistribution called ---');
     const { websiteId } = req.query;
 
     // Verify ownership
@@ -542,8 +542,8 @@ const getIntentDistribution = asyncHandler(async (req, res) => {
 });
 
 
-// @desc    Get fraud summary
-// @route   GET /api/v1/dashboard/summary/fraud?websiteId=xxx
+//  Get fraud summary
+
 const getFraudSummary = asyncHandler(async (req, res) => {
     const { websiteId, timeRange = '30d' } = req.query;
 
@@ -781,11 +781,11 @@ module.exports = {
     getTopPages,
     getIntentDistribution,
     getFraudSummary,
-    getPersonaSummary,        // Added export
-    getPersonalizationStatus, // Added export
-    getHeatmapSummary,        // Added export
-    getExperimentSummary,     // Added export
-    getContentSummary,        // Added export
-    getAbandonmentSummary,    // Added export
-    getDiscountSummary,       // Added export
+    getPersonaSummary,        
+    getPersonalizationStatus, 
+    getHeatmapSummary,        
+    getExperimentSummary,    
+    getContentSummary,        
+    getAbandonmentSummary,    
+    getDiscountSummary,      
 };

@@ -1,18 +1,16 @@
 const User = require('../models/User');
 const { asyncHandler } = require('../utils/helpers');
+const { sendResponse } = require('../utils/responseHandler');
+const AppError = require('../utils/AppError');
 
 // Register user
-
 const register = asyncHandler(async (req, res) => {
     const { email, password, fullName, companyName } = req.body;
 
     // Check if user exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.findOne({ email }).lean();
     if (userExists) {
-        return res.status(400).json({
-            success: false,
-            message: 'User already exists with this email'
-        });
+        throw new AppError('User already exists with this email', 400);
     }
 
     // Create user
@@ -26,58 +24,37 @@ const register = asyncHandler(async (req, res) => {
     // Generate token
     const token = user.getSignedJwtToken();
 
-    res.status(201).json({
-        success: true,
-        data: {
-            user: {
-                id: user._id,
-                email: user.email,
-                fullName: user.fullName,
-                companyName: user.companyName,
-                plan: user.plan,
-                role: user.role,
-                settings: user.settings 
-            },
-            token
-        }
+    sendResponse(res, 201, {
+        user: {
+            id: user._id,
+            email: user.email,
+            fullName: user.fullName,
+            companyName: user.companyName,
+            plan: user.plan,
+            role: user.role,
+            settings: user.settings
+        },
+        token
     });
 });
 
 //  Login user
-
 const login = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
-
-    console.log('Login attempt for email:', email);
-    console.log('Password received (plaintext - for debug only, be cautious in production):', password);
-
 
     // Find user with password field
     const user = await User.findOne({ email }).select('+password');
 
     if (!user) {
-        console.warn('Login failed: User not found for email:', email);
-        return res.status(401).json({
-            success: false,
-            message: 'Invalid credentials'
-        });
+        throw new AppError('Invalid credentials', 401);
     }
-
-    console.log('User found:', user._id);
-    console.log('Stored hashed password:', user.password);
 
     // Check password
     const isMatch = await user.comparePassword(password);
 
     if (!isMatch) {
-        console.warn('Login failed: Password mismatch for user:', email);
-        return res.status(401).json({
-            success: false,
-            message: 'Invalid credentials'
-        });
+        throw new AppError('Invalid credentials', 401);
     }
-
-    console.log('Login successful for user:', email);
 
     // Update last login
     user.lastLogin = new Date();
@@ -86,45 +63,36 @@ const login = asyncHandler(async (req, res) => {
     // Generate token
     const token = user.getSignedJwtToken();
 
-    res.json({
-        success: true,
-        data: {
-            user: {
-                id: user._id,
-                email: user.email,
-                fullName: user.fullName,
-                companyName: user.companyName,
-                plan: user.plan,
-                role: user.role,
-                settings: user.settings // New
-            },
-            token
-        }
+    sendResponse(res, 200, {
+        user: {
+            id: user._id,
+            email: user.email,
+            fullName: user.fullName,
+            companyName: user.companyName,
+            plan: user.plan,
+            role: user.role,
+            settings: user.settings
+        },
+        token
     });
 });
 
 //  Get current user
-
 const getMe = asyncHandler(async (req, res) => {
-    res.json({
-        success: true,
-        data: {
-            user: req.user
-        }
+    sendResponse(res, 200, {
+        user: req.user
     });
 });
 
 //  Logout
-
 const logout = asyncHandler(async (req, res) => {
-    res.json({
-        success: true,
-        message: 'Logged out successfully'
+    res.cookie('token', 'none', {
+        expires: new Date(Date.now() + 10 * 1000),
+        httpOnly: true
     });
+
+    sendResponse(res, 200, {}, 'Logged out successfully');
 });
-
-
-
 
 module.exports = {
     register,

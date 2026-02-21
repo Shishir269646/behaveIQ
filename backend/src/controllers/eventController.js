@@ -1,31 +1,25 @@
 const Event = require('../models/Event');
 const Website = require('../models/Website');
 const { asyncHandler } = require('../utils/helpers');
+const { sendResponse } = require('../utils/responseHandler');
+const AppError = require('../utils/AppError');
 
 //   Get events
-
 const getEvents = asyncHandler(async (req, res) => {
-    console.log('--- getEvents called ---');
     const { websiteId, eventType, limit = 10, page = 1, timeRange = '7d' } = req.query;
 
     if (!websiteId) {
-        return res.status(400).json({
-            success: false,
-            message: 'websiteId query parameter is required.'
-        });
+        throw new AppError('websiteId query parameter is required.', 400);
     }
 
     // Verify ownership
     const website = await Website.findOne({
         _id: websiteId,
         userId: req.user._id
-    });
+    }).lean();
 
     if (!website) {
-        return res.status(404).json({
-            success: false,
-            message: 'Website not found'
-        });
+        throw new AppError('Website not found or not authorized', 404);
     }
 
     const query = { websiteId };
@@ -37,30 +31,27 @@ const getEvents = asyncHandler(async (req, res) => {
     startDate.setDate(startDate.getDate() - days);
     query.timestamp = { $gte: startDate };
 
-    console.log('Event query:', query);
-
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const events = await Event.find(query)
         .sort('-timestamp')
         .skip(skip)
         .limit(parseInt(limit))
-        .select('eventType eventData timestamp');
+        .select('eventType eventData timestamp')
+        .lean(); // Use lean() for performance
 
     const totalEvents = await Event.countDocuments(query);
 
-    res.json({
-        success: true,
+    sendResponse(res, 200, {
+        events,
         count: events.length,
-        total: totalEvents, // Return total count
+        total: totalEvents,
         page: parseInt(page),
-        pages: Math.ceil(totalEvents / parseInt(limit)),
-        data: { events }
+        pages: Math.ceil(totalEvents / parseInt(limit))
     });
 });
 
 //  Get event statistics
-
 const getEventStats = asyncHandler(async (req, res) => {
     const { websiteId } = req.query;
 
@@ -68,13 +59,10 @@ const getEventStats = asyncHandler(async (req, res) => {
     const website = await Website.findOne({
         _id: websiteId,
         userId: req.user._id
-    });
+    }).lean();
 
     if (!website) {
-        return res.status(404).json({
-            success: false,
-            message: 'Website not found'
-        });
+        throw new AppError('Website not found or not authorized', 404);
     }
 
     const stats = await Event.aggregate([
@@ -87,12 +75,8 @@ const getEventStats = asyncHandler(async (req, res) => {
         }
     ]);
 
-    res.json({
-        success: true,
-        data: { stats }
-    });
+    sendResponse(res, 200, { stats });
 });
-
 
 module.exports = {
     getEvents,

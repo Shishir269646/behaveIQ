@@ -8,10 +8,15 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
+// Load and validate env vars early
+require('./config/env');
+
 const connectDB = require('./config/database');
-const redis = require('./config/redis');
+const AppError = require('./utils/AppError');
+const { sendResponse } = require('./utils/responseHandler');
 
 // Import routes
 const identityRoutes = require('./routes/identity.routes');
@@ -29,7 +34,6 @@ const websitesRoutes = require('./routes/websites');
 const dashboardRoutes = require('./routes/dashboard');
 const eventsRoutes = require('./routes/events');
 const experimentsRoutes = require('./routes/experiments');
-
 const personasRoutes = require('./routes/personas');
 const usersRoutes = require('./routes/users');
 const sdkRoutes = require('./routes/sdk');
@@ -45,22 +49,24 @@ const app = express();
 connectDB();
 
 // Middleware
-const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(morgan('dev'));
+
+if (process.env.NODE_ENV === 'development') {
+  app.use(morgan('dev'));
+}
+
 app.use(rateLimiter);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({
-    success: true,
-    message: 'BEHAVEIQ API is running',
+  sendResponse(res, 200, {
+    status: 'up',
     timestamp: new Date()
-  });
+  }, 'BEHAVEIQ API is running');
 });
 
 // API Routes
@@ -82,26 +88,18 @@ app.use('/api/experiments', auth, experimentsRoutes);
 app.use('/api/personas', auth, personasRoutes);
 app.use('/api/users', auth, usersRoutes);
 app.use('/api/sdk', sdkRoutes);
+
 app.get('/api', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Welcome to the BEHAVEIQ API',
-    timestamp: new Date()
-  });
+  sendResponse(res, 200, null, 'Welcome to the BEHAVEIQ API');
+});
+
+// 404 handler
+app.all('*', (req, res, next) => {
+  next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
 });
 
 // Error handler (must be last)
 app.use(errorHandler);
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    error: 'Route not found'
-  });
-});
-
-
 
 const PORT = process.env.PORT || 5000;
 

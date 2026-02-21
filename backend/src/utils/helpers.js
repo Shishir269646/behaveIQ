@@ -16,15 +16,6 @@ exports.hoursDifference = (date1, date2) => {
     return Math.floor(diff / (1000 * 60 * 60));
 };
 
-// Format response
-exports.sendResponse = (res, statusCode, data, message = '') => {
-    res.status(statusCode).json({
-        success: statusCode < 400,
-        message,
-        data
-    });
-};
-
 // Async handler wrapper
 exports.asyncHandler = (fn) => (req, res, next) => {
     Promise.resolve(fn(req, res, next)).catch(next);

@@ -1,280 +1,93 @@
-const Experiment = require('../models/Experiment');
-const Website = require('../models/Website');
-const Session = require('../models/Session');
 const { asyncHandler } = require('../utils/helpers');
+const { sendResponse } = require('../utils/responseHandler');
+const AppError = require('../utils/AppError');
+const Website = require('../models/Website');
+const experimentService = require('../services/experimentService');
+
+// Helper: Check ownership
+const checkOwnership = async (websiteId, userId) => {
+    const website = await Website.findOne({ _id: websiteId, userId });
+    if (!website) {
+        throw new AppError('Website not found or not authorized', 403);
+    }
+    return website;
+};
 
 //  Get all experiments
-
 const getExperiments = asyncHandler(async (req, res) => {
-    
     const websiteId = req.query.websiteId || req.params.id;
     const { status } = req.query;
 
     if (!websiteId) {
-        return res.status(400).json({ success: false, message: 'Website ID is required.' });
+        throw new AppError('Website ID is required.', 400);
     }
 
-    // Verify ownership
-    const website = await Website.findOne({
-        _id: websiteId,
-        userId: req.user._id
-    });
+    await checkOwnership(websiteId, req.user._id);
 
-    if (!website) {
-        return res.status(404).json({
-            success: false,
-            message: 'Website not found or not authorized'
-        });
-    }
-
-    const query = { websiteId };
-    if (status) query.status = status;
-
-    const experiments = await Experiment.find(query)
-        .sort('-createdAt')
-        .select('-__v');
-
-    res.json({
-        success: true,
-        count: experiments.length,
-        data: { experiments }
-    });
+    const experiments = await experimentService.getExperiments(websiteId, status);
+    sendResponse(res, 200, { experiments, count: experiments.length });
 });
 
 //   Create new experiment
-
 const createExperiment = asyncHandler(async (req, res) => {
-    const {
-        websiteId,
-        name,
-        description,
-        variations,
-        settings
-    } = req.body;
+    const { websiteId } = req.body;
+    await checkOwnership(websiteId, req.user._id);
 
-    // Verify ownership
-    const website = await Website.findOne({
-        _id: websiteId,
-        userId: req.user._id
-    });
-
-    if (!website) {
-        return res.status(404).json({
-            success: false,
-            message: 'Website not found'
-        });
-    }
-
-    // Validate variations
-    if (!variations || variations.length < 2) {
-        return res.status(400).json({
-            success: false,
-            message: 'At least 2 variations required'
-        });
-    }
-
-    // Ensure one control variation
-    const hasControl = variations.some(v => v.isControl);
-    if (!hasControl) {
-        variations[0].isControl = true;
-    }
-
-    const experiment = await Experiment.create({
-        websiteId,
-        name,
-        description,
-        variations,
-        settings: settings || {},
-        status: 'draft'
-    });
-
-    res.status(201).json({
-        success: true,
-        data: { experiment }
-    });
+    const experiment = await experimentService.createExperiment(websiteId, req.body);
+    sendResponse(res, 201, { experiment });
 });
 
 //  Get single experiment with results
-
 const getExperiment = asyncHandler(async (req, res) => {
-    const experiment = await Experiment.findById(req.params.id);
-
-    if (!experiment) {
-        return res.status(404).json({
-            success: false,
-            message: 'Experiment not found'
-        });
-    }
-
+    const experimentId = req.params.id;
+    // Ownership check happens inside service get logic typically, but since service doesn't know about user:
+    // We fetch experiment first or pass user down. 
+    // Optimization: fetch experiment, check websiteId against user's websites.
+    
+    // However, to keep it clean, we'll let service fetch it, then check ownership here.
+    const experiment = await experimentService.getExperiment(experimentId);
+    
     // Verify ownership
-    const website = await Website.findOne({
-        _id: experiment.websiteId,
-        userId: req.user._id
-    });
+    await checkOwnership(experiment.websiteId, req.user._id);
 
-    if (!website) {
-        return res.status(403).json({
-            success: false,
-            message: 'Not authorized'
-        });
-    }
-
-    // Calculate latest results
-    if (experiment.status === 'active') {
-        for (const variation of experiment.variations) {
-            const sessions = await Session.find({
-                websiteId: experiment.websiteId,
-                experimentId: experiment._id,
-                experimentVariation: variation.name
-            });
-
-            variation.visitors = sessions.length;
-            variation.conversions = sessions.filter(s => s.converted).length;
-            variation.conversionRate = variation.visitors > 0
-                ? ((variation.conversions / variation.visitors) * 100).toFixed(2)
-                : 0;
-        }
-
-        // Calculate winner
-        const winnerData = experiment.calculateWinner();
-        if (winnerData) {
-            experiment.results = {
-                ...winnerData,
-                declaredAt: experiment.results?.declaredAt || null
-            };
-        }
-
-        await experiment.save();
-    }
-
-    res.json({
-        success: true,
-        data: { experiment }
-    });
+    sendResponse(res, 200, { experiment });
 });
 
 //  Update experiment status
-
 const updateExperimentStatus = asyncHandler(async (req, res) => {
-    const { status } = req.body;
+    const experiment = await experimentService.getExperiment(req.params.id);
+    await checkOwnership(experiment.websiteId, req.user._id);
 
-    const experiment = await Experiment.findById(req.params.id);
-
-    if (!experiment) {
-        return res.status(404).json({
-            success: false,
-            message: 'Experiment not found'
-        });
-    }
-
-    // Update status
-    experiment.status = status;
-
-    if (status === 'active' && !experiment.startDate) {
-        experiment.startDate = new Date();
-    }
-
-    if (status === 'completed' && !experiment.endDate) {
-        experiment.endDate = new Date();
-    }
-
-    await experiment.save();
-
-    res.json({
-        success: true,
-        data: { experiment }
-    });
+    const updatedExperiment = await experimentService.updateStatus(req.params.id, req.body.status);
+    sendResponse(res, 200, { experiment: updatedExperiment });
 });
 
 //  Declare winner manually
-
 const declareWinner = asyncHandler(async (req, res) => {
-    const { winningVariation } = req.body;
+    const experiment = await experimentService.getExperiment(req.params.id);
+    await checkOwnership(experiment.websiteId, req.user._id);
 
-    const experiment = await Experiment.findById(req.params.id);
-
-    if (!experiment) {
-        return res.status(404).json({
-            success: false,
-            message: 'Experiment not found'
-        });
-    }
-
-    const winner = experiment.variations.find(v => v.name === winningVariation);
-
-    if (!winner) {
-        return res.status(400).json({
-            success: false,
-            message: 'Invalid variation name'
-        });
-    }
-
-    const control = experiment.variations.find(v => v.isControl);
-    const improvement = control && control.conversionRate > 0
-        ? (((winner.conversionRate - control.conversionRate) / control.conversionRate) * 100).toFixed(2)
-        : 0;
-
-    experiment.results = {
-        winner: winner.name,
-        confidence: 95,
-        improvement: parseFloat(improvement),
-        declaredAt: new Date()
-    };
-
-    experiment.status = 'completed';
-    experiment.endDate = new Date();
-
-    await experiment.save();
-
-    res.json({
-        success: true,
-        message: 'Winner declared successfully',
-        data: { experiment }
-    });
+    const updatedExperiment = await experimentService.declareWinner(req.params.id, req.body.winningVariation);
+    sendResponse(res, 200, { experiment: updatedExperiment }, 'Winner declared successfully');
 });
 
-
 //    Update experiment
-
 const updateExperiment = asyncHandler(async (req, res) => {
-    let experiment = await Experiment.findById(req.params.id);
+    // Check ownership first (need to fetch to know websiteId)
+    const existing = await experimentService.getExperiment(req.params.id);
+    await checkOwnership(existing.websiteId, req.user._id);
 
-    if (!experiment) {
-        return res.status(404).json({ success: false, message: 'Experiment not found' });
-    }
-
-    // Verify ownership
-    const website = await Website.findOne({ _id: experiment.websiteId, userId: req.user._id });
-    if (!website) {
-        return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-
-    experiment = await Experiment.findByIdAndUpdate(req.params.id, req.body, {
-        new: true,
-        runValidators: true
-    });
-
-    res.json({ success: true, data: { experiment } });
+    const experiment = await experimentService.updateExperiment(req.params.id, req.body);
+    sendResponse(res, 200, { experiment });
 });
 
 //  Delete experiment
-
 const deleteExperiment = asyncHandler(async (req, res) => {
-    const experiment = await Experiment.findById(req.params.id);
+    const existing = await experimentService.getExperiment(req.params.id);
+    await checkOwnership(existing.websiteId, req.user._id);
 
-    if (!experiment) {
-        return res.status(404).json({ success: false, message: 'Experiment not found' });
-    }
-
-    
-    const website = await Website.findOne({ _id: experiment.websiteId, userId: req.user._id });
-    if (!website) {
-        return res.status(403).json({ success: false, message: 'Not authorized' });
-    }
-
-    await experiment.remove();
-
-    res.json({ success: true, data: {} });
+    await experimentService.deleteExperiment(req.params.id);
+    sendResponse(res, 200, {}, 'Experiment deleted successfully');
 });
 
 module.exports = {

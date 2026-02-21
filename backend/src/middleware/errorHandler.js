@@ -1,23 +1,51 @@
+const AppError = require('../utils/AppError');
+
 const errorHandler = (err, req, res, next) => {
+  let error = { ...err };
+  error.message = err.message;
+
+  // Log to console for dev
   console.error('Error:', err);
 
-  let statusCode = err.statusCode || 500;
-  let message = err.message || 'Internal server error';
-  let errors = [];
-
-  // Handle express-validator errors
-  if (err.array) {
-    statusCode = 400; // Bad Request
-    message = 'Validation Failed';
-    errors = err.array().map(error => ({ field: error.param, message: error.msg }));
-    console.error('Validation Errors:', errors); // Log detailed validation errors
+  // Mongoose bad ObjectId
+  if (err.name === 'CastError') {
+    const message = `Resource not found with id of ${err.value}`;
+    error = new AppError(message, 404);
   }
 
-  res.status(statusCode).json({
+  // Mongoose duplicate key
+  if (err.code === 11000) {
+    const message = 'Duplicate field value entered';
+    error = new AppError(message, 400);
+  }
+
+  // Mongoose validation error
+  if (err.name === 'ValidationError') {
+    const message = Object.values(err.errors).map(val => val.message).join(', ');
+    error = new AppError(message, 400);
+  }
+
+  // JWT errors
+  if (err.name === 'JsonWebTokenError') {
+    const message = 'Invalid token. Please log in again!';
+    error = new AppError(message, 401);
+  }
+
+  if (err.name === 'TokenExpiredError') {
+    const message = 'Your token has expired! Please log in again.';
+    error = new AppError(message, 401);
+  }
+
+  // Handle express-validator errors (array format)
+  if (err.array && typeof err.array === 'function') {
+      const message = err.array().map(e => e.msg).join(', ');
+      error = new AppError(message, 400);
+  }
+
+  res.status(error.statusCode || 500).json({
     success: false,
-    error: message,
-    errors: errors.length > 0 ? errors : undefined, // Include detailed errors if available
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    error: error.message || 'Server Error',
+    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 };
 

@@ -1,50 +1,33 @@
-
-
 const User = require('../models/User');
 const { asyncHandler } = require('../utils/helpers');
+const { sendResponse } = require('../utils/responseHandler');
+const AppError = require('../utils/AppError');
 
 // Get all users
-
-
 const getUsers = asyncHandler(async (req, res) => {
-    const users = await User.find().select('-password');
-    res.json({
-        success: true,
-        count: users.length,
-        data: { users }
-    });
+    const users = await User.find().select('-password').lean();
+    sendResponse(res, 200, { users, count: users.length });
 });
 
 // Get single user
-
-const getUser = asyncHandler(async (req, res, next) => {
-    const user = await User.findById(req.params.id).select('-password');
+const getUser = asyncHandler(async (req, res) => {
+    const user = await User.findById(req.params.id).select('-password').lean();
 
     if (!user) {
-        return res.status(404).json({
-            success: false,
-            message: `User not found with id of ${req.params.id}`
-        });
+        throw new AppError(`User not found with id of ${req.params.id}`, 404);
     }
 
-    res.json({
-        success: true,
-        data: { user }
-    });
+    sendResponse(res, 200, { user });
 });
 
-// @desc    Update user
-
-const updateUser = asyncHandler(async (req, res, next) => {
+// Update user
+const updateUser = asyncHandler(async (req, res) => {
     const { email, fullName, companyName, plan, role, settings } = req.body;
 
-    let user = await User.findById(req.params.id).select('+password');
+    let user = await User.findById(req.params.id);
 
     if (!user) {
-        return res.status(404).json({
-            success: false,
-            message: `User not found with id of ${req.params.id}`
-        });
+        throw new AppError(`User not found with id of ${req.params.id}`, 404);
     }
 
     // Update top-level fields
@@ -64,32 +47,23 @@ const updateUser = asyncHandler(async (req, res, next) => {
 
     await user.save();
 
-    // Exclude password before sending response
-    const updatedUser = await User.findById(user._id).select('-password');
+    // Exclude password before sending response (optimization: lean() not possible here as we just saved document)
+    const updatedUser = user.toObject();
+    delete updatedUser.password;
 
-    res.json({
-        success: true,
-        data: { user: updatedUser }
-    });
+    sendResponse(res, 200, { user: updatedUser });
 });
 
-//   Delete user
-
-const deleteUser = asyncHandler(async (req, res, next) => {
+// Delete user
+const deleteUser = asyncHandler(async (req, res) => {
     const user = await User.findById(req.params.id);
 
     if (!user) {
-        return res.status(404).json({
-            success: false,
-            message: `User not found with id of ${req.params.id}`
-        });
+        throw new AppError(`User not found with id of ${req.params.id}`, 404);
     }
 
     await user.deleteOne();
-    res.json({
-        success: true,
-        data: {}
-    });
+    sendResponse(res, 200, {}, 'User deleted successfully');
 });
 
 module.exports = {

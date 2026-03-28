@@ -1,4 +1,5 @@
 const AppError = require('../utils/AppError');
+const { Prisma } = require('@prisma/client');
 
 const errorHandler = (err, req, res, next) => {
   let error = { ...err };
@@ -7,22 +8,16 @@ const errorHandler = (err, req, res, next) => {
   // Log to console for dev
   console.error('Error:', err);
 
-  // Mongoose bad ObjectId
-  if (err.name === 'CastError') {
-    const message = `Resource not found with id of ${err.value}`;
-    error = new AppError(message, 404);
-  }
-
-  // Mongoose duplicate key
-  if (err.code === 11000) {
-    const message = 'Duplicate field value entered';
-    error = new AppError(message, 400);
-  }
-
-  // Mongoose validation error
-  if (err.name === 'ValidationError') {
-    const message = Object.values(err.errors).map(val => val.message).join(', ');
-    error = new AppError(message, 400);
+  // Handle Prisma errors
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2002') { // Unique constraint violation
+      const field = error.meta?.target || 'field';
+      const message = `Duplicate value for ${field}. Please use another value.`;
+      error = new AppError(message, 400);
+    } else if (error.code === 'P2025') { // Record not found
+      const message = error.meta?.cause || 'Resource not found.';
+      error = new AppError(message, 404);
+    }
   }
 
   // JWT errors

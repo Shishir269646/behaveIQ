@@ -1,16 +1,10 @@
-const Website = require('../models/Website');
-const Session = require('../models/Session');
-const Persona = require('../models/Persona');
-const Experiment = require('../models/Experiment');
-const Event = require('../models/Event');
-
+const { prisma } = require('../config/database'); // Import prisma client
 const { asyncHandler } = require('../utils/helpers');
 const mlServiceClient = require('../services/mlServiceClient');
 const { identify } = require('./identityController');
-
+const AppError = require('../utils/AppError');
 
 //  Get dynamic SDK script
-
 const getSdkScript = asyncHandler(async (req, res) => {
     const { apiKey } = req.query;
 
@@ -23,20 +17,57 @@ const getSdkScript = asyncHandler(async (req, res) => {
     let personalizationData = { personalizationRules: [] };
 
     try {
-        const website = await Website.findOne({ apiKey });
+        const website = await prisma.website.findUnique({
+            where: { apiKey: apiKey },
+            include: { settings: { include: { emotionInterventions: true } } } // Include settings and interventions for potential personalization logic
+        });
 
         if (website && website.status !== 'learning') {
             const fingerprint =
                 req.cookies?.biq_fp || req.headers['x-fingerprint'];
 
-            const session = await Session.findOne({ fingerprint })
-                .sort({ createdAt: -1 });
+            if (fingerprint) {
+                const session = await prisma.session.findFirst({
+                    where: { fingerprint: fingerprint },
+                    orderBy: { createdAt: 'desc' },
+                    include: {
+                        persona: { select: { name: true, personalizationRules: true } },
+                        experiment: { include: { variations: true } }
+                    }
+                });
 
-            if (session) {
-                // Placeholder – future personalization service
-                personalizationData = {
-                    personalizationRules: []
-                };
+                if (session) {
+                    // Placeholder – future personalization service logic.
+                    // This should be done by a dedicated service. For now, directly replicating logic.
+                    const rules = [];
+
+                    // Persona-based personalization
+                    if (website.settings?.autoPersonalization && session.persona) {
+                        const persona = session.persona;
+                        if (persona?.isActive) {
+                            rules.push(...persona.personalizationRules.filter(r => r.isActive));
+                        }
+                    }
+
+                    // Experiment-based personalization
+                    if (website.settings?.experimentMode && session.experimentId && session.experimentVariation) {
+                        const experiment = session.experiment; // Included in session
+                        if (experiment?.status === 'active') {
+                            const variation = experiment.variations.find(v => v.name === session.experimentVariation);
+
+                            if (variation && !variation.isControl) {
+                                rules.push({
+                                    selector: variation.selector,
+                                    content: variation.content,
+                                    contentType: variation.contentType,
+                                    experimentId: experiment.id,
+                                    variationName: variation.name
+                                });
+                            }
+                        }
+                    }
+                    personalizationData = { personalizationRules: rules };
+                }
             }
         }
     } catch (error) {
@@ -77,107 +108,83 @@ const getSdkScript = asyncHandler(async (req, res) => {
     res.send(scriptContent);
 });
 
-const track = asyncHandler(async (req, res) => {
+// Track SDK event
+const trackEvent = asyncHandler(async (req, res) => {
     const { apiKey, sessionId, eventType, eventData } = req.body;
 
-    const website = await Website.findOne({ apiKey });
+    const website = await prisma.website.findUnique({ where: { apiKey } });
     if (!website) {
-        return res
-            .status(401)
-            .json({ success: false, message: 'Invalid API Key' });
+        throw new AppError('Invalid API Key', 401);
     }
 
-    const event = await Event.create({
-        websiteId: website._id,
-        sessionId,
-        eventType,
-        eventData
-    });
-
-    
-
-    res.status(201).json({ success: true, data: event });
-});
-
-
-// Track SDK event
-
-const trackEvent = asyncHandler(async (req, res) => {
-    const { apiKey, eventType, eventData } = req.body;
-
-    const website = await Website.findOne({ apiKey });
-    if (!website) {
-        return res
-            .status(401)
-            .json({ success: false, message: 'Invalid API Key' });
+    // Ensure session exists
+    const session = await prisma.session.findUnique({ where: { sessionId: sessionId, websiteId: website.id } });
+    if (!session) {
+        throw new AppError('Session not found', 404);
     }
 
-    const event = await Event.create({
-        websiteId: website._id,
-        sessionId: req.session._id,
-        eventType,
-        eventData
+    const event = await prisma.event.create({
+        data: {
+            websiteId: website.id,
+            sessionId: sessionId,
+            eventType: eventType, // Ensure eventType matches enum
+            eventData: eventData,
+        }
     });
-
-
 
     res.status(201).json({ success: true, data: event });
 });
 
 
 // Get personalization rules
-
 const getPersonalization = asyncHandler(async (req, res) => {
     const { apiKey, sessionId } = req.params;
 
-    const website = await Website.findOne({ apiKey });
+    const website = await prisma.website.findUnique({ where: { apiKey } });
     if (!website) {
-        return res
-            .status(401)
-            .json({ success: false, message: 'Invalid API Key' });
+        throw new AppError('Invalid API Key', 401);
     }
 
-    const session = await Session.findOne({
-        sessionId,
-        websiteId: website._id
+    const session = await prisma.session.findUnique({
+        where: { sessionId: sessionId, websiteId: website.id },
+        include: {
+            persona: { include: { personalizationRules: true } },
+            // If experiment is stored on Session directly or linked
+            // experiment: { include: { variations: true } } // This requires Experiment relation on Session
+        }
     });
 
     if (!session) {
-        return res
-            .status(404)
-            .json({ success: false, message: 'Session not found' });
+        throw new AppError('Session not found', 404);
     }
 
     const personalizationRules = [];
 
     // Persona-based personalization
-    if (website.settings?.autoPersonalization && session.personaId) {
-        const persona = await Persona.findById(session.personaId);
+    if (website.settings?.autoPersonalization && session.persona) {
+        const persona = session.persona;
         if (persona?.isActive) {
-            personalizationRules.push(
-                ...persona.personalizationRules.filter(r => r.isActive)
-            );
+            personalizationRules.push(...persona.personalizationRules.filter(r => r.isActive));
         }
     }
 
     // Experiment-based personalization
-    if (
-        website.settings?.experimentMode &&
-        session.experimentId &&
-        session.experimentVariation
-    ) {
-        const experiment = await Experiment.findById(session.experimentId);
+    // This part assumes session has experimentId and experimentVariation directly
+    if (website.settings?.experimentMode && session.experimentId && session.experimentVariation) {
+        const experiment = await prisma.experiment.findUnique({
+            where: { id: session.experimentId },
+            include: { variations: true }
+        });
+
         if (experiment?.status === 'active') {
-            const variation = experiment.variations.find(
-                v => v.name === session.experimentVariation
-            );
+            const variation = experiment.variations.find(v => v.name === session.experimentVariation);
 
             if (variation && !variation.isControl) {
                 personalizationRules.push({
                     selector: variation.selector,
                     content: variation.content,
                     contentType: variation.contentType,
-                    experimentId: experiment._id,
+                    experimentId: experiment.id,
                     variationName: variation.name
                 });
             }
@@ -194,26 +201,21 @@ const getPersonalization = asyncHandler(async (req, res) => {
 
 
 // Calculate intent score
-
 const calculateIntent = asyncHandler(async (req, res) => {
     const { apiKey, sessionId, sessionData } = req.body;
 
-    const website = await Website.findOne({ apiKey });
+    const website = await prisma.website.findUnique({ where: { apiKey } });
     if (!website) {
-        return res
-            .status(401)
-            .json({ success: false, message: 'Invalid API Key' });
+        throw new AppError('Invalid API Key', 401);
     }
 
-    const session = await Session.findOne({
-        sessionId,
-        websiteId: website._id
+    const session = await prisma.session.findUnique({
+        where: { sessionId: sessionId, websiteId: website.id },
+        include: { intentScore: true }
     });
 
     if (!session) {
-        return res
-            .status(404)
-            .json({ success: false, message: 'Session not found' });
+        throw new AppError('Session not found', 404);
     }
 
     let intentScore = 0;
@@ -222,8 +224,8 @@ const calculateIntent = asyncHandler(async (req, res) => {
         const mlResult = await mlServiceClient.callMLService(
             '/intent/score',
             {
-                websiteId: website._id.toString(),
-                sessionId: session._id.toString(),
+                websiteId: website.id, // Use website.id
+                sessionId: session.id, // Use session.id
                 sessionData
             }
         );
@@ -231,17 +233,33 @@ const calculateIntent = asyncHandler(async (req, res) => {
         intentScore = mlResult?.score || 0;
     } catch (error) {
         console.error('ML intent scoring failed:', error.message);
+        // Fallback to existing intent score if ML fails
         intentScore = session.intentScore?.current || 0.1;
     }
 
-    session.intentScore = session.intentScore || { current: 0, changes: [] };
-    session.intentScore.current = intentScore;
-    session.intentScore.changes.push({
-        score: intentScore,
-        timestamp: new Date()
+    // Update session intent score
+    await prisma.sessionIntentScore.upsert({
+        where: { sessionId: session.id }, // Use sessionId for upsert
+        update: {
+            current: intentScore,
+            changes: {
+                create: {
+                    score: intentScore,
+                    timestamp: new Date()
+                }
+            }
+        },
+        create: {
+            sessionId: session.id,
+            current: intentScore,
+            changes: {
+                create: {
+                    score: intentScore,
+                    timestamp: new Date()
+                }
+            }
+        }
     });
-
-    await session.save();
 
     res.json({
         success: true,
@@ -251,7 +269,6 @@ const calculateIntent = asyncHandler(async (req, res) => {
 
 
 // Exports
-
 module.exports = {
     getSdkScript,
     trackEvent,

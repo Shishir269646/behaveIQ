@@ -1,75 +1,74 @@
 const fingerprintService = require('../services/fingerprintService');
-const Session = require('../models/Session');
-const Website = require('../models/Website');
+const { prisma } = require('../config/database'); // Import prisma client
 const { v4: uuidv4 } = require('uuid');
+const AppError = require('../utils/AppError');
 
 const identify = async (req, res) => {
-
   try {
     // Ensure that a website context is available from the auth middleware
     if (!req.website) {
-      return res.status(403).json({
-        success: false,
-        error: 'Forbidden: A valid API key linked to a registered website is required.'
-      });
+      throw new AppError('Forbidden: A valid API key linked to a registered website is required.', 403);
     }
 
     const { fingerprint, deviceInfo, fpComponents, location } = req.body;
 
-    console.log('--- identify called with fpComponents:', JSON.stringify(fpComponents, null, 2)); // ADDED for debugging
+    console.log('--- identify called with fpComponents:', JSON.stringify(fpComponents, null, 2));
 
-
-    const websiteapiKey = req.headers['x-api-key'];
-
-    const website = await Website.findOne({ apiKey: websiteapiKey });
-
-    const websiteID = website._id;
-
-
-    if (websiteID.toString() !== req.website._id.toString()) {
-      return res.status(400).json({
-        success: false,
-        error: 'Bad Request: The websiteID in the request body does not match the API key.'
-      });
-    }
+    const websiteId = req.website.id; // Use req.website.id directly
 
     // Validate fingerprint
     const validation = fingerprintService.validateFingerprint(fpComponents);
     if (!validation.valid) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid fingerprint',
-        missing: validation.missing
-      });
+      throw new AppError('Invalid fingerprint', 400, { missing: validation.missing });
     }
 
     // Generate session ID
     const sessionId = uuidv4();
 
-
-
     // Identify or create user
-    // The fingerprintService.identifyUser might internally create a guest user
-    // but it needs the website context to tie that user/session to the correct website
-    const user = await fingerprintService.identifyUser(fingerprint, deviceInfo, {
+    const user = await fingerprintService.identifyUser(fingerprint, {
       sessionId,
       fpComponents,
       location,
-      websiteId: websiteID
+      websiteId,
+      deviceInfo // Pass deviceInfo to identifyUser
     });
 
-
-    // Create session
-    const session = await Session.create({
-      userId: user._id,
-      websiteId: websiteID,
-      fingerprint,
-      sessionId,
-      device: deviceInfo,
-      location,
-      startTime: new Date()
+    // Create session and connect related data
+    const session = await prisma.session.create({
+      data: {
+        userId: user.id, // Use Prisma user.id
+        websiteId: websiteId,
+        fingerprint: fingerprint,
+        sessionId: sessionId,
+        deviceInfo: {
+            create: { // Create nested DeviceSessionInfo
+                type: deviceInfo?.type || 'unknown',
+                os: deviceInfo?.os,
+                browser: deviceInfo?.browser,
+                userAgent: deviceInfo?.userAgent,
+            }
+        },
+        locationInfo: {
+            create: { // Create nested LocationInfo
+                ip: location?.ip,
+                country: location?.country,
+                city: location?.city,
+                coordinates: {
+                    create: { // Create nested Coordinates
+                        lat: location?.coordinates?.lat,
+                        lng: location?.coordinates?.lng,
+                    }
+                }
+            }
+        },
+        startTime: new Date()
+      },
+      include: {
+          persona: true, // Include persona to return primary
+          user: { include: { behavior: true } } // Include user behavior for isNewUser
+      }
     });
-
 
     res.cookie('biq_fp', fingerprint, {
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
@@ -79,10 +78,10 @@ const identify = async (req, res) => {
     res.json({
       success: true,
       data: {
-        userId: user._id,
+        userId: user.id, // Use Prisma user.id
         sessionId,
-        persona: user.persona.primary,
-        isNewUser: user.behavior.totalSessions === 0
+        persona: session.persona?.name || 'Unknown', // Access persona from session include
+        isNewUser: user.behavior?.totalSessions === 0 // Access totalSessions from user.behavior
       }
     });
   } catch (error) {

@@ -1,54 +1,82 @@
 const { asyncHandler } = require("../utils/helpers");
 const emotionService = require('../services/emotionService');
-const Session = require('../models/Session');
-const User = require('../models/User');
-const Website = require('../models/Website');
+const { prisma } = require('../config/database'); // Import prisma client
+const AppError = require('../utils/AppError');
 
 const detectEmotion = asyncHandler(async (req, res) => {
     const { userId, sessionId, behaviorData } = req.body;
+    const pageUrl = behaviorData?.currentPage || 'unknown';
+
+    // Find the session to get the UUID 'id' for foreign key reference
+    const session = await prisma.session.findUnique({
+        where: { sessionId: sessionId }
+    });
+
+    if (!session) {
+        throw new AppError('Session not found', 404);
+    }
 
     // Detect emotion
-    const result = await emotionService.detectEmotion(userId, behaviorData);
+    const result = await emotionService.detectEmotion(userId, behaviorData, pageUrl);
 
-    // Update session
-    await Session.findOneAndUpdate(
-        { sessionId },
-        {
-            $set: { 'emotion.current': result.emotion },
-            $push: {
-                'emotion.changes': {
+    // Update session emotion - Use session.id (UUID) as the foreign key
+    await prisma.sessionEmotion.upsert({
+        where: { sessionId: session.id }, // sessionId field in SessionEmotion model references Session.id
+        update: {
+            current: result.emotion,
+            changes: {
+                create: {
+                    to: result.emotion,
+                    timestamp: new Date()
+                }
+            }
+        },
+        create: {
+            session: { connect: { id: session.id } },
+            current: result.emotion,
+            changes: {
+                create: {
                     to: result.emotion,
                     timestamp: new Date()
                 }
             }
         }
-    );
-
-    // Update user profile
-    await User.findByIdAndUpdate(userId, {
-        $set: {
-            'emotionalProfile.dominantEmotion': result.emotion
-        },
-        $push: {
-            'emotionalProfile.history': {
-                emotion: result.emotion,
-                timestamp: new Date(),
-                page: behaviorData.currentPage
-            }
-        }
     });
 
-    // Ensure that a website context is available from the auth middleware
-    if (!req.website) {
-        return res.status(403).json({
-            success: false,
-            error: 'Forbidden: A valid API key linked to a registered website is required.'
+    // Update user emotional profile only if userId exists
+    if (userId) {
+        await prisma.userEmotionalProfile.upsert({
+            where: { userId: userId },
+            update: {
+                dominantEmotion: result.emotion,
+                history: {
+                    create: {
+                        emotion: result.emotion,
+                        timestamp: new Date(),
+                        page: pageUrl
+                    }
+                }
+            },
+            create: {
+                userId: userId,
+                dominantEmotion: result.emotion,
+                history: {
+                    create: {
+                        emotion: result.emotion,
+                        timestamp: new Date(),
+                        page: pageUrl
+                    }
+                }
+            }
         });
     }
 
-    const websiteapiKey = req.headers['x-api-key'];
-    const website = await Website.findOne({ apiKey: websiteapiKey });
-    const websiteID = website._id;
+    // Ensure that a website context is available from the auth middleware
+    if (!req.website) {
+        throw new AppError('Forbidden: A valid API key linked to a registered website is required.', 403);
+    }
+
+    const websiteID = req.website.id; // Use req.website.id directly
 
     // Get appropriate response
     const response = await emotionService.getEmotionResponse(
@@ -67,64 +95,53 @@ const detectEmotion = asyncHandler(async (req, res) => {
 });
 
 const getEmotionTrends = asyncHandler(async (req, res) => {
-    console.log('--- getEmotionTrends called ---'); // ADDED for debugging
+    console.log('--- getEmotionTrends called ---');
     const { websiteId, timeRange = '7d' } = req.query;
 
-    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    const website = await prisma.website.findUnique({ where: { id: websiteId, userId: req.user.id } });
     if (!website) {
-        return res.status(404).json({ success: false, message: 'Website not found' });
+        throw new AppError('Website not found', 404);
     }
 
     const days = parseInt(timeRange) || 7;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const emotionTrends = await Session.aggregate([
-        {
-            $match: {
-                websiteId: website._id,
-                createdAt: { $gte: startDate },
-                'emotion.current': { $ne: null }
-            }
-        },
-        {
-            $unwind: '$emotion.changes'
-        },
-        {
-            $group: {
-                _id: {
-                    date: { $dateToString: { format: '%Y-%m-%d', date: '$emotion.changes.timestamp' } },
-                    emotion: '$emotion.changes.to'
-                },
-                count: { $sum: 1 }
-            }
-        },
-        {
-            $group: {
-                _id: '$_id.date',
-                emotions: {
-                    $push: {
-                        emotion: '$_id.emotion',
-                        count: '$count'
-                    }
+    // Prisma does not have direct equivalent for complex $unwind and $group aggregations.
+    // Fetch relevant data and process in application logic.
+    const emotionChanges = await prisma.emotionChange.findMany({
+        where: {
+            sessionEmotion: {
+                session: {
+                    websiteId: website.id,
+                    createdAt: { gte: startDate } // Filter sessions by creation date
                 }
             }
         },
-        {
-            $sort: { _id: 1 }
+        select: {
+            timestamp: true,
+            to: true // The 'to' emotion
+        },
+        orderBy: {
+            timestamp: 'asc'
         }
-    ]);
-
-    const formattedTrends = emotionTrends.map(trend => {
-        const emotions = trend.emotions.reduce((acc, e) => {
-            acc[e.emotion] = e.count;
-            return acc;
-        }, {});
-        return {
-            date: trend._id,
-            ...emotions
-        };
     });
+
+    const emotionTrendsMap = new Map();
+    emotionChanges.forEach(change => {
+        const dateKey = change.timestamp.toISOString().split('T')[0];
+        if (!emotionTrendsMap.has(dateKey)) {
+            emotionTrendsMap.set(dateKey, {});
+        }
+        const emotionsForDate = emotionTrendsMap.get(dateKey);
+        emotionsForDate[change.to] = (emotionsForDate[change.to] || 0) + 1;
+        emotionTrendsMap.set(dateKey, emotionsForDate);
+    });
+
+    const formattedTrends = Array.from(emotionTrendsMap.entries()).map(([date, emotions]) => ({
+        date: date,
+        ...emotions
+    }));
 
     res.json({
         success: true,

@@ -14,7 +14,7 @@ require('dotenv').config();
 // Load and validate env vars early
 require('./config/env');
 
-const connectDB = require('./config/database');
+const { prisma, connectDB } = require('./config/database'); // Import prisma and connectDB
 const AppError = require('./utils/AppError');
 const { sendResponse } = require('./utils/responseHandler');
 
@@ -106,5 +106,6 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 BEHAVEIQ Backend running on port ${PORT}`);
 });
+
 
 module.exports = app;

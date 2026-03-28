@@ -1,17 +1,74 @@
-const User = require('../models/User');
 const { asyncHandler } = require('../utils/helpers');
 const { sendResponse } = require('../utils/responseHandler');
 const AppError = require('../utils/AppError');
+const { prisma } = require('../config/database'); // Import prisma client
 
 // Get all users
 const getUsers = asyncHandler(async (req, res) => {
-    const users = await User.find().select('-password').lean();
+    const users = await prisma.user.findMany({
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            companyName: true,
+            plan: true,
+            role: true,
+            settings: {
+                select: {
+                    twoFactorEnabled: true,
+                    emailNotificationsEnabled: true,
+                    pushNotificationsEnabled: true,
+                }
+            },
+            lastLogin: true,
+            fingerprint: true,
+            devices: true,
+            personaInfo: true,
+            emotionalProfile: true,
+            intentScore: true,
+            fraudScore: true,
+            discounts: true,
+            behavior: true,
+            createdAt: true,
+            updatedAt: true,
+            lastActive: true,
+        }
+    });
     sendResponse(res, 200, { users, count: users.length });
 });
 
 // Get single user
 const getUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id).select('-password').lean();
+    const user = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        select: {
+            id: true,
+            email: true,
+            fullName: true,
+            companyName: true,
+            plan: true,
+            role: true,
+            settings: {
+                select: {
+                    twoFactorEnabled: true,
+                    emailNotificationsEnabled: true,
+                    pushNotificationsEnabled: true,
+                }
+            },
+            lastLogin: true,
+            fingerprint: true,
+            devices: true,
+            personaInfo: true,
+            emotionalProfile: true,
+            intentScore: true,
+            fraudScore: true,
+            discounts: true,
+            behavior: true,
+            createdAt: true,
+            updatedAt: true,
+            lastActive: true,
+        }
+    });
 
     if (!user) {
         throw new AppError(`User not found with id of ${req.params.id}`, 404);
@@ -22,47 +79,92 @@ const getUser = asyncHandler(async (req, res) => {
 
 // Update user
 const updateUser = asyncHandler(async (req, res) => {
-    const { email, fullName, companyName, plan, role, settings } = req.body;
+    const { email, fullName, companyName, plan, role, settings, ...rest } = req.body;
 
-    let user = await User.findById(req.params.id);
+    // Check if user exists
+    const existingUser = await prisma.user.findUnique({
+        where: { id: req.params.id },
+        include: { settings: true }, // Include settings to merge
+    });
 
-    if (!user) {
+    if (!existingUser) {
         throw new AppError(`User not found with id of ${req.params.id}`, 404);
     }
 
-    // Update top-level fields
-    if (email !== undefined) user.email = email;
-    if (fullName !== undefined) user.fullName = fullName;
-    if (companyName !== undefined) user.companyName = companyName;
-    if (plan !== undefined) user.plan = plan;
-    if (role !== undefined) user.role = role;
+    let updatedUserData = {};
+    if (email !== undefined) updatedUserData.email = email;
+    if (fullName !== undefined) updatedUserData.fullName = fullName;
+    if (companyName !== undefined) updatedUserData.companyName = companyName;
+    if (plan !== undefined) updatedUserData.plan = plan;
+    if (role !== undefined) updatedUserData.role = role;
+    // ... handle other top-level fields
 
-    // Merge settings if provided
+    let updatedSettingsData = {};
     if (settings && typeof settings === 'object') {
-        user.settings = {
-            ...user.settings,
-            ...settings
+        updatedSettingsData = {
+            twoFactorEnabled: settings.twoFactorEnabled !== undefined ? settings.twoFactorEnabled : existingUser.settings?.twoFactorEnabled,
+            emailNotificationsEnabled: settings.emailNotificationsEnabled !== undefined ? settings.emailNotificationsEnabled : existingUser.settings?.emailNotificationsEnabled,
+            pushNotificationsEnabled: settings.pushNotificationsEnabled !== undefined ? settings.pushNotificationsEnabled : existingUser.settings?.pushNotificationsEnabled,
         };
     }
 
-    await user.save();
-
-    // Exclude password before sending response (optimization: lean() not possible here as we just saved document)
-    const updatedUser = user.toObject();
-    delete updatedUser.password;
+    const updatedUser = await prisma.user.update({
+        where: { id: req.params.id },
+        data: {
+            ...updatedUserData,
+            settings: {
+                update: updatedSettingsData,
+            },
+            // Note: Handling nested updates for other models like personaInfo, emotionalProfile, etc.
+            // will require similar logic depending on the relationship type (create, update, connect, disconnect)
+        },
+        select: { // Select all fields except password
+            id: true,
+            email: true,
+            fullName: true,
+            companyName: true,
+            plan: true,
+            role: true,
+            settings: {
+                select: {
+                    twoFactorEnabled: true,
+                    emailNotificationsEnabled: true,
+                    pushNotificationsEnabled: true,
+                }
+            },
+            lastLogin: true,
+            fingerprint: true,
+            devices: true,
+            personaInfo: true,
+            emotionalProfile: true,
+            intentScore: true,
+            fraudScore: true,
+            discounts: true,
+            behavior: true,
+            createdAt: true,
+            updatedAt: true,
+            lastActive: true,
+        }
+    });
 
     sendResponse(res, 200, { user: updatedUser });
 });
 
 // Delete user
 const deleteUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.params.id);
+    // Check if user exists before attempting to delete
+    const existingUser = await prisma.user.findUnique({
+        where: { id: req.params.id },
+    });
 
-    if (!user) {
+    if (!existingUser) {
         throw new AppError(`User not found with id of ${req.params.id}`, 404);
     }
 
-    await user.deleteOne();
+    await prisma.user.delete({
+        where: { id: req.params.id },
+    });
+
     sendResponse(res, 200, {}, 'User deleted successfully');
 });
 

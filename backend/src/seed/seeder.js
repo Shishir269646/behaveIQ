@@ -1,27 +1,17 @@
-// ... (imports) ...
 const fs = require('fs');
-const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
-const path = require('path'); // Add path module
+const path = require('path');
+const { prisma } = require('../config/database'); // Import prisma client
 
 // Load env vars
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Load models
-const User = require('../models/User');
-const Website = require('../models/Website');
-const Experiment = require('../models/Experiment');
-const Persona = require('../models/Persona');
-const Session = require('../models/Session');
-const Event = require('../models/Event');
-const ClickEvent = require('../models/ClickEvent');
-
 // Read JSON files
-const users = JSON.parse(
+const usersData = JSON.parse(
     fs.readFileSync(`${__dirname}/data/users.json`, 'utf-8')
 );
-const websites = JSON.parse(
+const websitesData = JSON.parse(
     fs.readFileSync(`${__dirname}/data/websites.json`, 'utf-8')
 );
 
@@ -29,47 +19,87 @@ const websites = JSON.parse(
 const importData = async () => {
     try {
         console.log('Seeding users...');
-        for (const userData of users) { // Changed 'user' to 'userData' to avoid confusion
-            // Hash password explicitly before saving
-            const hashedPassword = await bcrypt.hash(userData.password, 10); // 10 is the salt rounds
-            
-            await User.findOneAndUpdate(
-                { email: userData.email },
-                { ...userData, password: hashedPassword }, // Overwrite password with hashed version
-                { upsert: true, new: true, setDefaultsOnInsert: true }
-            );
+        for (const userData of usersData) {
+            const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+            // Create or update user, including nested relations
+            await prisma.user.upsert({
+                where: { email: userData.email },
+                update: {
+                    password: hashedPassword,
+                    fullName: userData.fullName,
+                    companyName: userData.companyName,
+                    plan: userData.plan,
+                    role: userData.role,
+                    // No need to update createdAt/updatedAt directly on upsert
+                    // Prisma handles it via @updatedAt
+                },
+                create: {
+                    email: userData.email,
+                    password: hashedPassword,
+                    fullName: userData.fullName,
+                    companyName: userData.companyName,
+                    plan: userData.plan || 'free',
+                    role: userData.role || 'user',
+                    settings: { create: {} }, // Create default UserSettings
+                    behavior: { create: {} }, // Create default UserBehavior
+                    // Other relations like personaInfo, emotionalProfile, etc., can be created here
+                    // if they are always present. Otherwise, they'll be created on demand.
+                }
+            });
         }
         console.log('Users seeded successfully.');
 
         // Seed websites for the admin user if they don't have any
-// ... (rest of the file)
-        const adminUser = await User.findOne({ email: 'admin@example.com' });
+        const adminUser = await prisma.user.findUnique({
+            where: { email: 'admin@example.com' },
+            include: { websites: true }
+        });
+
         if (adminUser) {
-            const websiteCount = await Website.countDocuments({ userId: adminUser._id });
+            const websiteCount = adminUser.websites.length;
             let websiteId;
+            let createdWebsite;
+
             if (websiteCount === 0) {
-                const sampleWebsites = websites.map(website => ({ ...website, userId: adminUser._id }));
-                const createdWebsites = await Website.create(sampleWebsites);
-                console.log('Sample websites seeded for admin user.');
-                if (createdWebsites.length > 0) {
-                    websiteId = createdWebsites[0]._id;
+                // Create sample website with nested settings and stats
+                const sampleWebsiteData = websitesData[0]; // Assuming one sample website
+                createdWebsite = await prisma.website.create({
+                    data: {
+                        userId: adminUser.id,
+                        name: sampleWebsiteData.name,
+                        domain: sampleWebsiteData.domain,
+                        apiKey: sampleWebsiteData.apiKey || require('uuid').v4(), // Generate if not present
+                        isDemo: sampleWebsiteData.isDemo || false,
+                        plan: sampleWebsiteData.plan || 'free',
+                        industry: sampleWebsiteData.industry || 'general',
+                        status: sampleWebsiteData.status || 'learning',
+                        learningStartedAt: new Date(),
+                        settings: { create: {} }, // Create default WebsiteSettings
+                        stats: { create: {} },     // Create default WebsiteStats
+                    }
+                });
+                websiteId = createdWebsite.id;
+                console.log('Sample website seeded for admin user.');
+                if (createdWebsite) {
                     console.log('---');
                     console.log('🎉 Your API Key for the demo project is:');
-                    console.log(createdWebsites[0].apiKey);
+                    console.log(createdWebsite.apiKey);
                     console.log('---');
                 }
             } else {
-                const existingWebsite = await Website.findOne({ userId: adminUser._id });
+                const existingWebsite = adminUser.websites[0];
                 if (existingWebsite) {
-                    websiteId = existingWebsite._id;
+                    websiteId = existingWebsite.id;
                     console.log('---');
                     console.log('🔑 Your existing API Key for the demo project is:');
                     console.log(existingWebsite.apiKey);
                     console.log('---');
                 }
             }
+
             if (websiteId) {
-                const personas = [
+                const personasToSeed = [
                   {
                     "websiteId": websiteId,
                     "name": "Budget Buyer",
@@ -127,7 +157,72 @@ const importData = async () => {
                     }
                   }
                 ];
-                await Persona.create(personas);
+
+                for (const personaData of personasToSeed) {
+                    await prisma.persona.upsert({
+                        where: { name_websiteId: { name: personaData.name, websiteId: websiteId } }, // Assuming name+websiteId is unique
+                        update: {
+                            description: personaData.description,
+                            clusterData: {
+                                upsert: {
+                                    create: {
+                                        clusterId: personaData.clusterData.clusterId,
+                                        avgTimeSpent: personaData.clusterData.avgTimeSpent,
+                                        avgScrollDepth: personaData.clusterData.avgScrollDepth,
+                                        avgClickRate: personaData.clusterData.avgClickRate,
+                                        avgPageViews: personaData.clusterData.avgPageViews,
+                                        commonPages: personaData.clusterData.commonPages,
+                                        commonDevices: personaData.clusterData.commonDevices,
+                                        behaviorPattern: { create: personaData.clusterData.behaviorPattern },
+                                        confidence: personaData.clusterData.confidence,
+                                        characteristics: personaData.clusterData.characteristics,
+                                    },
+                                    update: {
+                                        clusterId: personaData.clusterData.clusterId,
+                                        avgTimeSpent: personaData.clusterData.avgTimeSpent,
+                                        avgScrollDepth: personaData.clusterData.avgScrollDepth,
+                                        avgClickRate: personaData.clusterData.avgClickRate,
+                                        avgPageViews: personaData.clusterData.avgPageViews,
+                                        commonPages: personaData.clusterData.commonPages,
+                                        commonDevices: personaData.clusterData.commonDevices,
+                                        behaviorPattern: { update: personaData.clusterData.behaviorPattern },
+                                        confidence: personaData.clusterData.confidence,
+                                        characteristics: personaData.clusterData.characteristics,
+                                    }
+                                }
+                            },
+                            stats: {
+                                upsert: {
+                                    create: personaData.stats,
+                                    update: personaData.stats
+                                }
+                            }
+                        },
+                        create: {
+                            websiteId: websiteId,
+                            name: personaData.name,
+                            description: personaData.description,
+                            isAutoDiscovered: true,
+                            clusterData: {
+                                create: {
+                                    clusterId: personaData.clusterData.clusterId,
+                                    avgTimeSpent: personaData.clusterData.avgTimeSpent,
+                                    avgScrollDepth: personaData.clusterData.avgScrollDepth,
+                                    avgClickRate: personaData.clusterData.avgClickRate,
+                                    avgPageViews: personaData.clusterData.avgPageViews,
+                                    commonPages: personaData.clusterData.commonPages,
+                                    commonDevices: personaData.clusterData.commonDevices,
+                                    behaviorPattern: { create: personaData.clusterData.behaviorPattern },
+                                    confidence: personaData.clusterData.confidence,
+                                    characteristics: personaData.clusterData.characteristics,
+                                }
+                            },
+                            stats: {
+                                create: personaData.stats
+                            }
+                        }
+                    });
+                }
                 console.log('Sample personas seeded for admin user.');
             }
         }
@@ -141,26 +236,61 @@ const importData = async () => {
 // Delete data
 const deleteData = async () => {
     try {
-        await mongoose.connection.collection('users').dropIndexes();
-        console.log('User indexes dropped...');
-    } catch (error) {
-        console.warn('Could not drop user indexes (likely none existed or collection empty):', error.message);
+        // Order of deletion matters due to foreign key constraints
+        await prisma.emotionChange.deleteMany();
+        await prisma.userEmotionalProfile.deleteMany();
+        await prisma.intentScoreChange.deleteMany();
+        await prisma.sessionIntentScore.deleteMany();
+        await prisma.sessionIntervention.deleteMany();
+        await prisma.cartAction.deleteMany();
+        await prisma.mouseMove.deleteMany();
+        await prisma.click.deleteMany();
+        await prisma.pageView.deleteMany();
+        await prisma.sessionBehavior.deleteMany();
+        await prisma.coordinates.deleteMany();
+        await prisma.locationInfo.deleteMany();
+        await prisma.deviceSessionInfo.deleteMany();
+        await prisma.event.deleteMany(); // Event does not have dependencies on Session and Website.
+        await prisma.session.deleteMany();
+
+        await prisma.experimentVariation.deleteMany();
+        await prisma.experimentResult.deleteMany();
+        await prisma.experimentSettings.deleteMany();
+        await prisma.experiment.deleteMany();
+
+        await prisma.personalizationRule.deleteMany();
+        await prisma.behaviorPattern.deleteMany();
+        await prisma.personaClusterData.deleteMany();
+        await prisma.personaStats.deleteMany();
+        await prisma.persona.deleteMany();
+        
+        await prisma.emotionIntervention.deleteMany();
+        await prisma.riskBasedActions.deleteMany();
+        await prisma.fraudDetectionSettings.deleteMany();
+        await prisma.websiteSettings.deleteMany();
+        await prisma.websiteStats.deleteMany();
+        await prisma.website.deleteMany();
+
+        await prisma.userDevice.deleteMany();
+        await prisma.userPersonaInfo.deleteMany();
+        await prisma.userFraudScore.deleteMany();
+        await prisma.userDiscount.deleteMany();
+        await prisma.userBehavior.deleteMany();
+        await prisma.userSettings.deleteMany();
+        await prisma.user.deleteMany();
+
+        console.log('Data Destroyed...');
+    } catch (err) {
+        console.error('Error during data deletion:', err);
+        throw err;
     }
-    await User.deleteMany();
-    await Website.deleteMany();
-    await Experiment.deleteMany();
-    await Persona.deleteMany();
-    await Session.deleteMany();
-    await Event.deleteMany();
-    await ClickEvent.deleteMany();
-    console.log('Data Destroyed...');
 };
 
 // Connect to DB and run seeder
 const runSeeder = async () => {
     try {
-        await mongoose.connect(process.env.MONGODB_URI);
-        console.log('MongoDB Connected to seeder...');
+        await prisma.$connect();
+        console.log('PostgreSQL Connected to seeder via Prisma...');
 
         const arg = process.argv.find(arg => arg === '-i' || arg === '-d');
 
@@ -171,9 +301,11 @@ const runSeeder = async () => {
         } else {
             console.log('Please specify -i for import or -d for delete');
         }
+        await prisma.$disconnect(); // Disconnect after seeding
         process.exit(0);
     } catch (err) {
         console.error(`Error in seeder: ${err.message}`);
+        await prisma.$disconnect(); // Ensure disconnect on error
         process.exit(1);
     }
 };

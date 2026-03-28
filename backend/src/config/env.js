@@ -4,7 +4,7 @@
  */
 
 const requiredEnvVars = [
-    'MONGODB_URI',
+    'DATABASE_URL',
     'JWT_SECRET',
     'UPSTASH_REDIS_REST_URL',
     'UPSTASH_REDIS_REST_TOKEN'
@@ -21,7 +21,7 @@ if (missingVars.length > 0) {
 module.exports = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     PORT: process.env.PORT || 5000,
-    MONGODB_URI: process.env.MONGODB_URI,
+    DATABASE_URL: process.env.DATABASE_URL,
     JWT_SECRET: process.env.JWT_SECRET,
     JWT_EXPIRE: process.env.JWT_EXPIRE || '30d',
     UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,

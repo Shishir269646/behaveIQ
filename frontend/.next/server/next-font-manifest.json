@@ -8,23 +8,7 @@
       "static/media/Geist_Variable-s.p.f406b17f.woff2",
       "static/media/GeistMono_Variable.p.6bae060c.woff2"
     ],
-    "[project]/app/(auth)/login/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(dashboard)/events/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(dashboard)/settings/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(dashboard)/experiments/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(dashboard)/personas/page": [
+    "[project]/app/(dashboard)/dashboard/users/page": [
       "static/media/Geist_Variable-s.p.f406b17f.woff2",
       "static/media/GeistMono_Variable.p.6bae060c.woff2"
     ],
@@ -32,19 +16,7 @@
       "static/media/Geist_Variable-s.p.f406b17f.woff2",
       "static/media/GeistMono_Variable.p.6bae060c.woff2"
     ],
-    "[project]/app/(dashboard)/heatmaps/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(dashboard)/content/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(dashboard)/abandonment/page": [
-      "static/media/Geist_Variable-s.p.f406b17f.woff2",
-      "static/media/GeistMono_Variable.p.6bae060c.woff2"
-    ],
-    "[project]/app/(dashboard)/dashboard/users/page": [
+    "[project]/app/(dashboard)/events/page": [
       "static/media/Geist_Variable-s.p.f406b17f.woff2",
       "static/media/GeistMono_Variable.p.6bae060c.woff2"
     ]

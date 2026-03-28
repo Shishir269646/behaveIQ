@@ -17,7 +17,7 @@ const trackInterventionResponse = asyncHandler(async (req, res) => {
 
 const getAbandonmentStats = asyncHandler(async (req, res) => {
     const { websiteId, timeRange = '7d' } = req.query;
-    await websiteService.getWebsiteAndVerify(websiteId, req.user._id);
+    await websiteService.getWebsiteAndVerify(websiteId, req.user.id);
 
     const days = parseInt(timeRange) || 7;
     const stats = await abandonmentService.getStats(websiteId, days);

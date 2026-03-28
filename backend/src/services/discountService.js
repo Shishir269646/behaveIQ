@@ -1,19 +1,29 @@
 // src/services/discountService.js
 const crypto = require('crypto');
-const Discount = require('../models/Discount');
-const User = require('../models/User');
+const { prisma } = require('../config/database'); // Import prisma client
+const AppError = require('../utils/AppError');
 
 class DiscountService {
   // Calculate personalized discount
   async calculateDiscount(userId, productInfo) {
     try {
-      const user = await User.findById(userId);
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+            behavior: true, // Include UserBehavior
+            personaInfo: true, // Include UserPersonaInfo
+        }
+      });
       
+      if (!user) {
+          throw new AppError('User not found for discount calculation', 404);
+      }
+
       const factors = {
         loyalty: this.calculateLoyaltyBonus(user),
         firstTime: this.calculateFirstTimeBonus(user),
-        persona: this.calculatePersonaBonus(user.persona.primary),
-        cartAbandonment: await this.calculateAbandonmentBonus(userId),
+        persona: this.calculatePersonaBonus(user.personaInfo?.primary), // Access from personaInfo
+        cartAbandonment: await this.calculateAbandonmentBonus(user), // Pass user object
         seasonal: this.calculateSeasonalBonus(productInfo)
       };
 
@@ -32,19 +42,16 @@ class DiscountService {
       const expiresAt = new Date(Date.now() + 3600000); // 1 hour
 
       // Create discount record
-      const discount = await Discount.create({
-        userId,
-        code,
-        type: 'percentage',
-        value: totalDiscount,
-        reasons: Object.entries(factors)
-          .filter(([_, value]) => value > 0)
-          .map(([factor, value]) => ({ factor, value })),
-        applicableTo: {
-          products: productInfo.productIds || [],
-          minAmount: 0
-        },
-        expiresAt
+      const discount = await prisma.userDiscount.create({
+        data: {
+          userId,
+          code,
+          type: 'percentage', // Assuming 'percentage' is a valid value for 'type'
+          amount: totalDiscount, // Value is now 'amount' in Prisma
+          reason: this.generateDiscountReasons(factors).join(','), // Convert array to string
+          // applicableTo needs to be explicitly modeled if needed. Assuming it's not a direct field.
+          expires: expiresAt
+        }
       });
 
       return {
@@ -52,7 +59,7 @@ class DiscountService {
         discount: totalDiscount,
         reasons: this.generateDiscountReasons(factors),
         expiresAt,
-        discountId: discount._id
+        discountId: discount.id // Use discount.id
       };
     } catch (error) {
       console.error('Discount calculation error:', error);
@@ -61,7 +68,7 @@ class DiscountService {
   }
 
   calculateLoyaltyBonus(user) {
-    const purchases = user?.behavior?.purchases || 0;
+    const purchases = user?.behavior?.purchases || 0; // Access from user.behavior
     if (purchases >= 10) return 15;
     if (purchases >= 5) return 10;
     if (purchases >= 2) return 5;
@@ -69,10 +76,10 @@ class DiscountService {
   }
 
   calculateFirstTimeBonus(user) {
-    return (user?.behavior?.purchases || 0) === 0 ? 15 : 0;
+    return (user?.behavior?.purchases || 0) === 0 ? 15 : 0; // Access from user.behavior
   }
 
-  calculatePersonaBonus(persona) {
+  calculatePersonaBonus(personaPrimary) { // Takes persona primary string directly
     const bonuses = {
       budget_buyer: 10,
       impulse_buyer: 5,
@@ -80,12 +87,11 @@ class DiscountService {
       careful_researcher: 5,
       casual_visitor: 0
     };
-    return bonuses[persona] || 0;
+    return bonuses[personaPrimary] || 0;
   }
 
-  async calculateAbandonmentBonus(userId) {
-    const user = await User.findById(userId);
-    const abandons = user?.behavior?.cartAbandons || 0;
+  async calculateAbandonmentBonus(user) { // Takes user object directly
+    const abandons = user?.behavior?.cartAbandons || 0; // Access from user.behavior
     return abandons > 0 ? 10 : 0;
   }
 

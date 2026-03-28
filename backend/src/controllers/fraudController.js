@@ -1,26 +1,26 @@
-
 // src/controllers/fraudController.js
-const FraudScore = require('../models/FraudScore');
-const User = require('../models/User');
-const Website = require('../models/Website');
+const { prisma } = require('../config/database'); // Import prisma client
 const { asyncHandler } = require('../utils/helpers'); // Assuming asyncHandler is available
+const AppError = require('../utils/AppError');
 
 // Get all fraud events for the current website
-// 
 const getFraudEvents = asyncHandler(async (req, res) => {
 
-    if (!req.website || !req.website._id) {
-        return res.status(403).json({ success: false, error: 'Forbidden: Website context not provided by authentication.' });
+    if (!req.website || !req.website.id) { // Use req.website.id
+        throw new AppError('Forbidden: Website context not provided by authentication.', 403);
     }
 
-    const websiteID = req.website._id;
+    const websiteId = req.website.id; // Use req.website.id
 
     const { userId, riskLevel } = req.query;
-    const filter = { websiteId: websiteID };
+    const filter = { websiteId: websiteId };
     if (userId) filter.userId = userId;
     if (riskLevel) filter.riskLevel = riskLevel;
 
-    const fraudEvents = await FraudScore.find(filter).sort('-timestamp');
+    const fraudEvents = await prisma.userFraudScore.findMany({
+        where: filter,
+        orderBy: { lastChecked: 'desc' } // Assuming timestamp in Mongoose maps to lastChecked in Prisma
+    });
 
     res.json({
         success: true,
@@ -32,23 +32,16 @@ const getFraudEvents = asyncHandler(async (req, res) => {
 const checkFraud = async (req, res) => {
     try {
         if (!req.website) {
-            return res.status(403).json({
-                success: false,
-                error: 'Forbidden: A valid API key linked to a registered website is required.'
-            });
+            throw new AppError('Forbidden: A valid API key linked to a registered website is required.', 403);
         }
 
         const { userId, sessionData } = req.body;
 
-
-
-
-        const fraudSettings = req.website.settings.fraudDetectionSettings;
+        const fraudSettings = req.website.settings?.fraudDetectionSettings; // Access settings safely
 
         let riskScore = 0;
         const flags = [];
         const signals = {};
-
 
         let baseRisk = {
             tooFastCheckout: 20,
@@ -65,29 +58,32 @@ const checkFraud = async (req, res) => {
 
 
         // Check 1: Too fast checkout
-        if (sessionData.checkoutTime < 10) {
+        if (sessionData.checkoutTime < 10) { // Assuming checkoutTime is part of sessionData
             riskScore += baseRisk.tooFastCheckout;
             flags.push({ type: 'too_fast_checkout', severity: 3, description: 'User completed checkout unusually fast.' });
             signals.tooFastCheckout = true;
         }
 
         // Check 2: Suspicious email pattern
-        if (sessionData.email && /\d{8,}@/.test(sessionData.email)) {
+        if (sessionData.email && /\d{8,}@/.test(sessionData.email)) { // Assuming email is part of sessionData
             riskScore += baseRisk.suspiciousEmail;
             flags.push({ type: 'suspicious_email', severity: 2, description: 'Email address contains a long sequence of digits, often used by spammers.' });
             signals.suspiciousEmail = true;
         }
 
         // Check 3: No mouse movements (bot)
-        if (sessionData.mouseMovements === 0) {
+        if (sessionData.mouseMovements === 0) { // Assuming mouseMovements count is part of sessionData
             riskScore += baseRisk.botBehavior;
             flags.push({ type: 'bot_behavior', severity: 4, description: 'No mouse movements detected during session, indicating potential bot activity.' });
             signals.botBehavior = true;
         }
 
         // Check 4: Multiple failed payments
-        const user = await User.findById(userId);
-        // Assuming user.behavior.failedPayments exists and is tracked
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { behavior: true } // Include behavior to check failedPayments
+        });
+        
         if (user && user.behavior && user.behavior.failedPayments > 2) {
             riskScore += baseRisk.multipleFailedPayments;
             flags.push({ type: 'multiple_failed_payments', severity: 3, description: 'User has a history of multiple failed payment attempts.' });
@@ -117,25 +113,28 @@ const checkFraud = async (req, res) => {
         };
 
         // Save fraud score
-        await FraudScore.create({
-            userId,
-            websiteId: websiteID,
-            sessionId: sessionData.sessionId,
-            score: riskScore,
-            riskLevel,
-            flags,
-            signals,
-            experienceAdjustment,
-            timestamp: new Date()
+        await prisma.userFraudScore.create({
+            data: {
+                userId: userId,
+                websiteId: req.website.id, // Use req.website.id
+                // Assuming sessionId is string
+                score: riskScore,
+                riskLevel: riskLevel,
+                flags: flags.map(f => f.type), // Store flags as string array
+                signals: signals, // Store signals as Json
+                experienceAdjustment: experienceAdjustment, // Store as Json
+                lastChecked: new Date() // Using lastChecked as the timestamp
+            }
         });
 
         // Update user fraud score
         if (user) {
-            await User.findByIdAndUpdate(userId, {
-                $set: {
-                    'fraudScore.current': riskScore,
-                    'fraudScore.flags': flags.map(f => f.type),
-                    'fraudScore.lastChecked': new Date()
+            await prisma.userFraudScore.update({
+                where: { userId: userId }, // Assuming userId is unique for UserFraudScore
+                data: {
+                    current: riskScore,
+                    flags: flags.map(f => f.type),
+                    lastChecked: new Date()
                 }
             });
         }

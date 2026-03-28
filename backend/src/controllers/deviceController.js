@@ -1,5 +1,5 @@
 const deviceStitchingService = require('../services/deviceStitchingService');
-const Device = require('../models/Device');
+const { prisma } = require('../config/database'); // Import prisma client
 
 const stitchDevices = async (req, res) => {
   try {
@@ -27,7 +27,7 @@ const getUserDevices = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    const devices = await Device.find({ userId });
+    const devices = await prisma.userDevice.findMany({ where: { userId } });
 
     res.json({
       success: true,
@@ -40,8 +40,6 @@ const getUserDevices = async (req, res) => {
     });
   }
 };
-
-
 
 module.exports = {
   stitchDevices,

@@ -1,12 +1,16 @@
 const mlServiceClient = require('./mlServiceClient');
-const Session = require('../models/Session');
-const Intervention = require('../models/Intervention');
+const { prisma } = require('../config/database'); // Import prisma client
+const AppError = require('../utils/AppError');
 
 /**
  * Predict abandonment risk
  */
 exports.predictAbandonmentRisk = async (sessionId, websiteId, userId) => {
-    const session = await Session.findById(sessionId);
+    const session = await prisma.session.findUnique({
+        where: { id: sessionId },
+        include: { behavior: true, intentScore: { select: { current: true } } }
+    });
+
     if (!session) {
         return { riskScore: 0, prediction: 'low_risk', recommendedIntervention: 'none' };
     }
@@ -20,20 +24,23 @@ exports.predictAbandonmentRisk = async (sessionId, websiteId, userId) => {
 
     try {
         const mlResult = await mlServiceClient.callMLService('/predict/abandonment', {
-            websiteId: websiteId.toString(),
-            sessionId: sessionId.toString(),
+            websiteId: websiteId, // websiteId is already a string
+            sessionId: sessionId, // sessionId is already a string
             features: features
         });
 
         const riskScore = mlResult.riskScore || 0;
         const prediction = mlResult.prediction || 'low_risk';
 
-        session.abandonmentRisk = {
-            score: riskScore,
-            prediction: prediction,
-            timestamp: new Date()
-        };
-        await session.save();
+        await prisma.session.update({
+            where: { id: sessionId },
+            data: {
+                abandonmentRiskScore: riskScore,
+                abandonmentPrediction: prediction,
+                // The timestamp for abandonmentRisk was not directly modeled as a separate field,
+                // using updatedAt for general update time or a dedicated field if needed.
+            }
+        });
 
         return {
             riskScore,
@@ -50,29 +57,43 @@ exports.predictAbandonmentRisk = async (sessionId, websiteId, userId) => {
  * Track intervention response
  */
 exports.trackInterventionResponse = async (interventionId, responseStatus, sessionOutcome = null) => {
-    const intervention = await Intervention.findById(interventionId);
+    const intervention = await prisma.sessionIntervention.findUnique({
+        where: { id: interventionId },
+        include: { session: true } // Include session to get sessionId for update
+    });
     if (!intervention) {
-        throw new Error('Intervention not found');
+        throw new AppError('Intervention not found', 404);
     }
 
-    intervention.response.status = responseStatus;
-    intervention.response.timestamp = new Date();
+    const updateData = {
+        response: responseStatus,
+        timestamp: new Date(), // This seems to be for intervention's own timestamp
+        // The effectiveness and outcome fields need to be handled based on the Prisma schema.
+        // Assuming 'outcome' can be set directly on SessionIntervention.
+    };
 
     if (sessionOutcome === 'purchase') {
-        intervention.response.effectiveness = 1;
-        intervention.outcome.prevented = true;
-        intervention.outcome.converted = true;
+        updateData.effectiveness = 1;
+        // In Mongoose, there were intervention.outcome.prevented and .converted
+        // In Prisma, we have response (string) and effectiveness (float) on SessionIntervention directly.
+        // Need to decide how 'prevented' and 'converted' map. Assuming 'effectiveness: 1' implies conversion.
     } else if (responseStatus === 'clicked') {
-        intervention.response.effectiveness = 0.5;
+        updateData.effectiveness = updateData.effectiveness || 0.5; // If not already 1 from purchase
     }
 
-    await intervention.save();
+    const updatedIntervention = await prisma.sessionIntervention.update({
+        where: { id: interventionId },
+        data: updateData,
+    });
 
-    if (sessionOutcome) {
-        await Session.findByIdAndUpdate(intervention.sessionId, { outcome: sessionOutcome });
+    if (sessionOutcome && intervention.sessionId) {
+        await prisma.session.update({
+            where: { id: intervention.sessionId },
+            data: { outcome: sessionOutcome }
+        });
     }
 
-    return intervention;
+    return updatedIntervention;
 };
 
 /**
@@ -82,23 +103,40 @@ exports.getStats = async (websiteId, days) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 
-    const nonConvertedSessions = await Session.find({
-        websiteId,
-        converted: false,
-        createdAt: { $gte: startDate }
-    }).select('intentScore').lean();
+    const nonConvertedSessions = await prisma.session.findMany({
+        where: {
+            websiteId,
+            outcome: { not: 'purchase' }, // Assuming outcome 'purchase' means converted
+            createdAt: { gte: startDate }
+        },
+        select: {
+            intentScore: {
+                select: { current: true }
+            }
+        },
+    });
 
     const overallRisk = nonConvertedSessions.length > 0
-        ? (nonConvertedSessions.reduce((sum, s) => sum + (s.intentScore || 0), 0) / nonConvertedSessions.length) * 100
+        ? (nonConvertedSessions.reduce((sum, s) => sum + (s.intentScore?.current || 0), 0) / nonConvertedSessions.length)
         : 0;
 
-    const interventions = await Intervention.find({
-        websiteId,
-        timestamp: { $gte: startDate }
-    }).lean();
+    const interventions = await prisma.sessionIntervention.findMany({
+        where: {
+            session: {
+                websiteId: websiteId
+            },
+            timestamp: { gte: startDate }
+        },
+        select: {
+            type: true,
+            response: true,
+            effectiveness: true // Assuming effectiveness can imply conversion
+        }
+    });
 
     const triggered = interventions.length;
-    const recovered = interventions.filter(i => i.outcome?.converted).length;
+    // Assuming effectiveness of 1 implies a recovered/converted state from intervention
+    const recovered = interventions.filter(i => i.effectiveness === 1).length;
     const recoveryRate = triggered > 0 ? (recovered / triggered) * 100 : 0;
 
     const performanceMap = {};
@@ -108,8 +146,8 @@ exports.getStats = async (websiteId, days) => {
             performanceMap[type] = { type, shown: 0, clicked: 0, converted: 0 };
         }
         performanceMap[type].shown++;
-        if (i.response?.status === 'clicked') performanceMap[type].clicked++;
-        if (i.outcome?.converted) performanceMap[type].converted++;
+        if (i.response === 'clicked') performanceMap[type].clicked++;
+        if (i.effectiveness === 1) performanceMap[type].converted++; // Assuming effectiveness 1 implies conversion
     });
 
     const performance = Object.values(performanceMap).map(stats => ({
@@ -117,33 +155,45 @@ exports.getStats = async (websiteId, days) => {
         effectiveness: stats.shown > 0 ? (stats.converted / stats.shown) * 100 : 0
     }));
 
-    const trends = await Session.aggregate([
-        {
-            $match: {
-                websiteId: websiteId,
-                converted: false,
-                createdAt: { $gte: startDate }
-            }
+    // Prisma's aggregation API for trends (similar to what was done in dashboardService)
+    const sessionsForTrend = await prisma.session.findMany({
+        where: {
+            websiteId: websiteId,
+            outcome: { not: 'purchase' }, // Non-converted sessions
+            createdAt: { gte: startDate }
         },
-        {
-            $group: {
-                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-                avgIntentScore: { $avg: '$intentScore' },
-                sessionsCount: { $sum: 1 }
-            }
+        select: {
+            createdAt: true,
+            intentScore: { select: { current: true } }
         },
-        { $sort: { _id: 1 } }
-    ]);
+        orderBy: {
+            createdAt: 'asc'
+        }
+    });
+
+    const trendMap = new Map();
+    sessionsForTrend.forEach(session => {
+        const dateKey = session.createdAt.toISOString().split('T')[0];
+        if (!trendMap.has(dateKey)) {
+            trendMap.set(dateKey, { totalIntentScore: 0, sessionsCount: 0 });
+        }
+        const data = trendMap.get(dateKey);
+        data.totalIntentScore += (session.intentScore?.current || 0);
+        data.sessionsCount++;
+        trendMap.set(dateKey, data);
+    });
+
+    const trends = Array.from(trendMap.entries()).map(([date, data]) => ({
+        date: date,
+        riskScore: data.sessionsCount > 0 ? parseFloat(((data.totalIntentScore / data.sessionsCount)).toFixed(2)) : 0,
+        sessions: data.sessionsCount
+    }));
 
     return {
         overallRisk: parseFloat(overallRisk.toFixed(2)),
         interventionsTriggered: triggered,
         recoveryRate: parseFloat(recoveryRate.toFixed(2)),
         interventionPerformance: performance,
-        riskTrends: trends.map(t => ({
-            date: t._id,
-            riskScore: t.avgIntentScore ? parseFloat((t.avgIntentScore * 100).toFixed(2)) : 0,
-            sessions: t.sessionsCount
-        }))
+        riskTrends: trends
     };
 };

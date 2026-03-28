@@ -1,8 +1,6 @@
 const mlServiceClient = require('../services/mlServiceClient');
-const Persona = require('../models/Persona');
-const Website = require('../models/Website');
-const Event = require('../models/Event');
 const { asyncHandler } = require('../utils/helpers');
+const { prisma } = require('../config/database');
 
 const generateContent = async (req, res, next) => {
     try {
@@ -12,24 +10,25 @@ const generateContent = async (req, res, next) => {
             return res.status(400).json({ message: 'Persona Description, ContentType, WebsiteId, and SessionId are required.' });
         }
 
-        const website = await Website.findById(websiteId);
-        console.log('Website found by ID:', website ? website._id : 'No website found');
-        if (!website || website.userId.toString() !== req.user.id) {
+        const website = await prisma.website.findUnique({ where: { id: websiteId } });
+        console.log('Website found by ID:', website ? website.id : 'No website found');
+        if (!website || website.userId !== req.user.id) {
             return res.status(404).json({ success: false, message: 'Website not found or not authorized.' });
         }
 
         const content = await mlServiceClient.generateContent(personaDescription, contentType);
         
-        await Event.create({
-            websiteId: website._id,
-            sessionId: sessionId,
-            eventType: 'content_generated',
-            eventData: {
-                personaDescription: personaDescription,
-                contentType: contentType,
-                generatedContentSnippet: content.generated_content ? content.generated_content.substring(0, 200) + '...' : '', // Store snippet
-                
-            },
+        await prisma.event.create({
+            data: {
+                websiteId: website.id,
+                sessionId: sessionId,
+                eventType: 'content_generated', // Assuming 'content_generated' is a valid EventType enum value
+                eventData: {
+                    personaDescription: personaDescription,
+                    contentType: contentType,
+                    generatedContentSnippet: content.generated_content ? content.generated_content.substring(0, 200) + '...' : '', // Store snippet
+                },
+            }
         });
 
         
@@ -43,18 +42,29 @@ const generateContent = async (req, res, next) => {
 const getContentOptions = asyncHandler(async (req, res) => {
     const { websiteId } = req.query;
 
-    const website = await Website.findOne({ _id: websiteId, userId: req.user._id });
+    const website = await prisma.website.findFirst({ where: { id: websiteId, userId: req.user.id } });
     if (!website) {
         return res.status(404).json({ success: false, message: 'Website not found or not authorized.' });
     }
 
     // Fetch active personas for the website
-    const personas = await Persona.find({ websiteId, isActive: true }).select('name clusterData.behaviorPattern');
+    const personas = await prisma.persona.findMany({
+        where: { websiteId, isActive: true },
+        select: {
+            id: true,
+            name: true,
+            clusterData: {
+                select: {
+                    behaviorPattern: true
+                }
+            }
+        }
+    });
 
     const formattedPersonas = personas.map(p => ({
-        id: p._id,
+        id: p.id,
         name: p.name,
-        behaviorPattern: p.clusterData.behaviorPattern
+        behaviorPattern: p.clusterData?.behaviorPattern || null // Handle null clusterData
     }));
 
     // Predefined list of content types

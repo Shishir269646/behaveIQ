@@ -1,5 +1,4 @@
-const Event = require('../models/Event');
-const Website = require('../models/Website');
+const { prisma } = require('../config/database'); // Import prisma client
 const { asyncHandler } = require('../utils/helpers');
 const { sendResponse } = require('../utils/responseHandler');
 const AppError = require('../utils/AppError');
@@ -13,34 +12,41 @@ const getEvents = asyncHandler(async (req, res) => {
     }
 
     // Verify ownership
-    const website = await Website.findOne({
-        _id: websiteId,
-        userId: req.user._id
-    }).lean();
+    const website = await prisma.website.findUnique({
+        where: { id: websiteId, userId: req.user.id } // Use req.user.id
+    });
 
     if (!website) {
         throw new AppError('Website not found or not authorized', 404);
     }
 
-    const query = { websiteId };
-    if (eventType) query.eventType = eventType;
+    const whereClause = { websiteId: website.id }; // Use website.id
+    if (eventType) whereClause.eventType = eventType;
 
     // Time range filtering
     const days = parseInt(timeRange) || 7;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    query.timestamp = { $gte: startDate };
+    whereClause.timestamp = { gte: startDate };
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const events = await Event.find(query)
-        .sort('-timestamp')
-        .skip(skip)
-        .limit(parseInt(limit))
-        .select('eventType eventData timestamp')
-        .lean(); // Use lean() for performance
+    const events = await prisma.event.findMany({
+        where: whereClause,
+        orderBy: { timestamp: 'desc' },
+        skip: skip,
+        take: parseInt(limit),
+        select: { // Select fields as needed
+            id: true, // Prisma uses id
+            sessionId: true,
+            websiteId: true,
+            eventType: true,
+            eventData: true,
+            timestamp: true
+        }
+    });
 
-    const totalEvents = await Event.countDocuments(query);
+    const totalEvents = await prisma.event.count({ where: whereClause });
 
     sendResponse(res, 200, {
         events,
@@ -56,26 +62,29 @@ const getEventStats = asyncHandler(async (req, res) => {
     const { websiteId } = req.query;
 
     // Verify ownership
-    const website = await Website.findOne({
-        _id: websiteId,
-        userId: req.user._id
-    }).lean();
+    const website = await prisma.website.findUnique({
+        where: { id: websiteId, userId: req.user.id } // Use req.user.id
+    });
 
     if (!website) {
         throw new AppError('Website not found or not authorized', 404);
     }
 
-    const stats = await Event.aggregate([
-        { $match: { websiteId: website._id } },
-        {
-            $group: {
-                _id: '$eventType',
-                count: { $sum: 1 }
-            }
-        }
-    ]);
+    // Prisma's group by in aggregate.groupBy
+    const stats = await prisma.event.groupBy({
+        by: ['eventType'],
+        where: { websiteId: website.id }, // Use website.id
+        _count: {
+            eventType: true,
+        },
+    });
 
-    sendResponse(res, 200, { stats });
+    const formattedStats = stats.map(s => ({
+        _id: s.eventType,
+        count: s._count.eventType,
+    }));
+
+    sendResponse(res, 200, { stats: formattedStats });
 });
 
 module.exports = {

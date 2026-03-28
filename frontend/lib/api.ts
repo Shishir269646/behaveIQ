@@ -39,6 +39,33 @@ api.interceptors.request.use(
   }
 )
 
+// Interceptor to bridge Prisma's 'id' with frontend's expected '_id'
+api.interceptors.response.use(
+  (response) => {
+    const addIdAlias = (obj: any) => {
+      if (Array.isArray(obj)) {
+        obj.forEach(addIdAlias)
+      } else if (obj && typeof obj === 'object') {
+        if (obj.id && !obj._id) {
+          obj._id = obj.id
+        }
+        Object.values(obj).forEach(addIdAlias)
+      }
+    }
+
+    if (response.data && response.data.data) {
+      addIdAlias(response.data.data)
+    } else if (response.data) {
+      addIdAlias(response.data)
+    }
+
+    return response
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
 mlApi.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('behaveiq_token')
@@ -46,6 +73,33 @@ mlApi.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// Interceptor to bridge Prisma's 'id' with frontend's expected '_id'
+mlApi.interceptors.response.use(
+  (response) => {
+    const addIdAlias = (obj: any) => {
+      if (Array.isArray(obj)) {
+        obj.forEach(addIdAlias)
+      } else if (obj && typeof obj === 'object') {
+        if (obj.id && !obj._id) {
+          obj._id = obj.id
+        }
+        Object.values(obj).forEach(addIdAlias)
+      }
+    }
+
+    if (response.data && response.data.data) {
+      addIdAlias(response.data.data)
+    } else if (response.data) {
+      addIdAlias(response.data)
+    }
+
+    return response
   },
   (error) => {
     return Promise.reject(error)

@@ -1,18 +1,18 @@
-/**
- * @fileoverview Database configuration.
- * This file handles the connection to the MongoDB database.
- */
+const { PrismaClient } = require("@prisma/client");
 
-const mongoose = require('mongoose');
+const prisma = new PrismaClient();
 
-const connectDB = async () => {
+async function connectDB() {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
-    console.log('✅ MongoDB Connected');
+    await prisma.$connect();
+    console.log("✅ PostgreSQL connected successfully");
   } catch (error) {
-    console.error('❌ MongoDB Connection Error:', error);
+    console.error("❌ Database connection error:", error);
     process.exit(1);
   }
-};
+}
 
-module.exports = connectDB;
+module.exports = {
+  prisma,
+  connectDB
+};

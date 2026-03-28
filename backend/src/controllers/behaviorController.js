@@ -2,11 +2,11 @@ const { asyncHandler } = require('../utils/helpers');
 const { sendResponse } = require('../utils/responseHandler');
 const AppError = require('../utils/AppError');
 const behaviorService = require('../services/behaviorService');
-const Website = require('../models/Website');
+const { prisma } = require('../config/database');
 
 const trackEvent = asyncHandler(async (req, res) => {
     const apiKey = req.headers['x-api-key'];
-    const website = await Website.findOne({ apiKey }).lean();
+    const website = await prisma.website.findUnique({ where: { apiKey } });
 
     if (!website) {
         throw new AppError('A valid API key is required.', 403);

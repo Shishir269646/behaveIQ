@@ -1,6 +1,7 @@
 // src/services/emotionService.js
 const redis = require('../config/redis');
 const axios = require('axios');
+const { prisma } = require('../config/database'); // Import prisma client
 
 class EmotionService {
   constructor() {
@@ -8,7 +9,7 @@ class EmotionService {
   }
 
   // Analyze behavior and detect emotion
-  async detectEmotion(userId, behaviorData, pageUrl) {
+  async detectEmotion(userId, behaviorData, pageUrl = 'unknown') {
     console.log('--- emotionService.detectEmotion received pageUrl ---', pageUrl);
     try {
       // Extract features from behavior
@@ -20,23 +21,34 @@ class EmotionService {
         page_url: pageUrl
       });
 
-      const emotion = response.data.emotion;
-      const confidence = response.data.confidence;
+      const emotion = response.data?.emotion || 'neutral';
+      const confidence = response.data?.confidence || 0.5;
 
       // Store in Redis Stream for real-time processing
-      await redis.xadd('emotion:stream', '*',
-        'user', userId,
-        'emotion', emotion,
-        'confidence', confidence.toString(),
-        'timestamp', Date.now().toString()
-      );
+      // Only if we have a valid userId or we can use sessionId as fallback
+      const streamId = userId || 'anonymous';
+      
+      try {
+        // Upstash redis.xadd(key, id, object)
+        await redis.xadd('emotion:stream', '*', {
+          user: streamId,
+          emotion: emotion,
+          confidence: confidence.toString(),
+          timestamp: Date.now().toString()
+        });
+      } catch (redisError) {
+        console.error('Redis Stream error in detectEmotion:', redisError.message);
+        // Don't fail the whole request if Redis Stream fails
+      }
 
-      // Cache current emotion
-      await redis.setex(`user:${userId}:emotion`, 300, emotion); // 5 min TTL
+      // Cache current emotion if userId exists
+      if (userId) {
+        await redis.setex(`user:${userId}:emotion`, 300, emotion); // 5 min TTL
+      }
 
       return { emotion, confidence };
     } catch (error) {
-      console.error('Emotion detection error:', error);
+      console.error('Emotion detection error:', error.message || error);
       return { emotion: 'neutral', confidence: 0.5 };
     }
   }
@@ -87,15 +99,21 @@ class EmotionService {
     return arr.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / arr.length;
   }
 
-  // Get appropriate response for emotion
   // Get appropriate response for emotion based on website settings
   async getEmotionResponse(websiteId, emotion) { // Added websiteId
-    const Website = require('../models/Website'); // Require here to avoid circular dependency
-
     const defaultResponse = { action: 'none', message: '' };
 
     try {
-      const website = await Website.findById(websiteId); // Find by websiteId
+      const website = await prisma.website.findUnique({
+        where: { id: websiteId },
+        include: {
+          settings: {
+            include: {
+              emotionInterventions: true
+            }
+          }
+        }
+      });
       if (!website || !website.settings || !website.settings.emotionInterventions) {
         return defaultResponse;
       }

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const { asyncHandler } = require('../utils/helpers');
-const User = require('../models/User');
-const Website = require('../models/Website');
+const { prisma } = require('../config/database'); // Import prisma client
+const { JWT_SECRET } = require('../config/env'); // Import JWT_SECRET from env config
 
 /**
  * ------------------------------------
@@ -10,9 +10,18 @@ const Website = require('../models/Website');
  */
 const handleJwtAuth = async (req, res, next, token) => {
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, JWT_SECRET);
 
-        const user = await User.findById(decoded.id);
+        const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            select: { // Select fields as needed, excluding sensitive ones like password
+                id: true,
+                email: true,
+                fullName: true,
+                role: true,
+            }
+        });
+
         if (!user) {
             return res.status(401).json({
                 success: false,
@@ -21,7 +30,7 @@ const handleJwtAuth = async (req, res, next, token) => {
         }
 
         req.user = user;
-        req.website = await Website.findOne({ userId: user._id });
+        req.website = await prisma.website.findFirst({ where: { userId: user.id } }); // Assuming user has a single primary website
 
         return next();
     } catch (error) {
@@ -38,7 +47,7 @@ const handleJwtAuth = async (req, res, next, token) => {
  * ------------------------------------
  */
 const handleApiKeyAuth = async (req, res, next, apiKey) => {
-    const website = await Website.findOne({ apiKey });
+    const website = await prisma.website.findUnique({ where: { apiKey } });
 
     /**
      * Allow anonymous tracking for SDK endpoints
@@ -73,14 +82,23 @@ const handleApiKeyAuth = async (req, res, next, apiKey) => {
         }
 
         req.website = website;
-        req.user = await User.findOne({ role: 'guest' }); // guest system user
+        req.user = await prisma.user.findFirst({ where: { role: 'guest' } }); // Assuming a 'guest' user exists
         return next();
     }
 
     /**
      * Normal SaaS Customer
      */
-    const user = await User.findById(website.userId);
+    const user = await prisma.user.findUnique({
+        where: { id: website.userId },
+        select: { // Select fields as needed, excluding sensitive ones like password
+            id: true,
+            email: true,
+            fullName: true,
+            role: true,
+        }
+    });
+
     if (!user) {
         return res.status(401).json({
             success: false,

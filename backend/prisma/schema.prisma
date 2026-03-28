@@ -1,0 +1,695 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://prisly.d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums (existing)
+enum UserPlan {
+  free
+  pro
+  premium
+  enterprise
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+enum DeviceType {
+  mobile
+  desktop
+  tablet
+  unknown
+}
+
+enum PersonaPrimary {
+  budget_buyer
+  feature_explorer
+  careful_researcher
+  impulse_buyer
+  casual_visitor
+}
+
+enum EmotionType {
+  frustrated
+  confused
+  excited
+  neutral
+  considering
+}
+
+// User Model (existing)
+model User {
+  id               String                @id @default(uuid())
+  email            String                @unique
+  password         String
+  fullName         String
+  companyName      String?
+  plan             UserPlan              @default(free)
+  role             UserRole              @default(user)
+  settings         UserSettings?
+  lastLogin        DateTime?
+  fingerprint      String?               @unique // Sparse index equivalent
+  devices          UserDevice[]
+  personaInfo      UserPersonaInfo? // One-to-one relation
+  emotionalProfile UserEmotionalProfile?
+  intentScore      UserIntentScore?
+  fraudScore       UserFraudScore?
+  discounts        UserDiscount[]
+  behavior         UserBehavior?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  lastActive       DateTime              @default(now())
+
+  websites Website[]
+  sessions Session[]
+}
+
+model UserSettings {
+  id                        String  @id @default(uuid())
+  twoFactorEnabled          Boolean @default(false)
+  emailNotificationsEnabled Boolean @default(true)
+  pushNotificationsEnabled  Boolean @default(false)
+  userId                    String  @unique
+  user                      User    @relation(fields: [userId], references: [id])
+}
+
+model UserDevice {
+  id           String      @id @default(uuid())
+  fingerprint  String?
+  type         DeviceType?
+  firstSeen    DateTime?
+  lastSeen     DateTime?
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+  stitchedWith Json[] // New field for device stitching history
+  fpComponents Json? // New field for fingerprint components
+}
+
+model UserPersonaInfo {
+  id          String         @id @default(uuid())
+  primary     PersonaPrimary @default(casual_visitor)
+  secondary   String[]       @db.Text
+  confidence  Float          @default(0)
+  lastUpdated DateTime?
+  userId      String         @unique // Ensure userId is required and unique for 1-to-1
+  user        User           @relation(fields: [userId], references: [id])
+}
+
+model UserEmotionalProfile {
+  id              String               @id @default(uuid())
+  dominantEmotion EmotionType?
+  history         UserEmotionHistory[]
+  userId          String               @unique
+  user            User                 @relation(fields: [userId], references: [id])
+}
+
+model UserEmotionHistory {
+  id                     String               @id @default(uuid())
+  emotion                EmotionType
+  timestamp              DateTime
+  page                   String
+  userEmotionalProfileId String
+  userEmotionalProfile   UserEmotionalProfile @relation(fields: [userEmotionalProfileId], references: [id])
+}
+
+model UserIntentScore {
+  id      String                   @id @default(uuid())
+  current Int                      @default(0) @db.SmallInt // 0-100
+  history UserIntentScoreHistory[]
+  userId  String                   @unique
+  user    User                     @relation(fields: [userId], references: [id])
+}
+
+model UserIntentScoreHistory {
+  id                String          @id @default(uuid())
+  score             Int             @db.SmallInt
+  timestamp         DateTime
+  factors           Json // Mixed type in Mongoose, Json in Prisma
+  userIntentScoreId String
+  userIntentScore   UserIntentScore @relation(fields: [userIntentScoreId], references: [id])
+}
+
+model UserFraudScore {
+  id          String    @id @default(uuid())
+  current     Int       @default(0) @db.SmallInt // 0-100
+  flags       String[]  @db.Text
+  lastChecked DateTime?
+  userId      String    @unique
+  user        User      @relation(fields: [userId], references: [id])
+}
+
+model UserDiscount {
+  id      String    @id @default(uuid())
+  amount  Float
+  reason  String?
+  code    String?
+  expires DateTime?
+  used    Boolean   @default(false)
+  userId  String
+  user    User      @relation(fields: [userId], references: [id])
+  status  String    @default("active") // active, used, expired
+  usedAt  DateTime?
+  orderId String?
+}
+
+model UserBehavior {
+  id                 String @id @default(uuid())
+  totalSessions      Int    @default(0)
+  totalPageViews     Int    @default(0)
+  totalTimeSpent     Int    @default(0)
+  cartAbandons       Int    @default(0)
+  purchases          Int    @default(0)
+  avgSessionDuration Float  @default(0)
+  userId             String @unique
+  user               User   @relation(fields: [userId], references: [id])
+  failedPayments     Int    @default(0)
+}
+
+// Enums for Website model (existing)
+enum WebsitePlan {
+  demo
+  free
+  starter
+  pro
+  enterprise
+}
+
+enum WebsiteStatus {
+  learning
+  active
+  paused
+}
+
+enum EmotionInterventionEmotion {
+  frustrated
+  confused
+  excited
+  neutral
+  considering
+}
+
+enum EmotionInterventionAction {
+  show_help_chat
+  show_guide
+  show_social_proof
+  show_comparison
+  none
+}
+
+enum EmotionInterventionStatus {
+  active
+  inactive
+}
+
+enum FraudDetectionSensitivity {
+  low
+  medium
+  high
+}
+
+// Website Model (existing)
+model Website {
+  id                String        @id @default(uuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id])
+  name              String
+  domain            String
+  apiKey            String        @unique @default(uuid()) // generateApiKey will be handled in application logic
+  isDemo            Boolean       @default(false)
+  demoExpiresAt     DateTime?
+  plan              WebsitePlan   @default(free)
+  industry          String        @default("general")
+  status            WebsiteStatus @default(learning)
+  learningStartedAt DateTime      @default(now())
+  activatedAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  sessions         Session[]
+  personas         Persona[]
+  experiments      Experiment[]
+  events           Event[] // Added inverse relation for Event
+  sessionBehaviors SessionBehavior[] // New inverse relation
+  clicks           Click[] // New inverse relation
+  settings         WebsiteSettings?
+  stats            WebsiteStats?
+}
+
+model WebsiteSettings {
+  id                  String  @id @default(uuid())
+  learningPeriodHours Int     @default(48)
+  autoPersonalization Boolean @default(false)
+  experimentMode      Boolean @default(false)
+  notificationEmail   String?
+
+  emotionInterventions   EmotionIntervention[]
+  fraudDetectionSettings FraudDetectionSettings?
+
+  websiteId String  @unique
+  website   Website @relation(fields: [websiteId], references: [id])
+}
+
+model EmotionIntervention {
+  id            String                     @id @default(uuid())
+  emotion       EmotionInterventionEmotion
+  action        EmotionInterventionAction
+  message       String?
+  data          Json? // Mixed type in Mongoose
+  status        EmotionInterventionStatus  @default(active)
+  effectiveness Float                      @default(0)
+  lastModified  DateTime                   @default(now())
+
+  websiteSettingsId String
+  websiteSettings   WebsiteSettings @relation(fields: [websiteSettingsId], references: [id])
+}
+
+model FraudDetectionSettings {
+  id               String                    @id @default(uuid())
+  sensitivity      FraudDetectionSensitivity @default(medium)
+  riskBasedActions RiskBasedActions?
+
+  websiteSettingsId String          @unique
+  websiteSettings   WebsiteSettings @relation(fields: [websiteSettingsId], references: [id])
+}
+
+model RiskBasedActions {
+  id                       String  @id @default(uuid())
+  requirePhoneVerification Boolean @default(false)
+  requireEmailVerification Boolean @default(false)
+  disableCOD               Boolean @default(false)
+  showCaptcha              Boolean @default(false)
+  manualReview             Boolean @default(false)
+  limitOrderValue          Int?
+
+  fraudDetectionSettingsId String                 @unique
+  fraudDetectionSettings   FraudDetectionSettings @relation(fields: [fraudDetectionSettingsId], references: [id])
+}
+
+model WebsiteStats {
+  id            String @id @default(uuid())
+  totalSessions Int    @default(0)
+  totalEvents   Int    @default(0)
+  totalPersonas Int    @default(0)
+
+  websiteId String  @unique
+  website   Website @relation(fields: [websiteId], references: [id])
+}
+
+// Enums for Session model (existing)
+enum SessionOutcome {
+  purchase
+  cart_abandon
+  bounce
+  ongoing
+}
+
+enum CartActionType {
+  add
+  remove
+  view
+}
+
+enum InterventionResponseType {
+  clicked
+  ignored
+  dismissed
+}
+
+// Session Model (existing)
+model Session {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  websiteId   String
+  website     Website  @relation(fields: [websiteId], references: [id])
+  personaId   String?
+  persona     Persona? @relation(fields: [personaId], references: [id])
+  fingerprint String
+  sessionId   String   @unique
+
+  abandonmentRiskScore  Float?
+  abandonmentPrediction String? // e.g., 'low_risk', 'medium_risk', 'high_risk'
+  experimentId          String? // Added for SDK controller
+  experimentVariation   String? // Added for SDK controller
+
+  deviceInfo    DeviceSessionInfo?
+  locationInfo  LocationInfo?
+  behavior      SessionBehavior?
+  emotion       SessionEmotion?
+  intentScore   SessionIntentScore?
+  interventions SessionIntervention[]
+
+  outcome   SessionOutcome @default(ongoing)
+  startTime DateTime       @default(now())
+  endTime   DateTime?
+  duration  Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  events Event[] // Add relation to Event model
+}
+
+model DeviceSessionInfo {
+  id        String      @id @default(uuid())
+  type      DeviceType? // Reusing DeviceType enum
+  os        String?
+  browser   String?
+  userAgent String?
+  sessionId String      @unique
+  session   Session     @relation(fields: [sessionId], references: [id])
+}
+
+model LocationInfo {
+  id          String       @id @default(uuid())
+  ip          String?
+  country     String?
+  city        String?
+  coordinates Coordinates?
+  sessionId   String       @unique
+  session     Session      @relation(fields: [sessionId], references: [id])
+}
+
+model Coordinates {
+  id             String       @id @default(uuid())
+  lat            Float?
+  lng            Float?
+  locationInfoId String       @unique
+  locationInfo   LocationInfo @relation(fields: [locationInfoId], references: [id])
+}
+
+model SessionBehavior {
+  id             String       @id @default(uuid())
+  pageViews      PageView[]
+  clicks         Click[]
+  mouseMovements MouseMove[]
+  cartActions    CartAction[]
+  sessionId      String       @unique
+  session        Session      @relation(fields: [sessionId], references: [id])
+  websiteId      String // Add websiteId
+  website        Website      @relation(fields: [websiteId], references: [id]) // Relation to Website
+}
+
+model PageView {
+  id                String          @id @default(uuid())
+  url               String?
+  timestamp         DateTime?
+  timeSpent         Int?
+  scrollDepth       Float?
+  sessionBehaviorId String
+  sessionBehavior   SessionBehavior @relation(fields: [sessionBehaviorId], references: [id])
+}
+
+model Click {
+  id                String          @id @default(uuid())
+  element           String?
+  elementId         String?
+  className         String?
+  x                 Int?
+  y                 Int?
+  timestamp         DateTime?
+  sessionBehaviorId String
+  sessionBehavior   SessionBehavior @relation(fields: [sessionBehaviorId], references: [id])
+  websiteId         String // Add websiteId
+  website           Website         @relation(fields: [websiteId], references: [id]) // Relation to Website
+  pageUrl           String? // Add pageUrl
+}
+
+model MouseMove {
+  id                String          @id @default(uuid())
+  x                 Int?
+  y                 Int?
+  timestamp         DateTime?
+  speed             Float?
+  variance          Float?
+  sessionBehaviorId String
+  sessionBehavior   SessionBehavior @relation(fields: [sessionBehaviorId], references: [id])
+}
+
+model CartAction {
+  id                String          @id @default(uuid())
+  action            CartActionType?
+  productId         String?
+  timestamp         DateTime?
+  sessionBehaviorId String
+  sessionBehavior   SessionBehavior @relation(fields: [sessionBehaviorId], references: [id])
+}
+
+model SessionEmotion {
+  id        String          @id @default(uuid())
+  current   EmotionType? // Reusing EmotionType enum
+  changes   EmotionChange[]
+  sessionId String          @unique
+  session   Session         @relation(fields: [sessionId], references: [id])
+}
+
+model EmotionChange {
+  id               String         @id @default(uuid())
+  from             EmotionType?
+  to               EmotionType?
+  timestamp        DateTime?
+  trigger          String?
+  sessionEmotionId String
+  sessionEmotion   SessionEmotion @relation(fields: [sessionEmotionId], references: [id])
+}
+
+model SessionIntentScore {
+  id        String              @id @default(uuid())
+  initial   Float?
+  final     Float?
+  peak      Float?
+  changes   IntentScoreChange[]
+  sessionId String              @unique
+  session   Session             @relation(fields: [sessionId], references: [id])
+}
+
+model IntentScoreChange {
+  id                   String             @id @default(uuid())
+  score                Float?
+  timestamp            DateTime?
+  sessionIntentScoreId String
+  sessionIntentScore   SessionIntentScore @relation(fields: [sessionIntentScoreId], references: [id])
+}
+
+model SessionIntervention {
+  id            String                    @id @default(uuid())
+  type          String?
+  timestamp     DateTime?
+  response      InterventionResponseType?
+  effectiveness Float?
+  sessionId     String
+  session       Session                   @relation(fields: [sessionId], references: [id])
+}
+
+// Enums for Persona model (existing)
+enum BehaviorPatternType {
+  exploreMore
+  quickDecision
+  priceConscious
+  featureFocused
+}
+
+enum PersonalizationContentType {
+  text
+  html
+  image
+}
+
+enum RuleStatus {
+  active
+  inactive
+}
+
+// Persona Model (existing)
+model Persona {
+  id               String   @id @default(uuid())
+  websiteId        String
+  website          Website  @relation(fields: [websiteId], references: [id])
+  name             String
+  description      String?
+  isActive         Boolean  @default(true)
+  isAutoDiscovered Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  clusterData          PersonaClusterData?
+  stats                PersonaStats?
+  personalizationRules PersonalizationRule[]
+  sessions             Session[]
+
+  @@unique([name, websiteId])
+}
+
+model PersonaClusterData {
+  id              String           @id @default(uuid())
+  clusterId       Int?
+  avgTimeSpent    Float            @default(0)
+  avgScrollDepth  Float            @default(0)
+  avgClickRate    Float            @default(0)
+  avgPageViews    Float            @default(0)
+  commonPages     String[]         @db.Text
+  commonDevices   String[]         @db.Text
+  behaviorPattern BehaviorPattern?
+  confidence      Float            @default(0)
+  characteristics String[]         @db.Text
+
+  personaId String  @unique
+  persona   Persona @relation(fields: [personaId], references: [id])
+}
+
+model BehaviorPattern {
+  id             String  @id @default(uuid())
+  exploreMore    Boolean @default(false)
+  quickDecision  Boolean @default(false)
+  priceConscious Boolean @default(false)
+  featureFocused Boolean @default(false)
+
+  personaClusterDataId String             @unique
+  personaClusterData   PersonaClusterData @relation(fields: [personaClusterDataId], references: [id])
+}
+
+model PersonaStats {
+  id               String    @id @default(uuid())
+  sessionCount     Int       @default(0)
+  totalConversions Int       @default(0)
+  conversionRate   Float     @default(0)
+  avgIntentScore   Float     @default(0)
+  lastUpdated      DateTime?
+
+  personaId String  @unique
+  persona   Persona @relation(fields: [personaId], references: [id])
+}
+
+model PersonalizationRule {
+  id          String                     @id @default(uuid())
+  selector    String
+  content     String                     @default("")
+  contentType PersonalizationContentType @default(text)
+  variation   String                     @default("")
+  priority    Int                        @default(1)
+  isActive    Boolean                    @default(true)
+  performance RulePerformance?
+  createdAt   DateTime                   @default(now())
+
+  personaId String
+  persona   Persona @relation(fields: [personaId], references: [id])
+}
+
+model RulePerformance {
+  id             String @id @default(uuid())
+  impressions    Int    @default(0)
+  conversions    Int    @default(0)
+  conversionRate Float  @default(0)
+
+  personalizationRuleId String              @unique
+  personalizationRule   PersonalizationRule @relation(fields: [personalizationRuleId], references: [id])
+}
+
+// Enums for Experiment model (existing)
+enum ExperimentStatus {
+  draft
+  active
+  paused
+  completed
+}
+
+enum VariationContentType {
+  text
+  html
+  css
+}
+
+// Experiment Model (existing)
+model Experiment {
+  id          String           @id @default(uuid())
+  websiteId   String
+  website     Website          @relation(fields: [websiteId], references: [id])
+  name        String
+  description String?
+  status      ExperimentStatus @default(draft)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  variations ExperimentVariation[]
+  results    ExperimentResult?
+  settings   ExperimentSettings?
+}
+
+model ExperimentVariation {
+  id                String               @id @default(uuid())
+  name              String
+  isControl         Boolean              @default(false)
+  selector          String?
+  content           String?
+  contentType       VariationContentType @default(text)
+  trafficPercentage Float                @default(50) // min 0, max 100
+  visitors          Int                  @default(0)
+  conversions       Int                  @default(0)
+  conversionRate    Float                @default(0)
+
+  experimentId String
+  experiment   Experiment @relation(fields: [experimentId], references: [id])
+}
+
+model ExperimentResult {
+  id          String    @id @default(uuid())
+  winner      String?
+  confidence  Float?
+  improvement Float?
+  declaredAt  DateTime?
+
+  experimentId String     @unique
+  experiment   Experiment @relation(fields: [experimentId], references: [id])
+}
+
+model ExperimentSettings {
+  id             String  @id @default(uuid())
+  targetUrl      String?
+  conversionGoal String?
+  minSampleSize  Int     @default(100)
+  minConfidence  Float   @default(95)
+  maxDuration    Int     @default(30)
+
+  experimentId String     @unique
+  experiment   Experiment @relation(fields: [experimentId], references: [id])
+}
+
+// Enums for Event model (existing)
+enum EventType {
+  pageview
+  click
+  scroll
+  mouse_move
+  hover
+  form_submit
+  exit
+  custom
+  content_generated
+  cart_action
+}
+
+// Event Model (existing)
+model Event {
+  id        String    @id @default(uuid())
+  sessionId String
+  session   Session   @relation(fields: [sessionId], references: [id])
+  websiteId String
+  website   Website   @relation(fields: [websiteId], references: [id])
+  eventType EventType
+  eventData Json?
+  timestamp DateTime  @default(now())
+}

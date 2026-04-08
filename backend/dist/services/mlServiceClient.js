@@ -1,0 +1,100 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateContent = exports.callMLService = void 0;
+const axios_1 = __importDefault(require("axios"));
+const env_1 = require("../config/env");
+/**
+ * Call ML Service utility
+ */
+const callMLService = async (endpoint, payload, method = 'POST') => {
+    const url = `${env_1.ML_SERVICE_URL}/ml/v1${endpoint}`;
+    try {
+        const response = await (0, axios_1.default)({
+            method,
+            url,
+            data: payload,
+            timeout: 30000, // 30 seconds
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            validateStatus: status => status < 500 // allow 4xx to handle manually
+        });
+        // Handle 4xx (validation) responses explicitly
+        if (response.status >= 400) {
+            console.error('❌ ML VALIDATION ERROR');
+            console.error('Status:', response.status);
+            console.error('Raw ML Response:', JSON.stringify(response.data, null, 2));
+            console.error('Payload Sent:', JSON.stringify(payload, null, 2));
+            let message = 'ML Service validation failed';
+            if (Array.isArray(response.data?.detail)) {
+                // Format FastAPI Pydantic validation errors
+                message = response.data.detail
+                    .map((err) => `${err.loc?.join(' -> ')} : ${err.msg}`)
+                    .join(' | ');
+            }
+            else if (typeof response.data?.detail === 'string') {
+                message = response.data.detail;
+            }
+            else if (response.data?.message) {
+                message = response.data.message;
+            }
+            throw new Error(message);
+        }
+        return response.data;
+    }
+    catch (error) {
+        console.error('🔥 ML Service call failed');
+        if (error.response) {
+            // Axios response error
+            const status = error.response.status;
+            const data = error.response.data;
+            console.error('Status:', status);
+            console.error('Data:', JSON.stringify(data, null, 2));
+            console.error('Payload:', JSON.stringify(payload, null, 2));
+            let message = 'ML Service error';
+            // Prioritize specific error message from ML service
+            if (typeof data?.detail === 'string' && data.detail.length > 0) {
+                message = data.detail;
+            }
+            else if (Array.isArray(data?.detail)) {
+                message = data.detail.map((err) => `${err.loc?.join(' -> ')} : ${err.msg}`).join(' | ');
+            }
+            else if (data?.message) {
+                message = data.message;
+            }
+            // Fallback to generic message if nothing specific was found
+            if (message === 'ML Service error' && status >= 500) {
+                message = `Internal ML Service Error (Status: ${status}). Check ML Service logs for details.`;
+            }
+            throw new Error(message);
+        }
+        if (error.request) {
+            throw new Error('ML Service not responding or timeout');
+        }
+        throw error;
+    }
+};
+exports.callMLService = callMLService;
+/**
+ * Generate content using LLM
+ */
+const generateContent = async (personaDescription, contentType) => {
+    try {
+        return await (0, exports.callMLService)('/llm/content-generation', {
+            persona: personaDescription,
+            content_type: contentType
+        }, 'POST');
+    }
+    catch (error) {
+        console.error('❌ Error in generateContent:', error.message);
+        throw error;
+    }
+};
+exports.generateContent = generateContent;
+exports.default = {
+    callMLService: exports.callMLService,
+    generateContent: exports.generateContent
+};

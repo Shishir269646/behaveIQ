@@ -1,31 +1,33 @@
 import { Response } from 'express';
 
-interface ResponseBody {
-  success: boolean;
+/**
+ * Standard API Response structure
+ */
+interface ApiResponse<T = any> {
+  success: true;
   message?: string;
-  data?: any;
+  data: T;
+  meta?: {
+    count?: number;
+    [key: string]: any;
+  };
 }
 
 /**
- * Sends a standard API response.
+ * Sends a successful API response
  */
-export const sendResponse = (
+export const sendSuccess = <T>(
   res: Response,
-  statusCode: number,
-  data: any = null,
-  message: string | null = null
+  data: T,
+  message?: string,
+  statusCode: number = 200,
+  meta?: any
 ): void => {
-  const response: ResponseBody = {
-    success: statusCode >= 200 && statusCode < 300,
+  const response: ApiResponse<T> = {
+    success: true,
+    message,
+    data,
+    meta,
   };
-
-  if (message) {
-    response.message = message;
-  }
-
-  if (data !== undefined && data !== null) {
-    response.data = data;
-  }
-
   res.status(statusCode).json(response);
 };

@@ -132,13 +132,13 @@ export default function HomePage() {
             <div className='text-center mb-12'>
               <h3 className='text-4xl font-bold'>Loved by Teams Worldwide</h3>
               <p className='text-lg text-gray-600 mt-2'>
-                Don't just take our word for it. Here's what our customers say.
+                Don&apos;t just take our word for it. Here&apos;s what our customers say.
               </p>
             </div>
             <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
               {testimonials.map((testimonial, index) => (
                 <div key={index} className='bg-gray-50 p-8 rounded-lg border border-gray-200'>
-                  <p className='text-lg mb-6 italic'>"{testimonial.quote}"</p>
+                  <p className='text-lg mb-6 italic'>&ldquo;{testimonial.quote}&rdquo;</p>
                   <div className='font-bold text-right'>
                     <p className='text-gray-900'>{testimonial.name}</p>
                     <p className='text-gray-500 text-sm'>{testimonial.title}</p>

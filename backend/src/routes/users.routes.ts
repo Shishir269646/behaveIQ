@@ -6,7 +6,8 @@ import {
     deleteUser
 } from '../controllers/userController';
 import { protect, authorize } from '../middleware/auth';
-import { updateUserValidation, validate } from '../middleware/validation';
+import { validate } from '../middleware/validate';
+import { userIdParamSchema, updateUserSchema } from '../validators/user.validator';
 
 const router = express.Router();
 
@@ -18,8 +19,8 @@ router.route('/')
     .get(getUsers);
 
 router.route('/:id')
-    .get(getUser)
-    .put(updateUserValidation, validate, updateUser)
-    .delete(deleteUser);
+    .get(validate(userIdParamSchema), getUser)
+    .put(validate(updateUserSchema), updateUser)
+    .delete(validate(userIdParamSchema), deleteUser);
 
 export default router;

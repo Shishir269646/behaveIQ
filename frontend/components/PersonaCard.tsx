@@ -74,16 +74,16 @@ export function PersonaCard({ persona }: PersonaCardProps) {
                   <MousePointerClick className='h-3 w-3 mr-1' /> Avg Click Rate:{' '}
                   {clusterData.avgClickRate?.toFixed(2)}
                 </li>
-                {clusterData.behaviorPattern.priceConscious && (
+                {clusterData?.behaviorPattern?.priceConscious && (
                   <li>- Price Conscious</li>
                 )}
-                {clusterData.behaviorPattern.featureFocused && (
+                {clusterData?.behaviorPattern?.featureFocused && (
                   <li>- Feature Focused</li>
                 )}
-                {clusterData.behaviorPattern.exploreMore && (
+                {clusterData?.behaviorPattern?.exploreMore && (
                   <li>- Explores More</li>
                 )}
-                {clusterData.behaviorPattern.quickDecision && (
+                {clusterData?.behaviorPattern?.quickDecision && (
                   <li>- Quick Decision Maker</li>
                 )}
               </ul>

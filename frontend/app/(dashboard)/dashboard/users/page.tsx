@@ -167,7 +167,7 @@ export default function UsersPage() {
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
             <DialogDescription>
-              Make changes to the user's profile here.
+              Make changes to the user&apos;s profile here.
             </DialogDescription>
           </DialogHeader>
 

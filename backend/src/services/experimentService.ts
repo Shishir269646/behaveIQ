@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import AppError from '../utils/AppError';
 import { ExperimentStatus, VariationContentType } from '@prisma/client';
+import { checkWebsiteOwnership } from '../utils/authUtils'; // Import the utility
 const { jStat } = require('jstat');
 
 /**
@@ -58,9 +59,11 @@ const calculateExperimentWinner = (experiment: any) => {
 
 
 /**
- * Get all experiments
+ * Get all experiments for a website
  */
-export const getExperiments = async (websiteId: string, status?: string) => {
+export const getExperiments = async (websiteId: string, userId: string, status?: string) => {
+    await checkWebsiteOwnership(websiteId, userId); // Verify user owns the website
+
     const where: any = { websiteId };
     if (status) where.status = status as ExperimentStatus;
 
@@ -78,7 +81,8 @@ export const getExperiments = async (websiteId: string, status?: string) => {
 /**
  * Create new experiment
  */
-export const createExperiment = async (websiteId: string, data: any) => {
+export const createExperiment = async (websiteId: string, userId: string, data: any) => {
+    await checkWebsiteOwnership(websiteId, userId); // Verify user owns the website
     const { name, description, variations, settings } = data;
 
     if (!variations || variations.length < 2) {
@@ -124,9 +128,9 @@ export const createExperiment = async (websiteId: string, data: any) => {
 };
 
 /**
- * Get single experiment with results
+ * Get single experiment with results, including ownership check
  */
-export const getExperiment = async (experimentId: string): Promise<any> => {
+export const getExperimentById = async (experimentId: string, userId: string): Promise<any> => {
     let experiment = await prisma.experiment.findUnique({
         where: { id: experimentId },
         include: {
@@ -138,6 +142,7 @@ export const getExperiment = async (experimentId: string): Promise<any> => {
     if (!experiment) {
         throw new AppError('Experiment not found', 404);
     }
+    await checkWebsiteOwnership(experiment.websiteId, userId); // Verify user owns the experiment's website
 
     // Calculate latest results if active
     if (experiment.status === 'active') {
@@ -147,6 +152,7 @@ export const getExperiment = async (experimentId: string): Promise<any> => {
                 where: {
                     websiteId: experiment!.websiteId,
                     experimentId: experiment!.id,
+                    experimentVariation: variation.name // Filter by variation
                 }
             });
 
@@ -154,6 +160,7 @@ export const getExperiment = async (experimentId: string): Promise<any> => {
                 where: {
                     websiteId: experiment!.websiteId,
                     experimentId: experiment!.id,
+                    experimentVariation: variation.name, // Filter by variation
                     outcome: 'purchase'
                 }
             });
@@ -172,7 +179,6 @@ export const getExperiment = async (experimentId: string): Promise<any> => {
         }));
 
         if (dirty) {
-            // Bulk update not directly supported in Prisma for varied data, doing it individually for now
             for (const v of updatedVariations) {
                 await prisma.experimentVariation.update({
                     where: { id: v.id },
@@ -187,7 +193,7 @@ export const getExperiment = async (experimentId: string): Promise<any> => {
         }
 
         const winnerData = calculateExperimentWinner(experiment);
-        if (winnerData) {
+        if (winnerData && !experiment.results) { // Only set winner if not already declared
             await prisma.experimentResult.upsert({
                 where: { experimentId: experiment.id },
                 update: {
@@ -229,15 +235,10 @@ export const getExperiment = async (experimentId: string): Promise<any> => {
 /**
  * Update experiment status
  */
-export const updateStatus = async (experimentId: string, status: string) => {
-    const experiment = await prisma.experiment.findUnique({
-        where: { id: experimentId },
-    });
-    if (!experiment) {
-        throw new AppError('Experiment not found', 404);
-    }
+export const updateStatus = async (experimentId: string, userId: string, status: ExperimentStatus) => {
+    const experiment = await getExperimentById(experimentId, userId); // Implicitly checks ownership
 
-    const updateData: any = { status: status as ExperimentStatus };
+    const updateData: any = { status: status };
 
     if (status === 'active' && !experiment.startDate) {
         updateData.startDate = new Date();
@@ -261,14 +262,8 @@ export const updateStatus = async (experimentId: string, status: string) => {
 /**
  * Declare winner manually
  */
-export const declareWinner = async (experimentId: string, winningVariationName: string) => {
-    let experiment = await prisma.experiment.findUnique({
-        where: { id: experimentId },
-        include: { variations: true, settings: true, results: true }
-    });
-    if (!experiment) {
-        throw new AppError('Experiment not found', 404);
-    }
+export const declareWinner = async (experimentId: string, userId: string, winningVariationName: string) => {
+    let experiment = await getExperimentById(experimentId, userId); // Implicitly checks ownership
 
     const winner = experiment.variations.find((v: any) => v.name === winningVariationName);
     if (!winner) {
@@ -284,7 +279,7 @@ export const declareWinner = async (experimentId: string, winningVariationName: 
         where: { experimentId: experiment.id },
         update: {
             winner: winner.name,
-            confidence: 95,
+            confidence: 95, // Manually declared winner
             improvement: improvement,
             declaredAt: new Date()
         },
@@ -310,7 +305,8 @@ export const declareWinner = async (experimentId: string, winningVariationName: 
 /**
  * Update experiment details
  */
-export const updateExperiment = async (experimentId: string, data: any) => {
+export const updateExperiment = async (experimentId: string, userId: string, data: any) => {
+    await getExperimentById(experimentId, userId); // Implicitly checks ownership
     const { variations, settings, ...rest } = data;
     const updateData: any = { ...rest };
 
@@ -352,8 +348,10 @@ export const updateExperiment = async (experimentId: string, data: any) => {
 /**
  * Delete experiment
  */
-export const deleteExperiment = async (experimentId: string) => {
+export const deleteExperiment = async (experimentId: string, userId: string) => {
+    const experiment = await getExperimentById(experimentId, userId); // Implicitly checks ownership
     await prisma.experiment.delete({
-        where: { id: experimentId }
+        where: { id: experiment.id }
     });
+    return { message: 'Experiment deleted successfully' };
 };

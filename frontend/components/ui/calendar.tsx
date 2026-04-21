@@ -161,7 +161,8 @@ function Calendar({
                 {children}
               </div>
             </td>
-          },
+          )
+        },
         ...components,
       }}
       {...props}

@@ -136,7 +136,7 @@ export default function DiscountsPage() {
       })
       clearSuccess()
     }
-  }, [success, error, clearSuccess, toast])
+  }, [success, error, clearSuccess])
 
   const handleCreateEditDiscount = async () => {
     if (!selectedWebsite?._id) {

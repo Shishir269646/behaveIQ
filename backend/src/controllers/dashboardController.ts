@@ -2,101 +2,29 @@ import { Response } from 'express';
 import { asyncHandler } from '../utils/helpers';
 import { sendResponse } from '../utils/responseHandler';
 import AppError from '../utils/AppError';
-import { prisma } from '../config/database';
 import * as dashboardService from '../services/dashboardService';
 import { AuthenticatedRequest } from '../types';
-
-/**
- * Helper to check website ownership
- */
-const checkWebsiteOwnership = async (websiteId: string, userId: string) => {
-    const website = await prisma.website.findFirst({
-        where: { id: websiteId, userId },
-    });
-    if (!website) {
-        throw new AppError('Website not found', 404);
-    }
-    return website;
-};
+import { checkWebsiteOwnership } from '../utils/authUtils';
 
 /**
  * Get dashboard overview
  */
 export const getOverview = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
-    const timeRange = (req.query.timeRange as string) || '7d';
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId, timeRange } = req.query;
 
-    const days = parseInt(timeRange) || 7;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    const prevStartDate = new Date();
-    prevStartDate.setDate(prevStartDate.getDate() - days * 2);
-
-    const currentMetrics = await dashboardService.getMetrics(websiteId, startDate, new Date());
-    const prevMetrics = await dashboardService.getMetrics(websiteId, prevStartDate, startDate);
-
-    const topPersonas = await prisma.persona.findMany({
-        where: { websiteId, isActive: true },
-        orderBy: { stats: { sessionCount: 'desc' } },
-        take: 5,
-        select: {
-            name: true,
-            stats: {
-                select: {
-                    sessionCount: true
-                }
-            }
-        },
-    });
-
-    const trendData = await dashboardService.getTrendData(websiteId, startDate);
-    const recentSessions = await dashboardService.getRecentSessions(websiteId, startDate);
-
-    const formattedSessions = recentSessions.map((s: any) => ({
-        id: s.id,
-        user: s.userId ? { id: s.user?.id, name: s.user?.fullName, email: s.user?.email } : { id: 'anonymous', name: 'Anonymous', email: '' },
-        persona: s.persona?.name || 'Unknown',
-        status: s.outcome === 'purchase' ? 'Converted' : (s.endTime ? 'Abandoned' : 'Active'),
-        intentScore: s.intentScore?.current,
-    }));
-
-    sendResponse(res, 200, {
-        overview: {
-            totalVisitors: {
-                value: currentMetrics.totalVisitors,
-                change: dashboardService.calculateChange(currentMetrics.totalVisitors, prevMetrics.totalVisitors)
-            },
-            totalSessions: {
-                value: currentMetrics.totalSessions,
-                change: dashboardService.calculateChange(currentMetrics.totalSessions, prevMetrics.totalSessions)
-            },
-            totalConversions: {
-                value: currentMetrics.conversions,
-                change: dashboardService.calculateChange(currentMetrics.conversions, prevMetrics.conversions)
-            },
-            avgIntentScore: {
-                value: parseFloat(currentMetrics.avgIntentScore.toFixed(2)),
-                change: dashboardService.calculateChange(currentMetrics.avgIntentScore, prevMetrics.avgIntentScore)
-            },
-        },
-        topPersonas,
-        trendData,
-        recentSessions: formattedSessions,
-        timeRange: `${days}d`
-    });
+    const data = await dashboardService.getOverviewData(websiteId as string, req.user.id!, timeRange as string);
+    sendResponse(res, 200, data);
 });
 
 /**
  * Get real-time visitors
  */
 export const getRealtimeVisitors = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const data = await dashboardService.getRealtimeVisitorsData(websiteId);
+    const data = await dashboardService.getRealtimeVisitorsData(websiteId as string, req.user.id!);
     sendResponse(res, 200, data);
 });
 
@@ -104,12 +32,10 @@ export const getRealtimeVisitors = asyncHandler(async (req: AuthenticatedRequest
  * Get heatmap data
  */
 export const getHeatmap = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
-    const pageUrl = (req.query.pageUrl as string) || '/';
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId, pageUrl } = req.query;
 
-    const data = await dashboardService.getHeatmapData(websiteId, pageUrl);
+    const data = await dashboardService.getHeatmapData(websiteId as string, pageUrl as string, req.user.id!);
     sendResponse(res, 200, data);
 });
 
@@ -117,11 +43,10 @@ export const getHeatmap = asyncHandler(async (req: AuthenticatedRequest, res: Re
  * Get AI insights
  */
 export const getInsights = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    const website = await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const insights = await dashboardService.getInsightsData(websiteId, website);
+    const insights = await dashboardService.getInsightsData(websiteId as string, req.user.id!);
     sendResponse(res, 200, { insights, count: insights.length });
 });
 
@@ -129,11 +54,10 @@ export const getInsights = asyncHandler(async (req: AuthenticatedRequest, res: R
  * Get conversion funnel
  */
 export const getConversionFunnel = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const funnel = await dashboardService.getFunnelData(websiteId);
+    const funnel = await dashboardService.getFunnelData(websiteId as string, req.user.id!);
     sendResponse(res, 200, { funnel });
 });
 
@@ -141,16 +65,10 @@ export const getConversionFunnel = asyncHandler(async (req: AuthenticatedRequest
  * Get top pages
  */
 export const getTopPages = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
-    const timeRange = (req.query.timeRange as string) || '7d';
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId, timeRange } = req.query;
 
-    const days = parseInt(timeRange) || 7;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    const pages = await dashboardService.getTopPagesData(websiteId, startDate);
+    const pages = await dashboardService.getTopPagesData(websiteId as string, req.user.id!, timeRange as string);
     sendResponse(res, 200, { pages });
 });
 
@@ -158,12 +76,10 @@ export const getTopPages = asyncHandler(async (req: AuthenticatedRequest, res: R
  * Get intent distribution
  */
 export const getIntentDistribution = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    // Assuming intentService.getIntentDistribution is converted
-    const distribution = { neutral: 40, considering: 30, high_intent: 20, frustrated: 10 }; 
+    const distribution = await dashboardService.getIntentDistributionData(websiteId as string, req.user.id!);
     sendResponse(res, 200, { intentDistribution: distribution });
 });
 
@@ -171,16 +87,10 @@ export const getIntentDistribution = asyncHandler(async (req: AuthenticatedReque
  * Get fraud summary
  */
 export const getFraudSummary = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
-    const timeRange = (req.query.timeRange as string) || '30d';
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId, timeRange } = req.query;
 
-    const days = parseInt(timeRange.replace('d', '')) || 30;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    const data = await dashboardService.getFraudSummaryData(websiteId, startDate);
+    const data = await dashboardService.getFraudSummaryData(websiteId as string, req.user.id!, timeRange as string);
     sendResponse(res, 200, data);
 });
 
@@ -188,14 +98,10 @@ export const getFraudSummary = asyncHandler(async (req: AuthenticatedRequest, re
  * Get persona summary
  */
 export const getPersonaSummary = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const data = await dashboardService.getPersonaSummaryData(websiteId, thirtyDaysAgo);
+    const data = await dashboardService.getPersonaSummaryData(websiteId as string, req.user.id!);
     sendResponse(res, 200, data);
 });
 
@@ -203,11 +109,10 @@ export const getPersonaSummary = asyncHandler(async (req: AuthenticatedRequest, 
  * Get personalization status
  */
 export const getPersonalizationStatus = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    const website = await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const data = await dashboardService.getPersonalizationStatusData(websiteId, website);
+    const data = await dashboardService.getPersonalizationStatusData(websiteId as string, req.user.id!);
     sendResponse(res, 200, data);
 });
 
@@ -215,14 +120,10 @@ export const getPersonalizationStatus = asyncHandler(async (req: AuthenticatedRe
  * Get heatmap summary
  */
 export const getHeatmapSummary = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const fortyEightHoursAgo = new Date();
-    fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
-
-    const data = await dashboardService.getHeatmapSummaryData(websiteId, fortyEightHoursAgo);
+    const data = await dashboardService.getHeatmapSummaryData(websiteId as string, req.user.id!);
     sendResponse(res, 200, data);
 });
 
@@ -230,11 +131,10 @@ export const getHeatmapSummary = asyncHandler(async (req: AuthenticatedRequest, 
  * Get experiment summary
  */
 export const getExperimentSummary = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const data = await dashboardService.getExperimentSummaryData(websiteId);
+    const data = await dashboardService.getExperimentSummaryData(websiteId as string, req.user.id!);
     sendResponse(res, 200, data);
 });
 
@@ -242,11 +142,10 @@ export const getExperimentSummary = asyncHandler(async (req: AuthenticatedReques
  * Get content summary
  */
 export const getContentSummary = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const data = await dashboardService.getContentSummaryData(websiteId);
+    const data = await dashboardService.getContentSummaryData(websiteId as string, req.user.id!);
     sendResponse(res, 200, data);
 });
 
@@ -254,14 +153,10 @@ export const getContentSummary = asyncHandler(async (req: AuthenticatedRequest, 
  * Get abandonment summary
  */
 export const getAbandonmentSummary = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId, timeRange } = req.query;
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const data = await dashboardService.getAbandonmentSummaryData(websiteId, thirtyDaysAgo);
+    const data = await dashboardService.getAbandonmentSummaryData(websiteId as string, req.user.id!, timeRange as string);
     sendResponse(res, 200, data);
 });
 
@@ -269,10 +164,9 @@ export const getAbandonmentSummary = asyncHandler(async (req: AuthenticatedReque
  * Get discount summary
  */
 export const getDiscountSummary = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
-    const websiteId = req.query.websiteId as string;
     if (!req.user) throw new AppError('Not authorized', 401);
-    await checkWebsiteOwnership(websiteId, req.user.id!);
+    const { websiteId } = req.query;
 
-    const data = await dashboardService.getDiscountSummaryData(websiteId);
+    const data = await dashboardService.getDiscountSummaryData(websiteId as string, req.user.id!);
     sendResponse(res, 200, data);
 });

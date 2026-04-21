@@ -3,5 +3,7 @@
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
   "/(dashboard)/dashboard/users/page": "app/(dashboard)/dashboard/users/page.js",
   "/(dashboard)/dashboard/websites/page": "app/(dashboard)/dashboard/websites/page.js",
-  "/(dashboard)/events/page": "app/(dashboard)/events/page.js"
+  "/(dashboard)/events/page": "app/(dashboard)/events/page.js",
+  "/(dashboard)/personas/page": "app/(dashboard)/personas/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js"
 }

@@ -1,186 +1,98 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { asyncHandler } from '../utils/helpers';
 import { prisma } from '../config/database';
 import { JWT_SECRET } from '../config/env';
+import { UnauthorizedError, ForbiddenError } from '../utils/AppError';
+import { asyncHandler } from '../utils/helpers';
 
 /**
- * ------------------------------------
- * JWT Authentication (Dashboard / Admin)
- * ------------------------------------
+ * Interface for the decoded JWT payload
  */
-const handleJwtAuth = async (req: Request, res: Response, next: NextFunction, token: string) => {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET as string) as { id: string; role: string };
+interface JwtPayload {
+  id: string;
+  role: string;
+}
 
+/**
+ * Handle JWT Authentication for Dashboard/Admin
+ */
+const handleJwtAuth = async (req: Request, token: string) => {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET as string) as JwtPayload;
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
-      select: {
-        id: true,
-        email: true,
-        fullName: true,
-        role: true,
-        companyName: true,
-        plan: true,
-        settings: true,
-        lastLogin: true,
-        createdAt: true,
-        updatedAt: true
-      }
+      select: { id: true, email: true, fullName: true, role: true, plan: true }
     });
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: 'User from JWT not found'
-      });
-    }
+    if (!user) throw new UnauthorizedError('User from JWT not found');
 
     (req as any).user = user;
     (req as any).website = await prisma.website.findFirst({ where: { userId: user.id } });
-
-    return next();
   } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid or expired token'
-    });
+    throw new UnauthorizedError('Invalid or expired token');
   }
 };
 
 /**
- * ------------------------------------
- * API Key Authentication (SDK / Public APIs)
- * ------------------------------------
+ * Handle API Key Authentication for SDK
  */
-const handleApiKeyAuth = async (req: Request, res: Response, next: NextFunction, apiKey: string) => {
+const handleApiKeyAuth = async (req: Request, apiKey: string) => {
   const website = await prisma.website.findUnique({ where: { apiKey } });
 
-  /**
-   * Allow anonymous tracking for SDK endpoints
-   */
   if (!website) {
-    const isAnonymousAllowed =
-      req.originalUrl.startsWith('/api/behavior') ||
-      req.originalUrl.startsWith('/api/emotion') ||
-      req.originalUrl.startsWith('/api/sdk');
-
-    if (isAnonymousAllowed) {
-      (req as any).website = null;
-      (req as any).user = null;
-      return next();
-    }
-
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid API Key'
-    });
+    const isPublic = ['/api/behavior', '/api/emotion', '/api/sdk'].some(p => req.originalUrl.startsWith(p));
+    if (isPublic) return;
+    throw new UnauthorizedError('Invalid API Key');
   }
 
-  /**
-   * Demo Website Handling
-   */
-  if (website.isDemo) {
-    if (website.demoExpiresAt && website.demoExpiresAt < new Date()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Demo period has expired'
-      });
-    }
-
-    (req as any).website = website;
-    (req as any).user = await prisma.user.findFirst({ where: { email: 'guest@behaveiq.com' } });
-    return next();
+  if (website.isDemo && website.demoExpiresAt && website.demoExpiresAt < new Date()) {
+    throw new ForbiddenError('Demo period has expired');
   }
 
-  /**
-   * Normal SaaS Customer
-   */
   const user = await prisma.user.findUnique({
     where: { id: website.userId },
-    select: {
-      id: true,
-      email: true,
-      fullName: true,
-      role: true,
-    }
+    select: { id: true, email: true, fullName: true, role: true }
   });
 
-  if (!user) {
-    return res.status(401).json({
-      success: false,
-      message: 'User associated with this website not found'
-    });
-  }
+  if (!user) throw new UnauthorizedError('Owner not found');
 
-  (req as any).website = website;
   (req as any).user = user;
-  return next();
+  (req as any).website = website;
 };
 
 /**
- * ------------------------------------
- * Anonymous Access (SDK Tracking Only)
- * ------------------------------------
+ * Main Authentication Middleware
  */
-const handleAnonymousAuth = (req: Request, res: Response, next: NextFunction) => {
-  const isSdkTrackingPath =
-    req.originalUrl.startsWith('/api/behavior') ||
-    req.originalUrl.startsWith('/api/emotion') ||
-    req.originalUrl.startsWith('/api/sdk');
+export const protect = asyncHandler(async (req: Request, _res: Response, next: NextFunction) => {
+  const authHeader = req.headers.authorization;
+  const apiKey = req.headers['x-api-key'] as string;
 
-  if (isSdkTrackingPath) {
-    (req as any).website = null;
-    (req as any).user = null;
+  if (authHeader?.startsWith('Bearer')) {
+    await handleJwtAuth(req, authHeader.split(' ')[1]);
     return next();
   }
 
-  return res.status(401).json({
-    success: false,
-    message: 'Not authorized to access this route'
-  });
-};
-
-/**
- * ------------------------------------
- * Protect Middleware (Main Entry)
- * ------------------------------------
- */
-export const protect = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  // 1️⃣ JWT Auth
-  if (
-    req.headers.authorization &&
-    req.headers.authorization.startsWith('Bearer')
-  ) {
-    const token = req.headers.authorization.split(' ')[1];
-    if (token) {
-      return handleJwtAuth(req, res, next, token);
-    }
-  }
-
-  // 2️⃣ API Key Auth
-  const apiKey = req.headers['x-api-key'] as string;
   if (apiKey) {
-    return handleApiKeyAuth(req, res, next, apiKey);
+    await handleApiKeyAuth(req, apiKey);
+    return next();
   }
 
-  // 3️⃣ Anonymous SDK
-  return handleAnonymousAuth(req, res, next);
+  // Allow public access for SDK routes if no credentials provided
+  if (['/api/behavior', '/api/emotion', '/api/sdk'].some(p => req.originalUrl.startsWith(p))) {
+    return next();
+  }
+
+  throw new UnauthorizedError('Not authorized to access this route');
 });
 
 /**
- * ------------------------------------
- * Role-based Authorization
- * ------------------------------------
+ * Role-based Authorization Middleware
  */
 export const authorize = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
     const user = (req as any).user;
     if (!user || !roles.includes(user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: `User role ${user ? user.role : 'guest'} is not authorized`
-      });
+      throw new ForbiddenError(`Role ${user?.role || 'guest'} is not authorized`);
     }
     next();
   };

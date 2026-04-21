@@ -143,7 +143,7 @@ export default function SettingsPage() {
       })
       clearWebsiteSuccess()
     }
-  }, [websiteSuccess, websiteError, clearWebsiteSuccess, toast])
+  }, [websiteSuccess, websiteError, clearWebsiteSuccess])
 
   useEffect(() => {
     if (authSuccess) {
@@ -161,7 +161,7 @@ export default function SettingsPage() {
       })
       clearAuthSuccess()
     }
-  }, [authSuccess, authError, clearAuthSuccess, toast])
+  }, [authSuccess, authError, clearAuthSuccess])
 
   const handleFormChange = (field: string, value: any) => {
     setWebsiteFormState((prev) => ({
@@ -350,7 +350,7 @@ export default function SettingsPage() {
               <CardTitle>Profile</CardTitle>
               <CardDescription>
                 Make changes to your personal information here. Click save when
-                you're done.
+                you&apos;re done.
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-4'>
@@ -573,7 +573,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>Security</CardTitle>
               <CardDescription>
-                Manage your account's security settings.
+                Manage your account&apos;s security settings.
               </CardDescription>
             </CardHeader>
             <CardContent className='space-y-6'>

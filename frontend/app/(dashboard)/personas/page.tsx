@@ -62,13 +62,14 @@ export default function PersonasPage() {
       }
 
       rawPersonas.forEach((persona) => {
-        if (persona.clusterData.behaviorPattern.priceConscious) {
+        const pattern = persona.clusterData?.behaviorPattern
+        if (pattern?.priceConscious) {
           newGroupedPersonas.budget.push(persona)
-        } else if (persona.clusterData.behaviorPattern.featureFocused) {
+        } else if (pattern?.featureFocused) {
           newGroupedPersonas.feature.push(persona)
-        } else if (persona.clusterData.behaviorPattern.exploreMore) {
+        } else if (pattern?.exploreMore) {
           newGroupedPersonas.researcher.push(persona)
-        } else if (persona.clusterData.behaviorPattern.quickDecision) {
+        } else if (pattern?.quickDecision) {
           newGroupedPersonas.impulse.push(persona)
         } else {
           newGroupedPersonas.other.push(persona)

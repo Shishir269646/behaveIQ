@@ -68,7 +68,7 @@ export default function AbandonmentPage() {
       })
       clearSuccess()
     }
-  }, [success, error, clearSuccess, toast])
+  }, [success, error, clearSuccess])
 
   if (error) {
     return (

@@ -53,8 +53,6 @@ export default function SessionDetailSheet({
   isOpen,
   onOpenChange,
 }: SessionDetailSheetProps) {
-  if (!session) return null
-
   const {
     devices,
     loading: isLoadingDevices,
@@ -63,10 +61,12 @@ export default function SessionDetailSheet({
   } = useAppStore()
 
   React.useEffect(() => {
-    if (session.user.id) {
+    if (session?.user?.id) {
       fetchUserDevices(session.user.id)
     }
-  }, [session.user.id, fetchUserDevices])
+  }, [session?.user?.id, fetchUserDevices])
+
+  if (!session) return null
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -74,7 +74,7 @@ export default function SessionDetailSheet({
         <SheetHeader>
           <SheetTitle>Session Details</SheetTitle>
           <SheetDescription>
-            A detailed look at the user's session timeline and properties.
+            A detailed look at the user&apos;s session timeline and properties.
           </SheetDescription>
         </SheetHeader>
         <Separator className='my-4' />
